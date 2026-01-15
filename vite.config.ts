@@ -10,5 +10,8 @@ export default defineConfig({
   ],
   server: {
     allowedHosts: ['devserver-main--puffmanagerpro.netlify.app']
+  },
+  build: {
+    chunkSizeWarningLimit: 2000
   }
 })
