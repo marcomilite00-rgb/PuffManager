@@ -8,4 +8,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    allowedHosts: ['devserver-main--puffmanagerpro.netlify.app']
+  }
 })
