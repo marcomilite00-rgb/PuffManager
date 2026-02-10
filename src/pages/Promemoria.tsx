@@ -8,7 +8,8 @@ import {
     User,
     CheckCircle2,
     Trash2,
-    ArrowLeft
+    ArrowLeft,
+    Package
 } from 'lucide-react';
 import { PaymentModal } from '../components/PaymentModal';
 
@@ -21,6 +22,15 @@ interface Reminder {
     created_by_staff_id: string;
     order?: {
         gross_total: number;
+        items: Array<{
+            id: string;
+            qty: number;
+            unit_price_final: number;
+            variant: {
+                model: { name: string };
+                flavor: { name: string };
+            };
+        }>;
     };
 }
 
@@ -52,7 +62,19 @@ export const Promemoria: React.FC = () => {
         try {
             const { data, error } = await supabase
                 .from('reminders')
-                .select('*, order:orders(gross_total)')
+                .select(`
+                    *,
+                    order:orders(
+                        gross_total,
+                        items:order_items(
+                            *,
+                            variant:product_variants(
+                                model:product_models(name),
+                                flavor:product_flavors(name)
+                            )
+                        )
+                    )
+                `)
                 .eq('status', 'active')
                 .order('created_at', { ascending: false });
 
@@ -180,15 +202,49 @@ export const Promemoria: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Customer & Description */}
+                                {/* Customer Details */}
                                 <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <User size={14} className="text-slate-500" />
-                                        <p className="font-bold text-lg text-slate-200">{reminder.customer_name || 'Cliente'}</p>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
+                                            <User size={14} />
+                                        </div>
+                                        <p className="font-bold text-lg text-slate-200 tracking-tight">{reminder.customer_name || 'Cliente'}</p>
                                     </div>
-                                    <p className="text-sm text-slate-400 leading-relaxed bg-black/20 p-3 rounded-xl border border-white/5">
-                                        {reminder.description}
-                                    </p>
+
+                                    {/* Items List (Visual transformation) */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 mb-2 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] px-1">
+                                            <Package size={12} />
+                                            DETTAGLIO ARTICOLI
+                                        </div>
+
+                                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {reminder.order?.items && reminder.order.items.length > 0 ? (
+                                                reminder.order.items.map((item) => (
+                                                    <div key={item.id} className="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                                                        <div className="flex-1">
+                                                            <p className="text-xs font-bold text-slate-200 line-clamp-1">{item.variant?.model?.name || 'Prodotto'}</p>
+                                                            <p className="text-[10px] text-slate-500 truncate">{item.variant?.flavor?.name || '-'}</p>
+                                                        </div>
+                                                        <div className="text-right ml-4">
+                                                            <p className="text-sm font-black text-primary">€{(item.unit_price_final * item.qty).toFixed(2)}</p>
+                                                            <p className="text-[9px] text-slate-600 font-bold uppercase">{item.qty} X €{item.unit_price_final.toFixed(2)}</p>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="p-3 bg-black/20 rounded-xl border border-white/5">
+                                                    <p className="text-xs text-slate-500 italic whitespace-pre-wrap">{reminder.description}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Total Transaction Bar */}
+                                        <div className="flex justify-between items-center p-3 bg-primary/5 rounded-xl border border-primary/10 mt-4">
+                                            <span className="text-[9px] font-black text-primary uppercase tracking-widest px-1">TOTALE TRANSAZIONE</span>
+                                            <span className="text-lg font-black text-primary">€{((reminder.order?.gross_total || 0) + reminder.amount_due).toFixed(2)}</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Actions */}

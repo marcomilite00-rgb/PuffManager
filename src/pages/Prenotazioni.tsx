@@ -262,55 +262,65 @@ export const Prenotazioni: React.FC = () => {
                                                             {editItem && editItem.itemId === item.id ? (
                                                                 <div className="flex items-center gap-3 bg-black/60 rounded-xl px-3 py-2 border border-primary/30">
                                                                     {/* Quantity Control */}
-                                                                    <div className="flex items-center gap-1 border-r border-white/10 pr-3">
+                                                                    <div className="flex items-center gap-2 border-r border-white/10 pr-3">
                                                                         <button
                                                                             onClick={() => setEditItem({ ...editItem, qty: Math.max(1, editItem.qty - 1) })}
                                                                             className="p-1 text-slate-400 hover:text-white"
                                                                         >
-                                                                            <Minus size={16} />
+                                                                            <Minus size={14} />
                                                                         </button>
-                                                                        <span className="w-8 text-center font-bold text-white">{editItem.qty}</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            value={editItem.qty}
+                                                                            onChange={(e) => {
+                                                                                const val = parseInt(e.target.value) || 1;
+                                                                                const currentStock = getAvailableQty(item.variant.id);
+                                                                                const maxAllowed = item.qty + currentStock;
+                                                                                setEditItem({ ...editItem, qty: Math.min(val, maxAllowed) });
+                                                                            }}
+                                                                            className="w-10 bg-transparent text-center font-bold text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        />
                                                                         <button
                                                                             onClick={() => {
                                                                                 const currentStock = getAvailableQty(item.variant.id);
-                                                                                // Max allowed is current item qty + available stock
                                                                                 const maxAllowed = item.qty + currentStock;
                                                                                 if (editItem.qty < maxAllowed) {
                                                                                     setEditItem({ ...editItem, qty: editItem.qty + 1 });
-                                                                                } else {
-                                                                                    alert(`Stock insufficiente! Disponibili: ${currentStock}`);
                                                                                 }
                                                                             }}
                                                                             className="p-1 text-slate-400 hover:text-white"
                                                                         >
-                                                                            <Plus size={16} />
+                                                                            <Plus size={14} />
                                                                         </button>
                                                                     </div>
 
                                                                     {/* Price Control */}
                                                                     <div className="flex items-center gap-1">
-                                                                        <span className="text-xs text-slate-500 font-bold">€</span>
+                                                                        <span className="text-[10px] text-slate-500 font-bold">€</span>
                                                                         <input
                                                                             type="number"
                                                                             step="0.01"
                                                                             value={editItem.price}
-                                                                            onChange={(e) => setEditItem({ ...editItem, price: parseFloat(e.target.value) })}
-                                                                            className="w-16 bg-transparent text-primary font-bold focus:outline-none text-right"
+                                                                            onChange={(e) => setEditItem({ ...editItem, price: parseFloat(e.target.value) || 0 })}
+                                                                            className="w-14 bg-transparent text-primary font-bold focus:outline-none text-right"
                                                                         />
                                                                     </div>
 
-                                                                    <button
-                                                                        onClick={() => handleUpdateQty(item.id, editItem.qty, editItem.price)}
-                                                                        className="ml-2 p-1.5 bg-primary text-black rounded-lg hover:bg-emerald-400 transition-colors"
-                                                                    >
-                                                                        <Save size={16} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => setEditItem(null)}
-                                                                        className="p-1.5 text-slate-500 hover:text-white"
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
+                                                                    <div className="flex items-center gap-1 ml-2 border-l border-white/10 pl-3">
+                                                                        <button
+                                                                            onClick={() => handleUpdateQty(item.id, editItem.qty, editItem.price)}
+                                                                            className="p-1.5 bg-primary text-black rounded-lg hover:bg-emerald-400 transition-colors"
+                                                                        >
+                                                                            <Save size={16} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setEditItem(null)}
+                                                                            className="p-1.5 text-slate-500 hover:text-white"
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             ) : (
                                                                 <div className="flex items-center gap-4">
@@ -522,7 +532,17 @@ export const Prenotazioni: React.FC = () => {
                                             >
                                                 <Minus size={16} />
                                             </button>
-                                            <span className="w-12 text-center font-bold text-xl">{addQty}</span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={addQty}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 1;
+                                                    const avail = getAvailableQty(selectedVariant.id);
+                                                    setAddQty(Math.min(val, avail));
+                                                }}
+                                                className="w-12 bg-transparent text-center font-bold text-xl focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
                                             <button
                                                 onClick={() => setAddQty(Math.min(getAvailableQty(selectedVariant.id), addQty + 1))}
                                                 className="p-2 bg-white/5 rounded-lg hover:bg-white/10"

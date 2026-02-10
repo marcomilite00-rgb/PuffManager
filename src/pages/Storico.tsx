@@ -152,20 +152,22 @@ export const Storico: React.FC = () => {
                                 "gap-3 grid grid-cols-1",
                                 items.length > 3 && "md:grid-cols-2"
                             )}>
-                                {items.map((item: any) => (
-                                    <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors break-inside-avoid mb-2">
-                                        <div className="flex-1">
-                                            <p className="font-bold text-slate-200">{item.variant?.model?.name}</p>
-                                            <p className="text-xs text-slate-500">{item.variant?.flavor?.name}</p>
+                                {items
+                                    .sort((a: any, b: any) => (a.variant?.model?.name || '').localeCompare(b.variant?.model?.name || ''))
+                                    .map((item: any) => (
+                                        <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/10 transition-colors break-inside-avoid mb-2">
+                                            <div className="flex-1">
+                                                <p className="font-bold text-slate-200">{item.variant?.model?.name}</p>
+                                                <p className="text-xs text-slate-500">{item.variant?.flavor?.name}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-black text-primary text-lg">€{(Number(item.unit_price_final) * item.qty).toFixed(2)}</p>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                                    {item.qty} x €{Number(item.unit_price_final).toFixed(2)}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-black text-primary text-lg">€{(Number(item.unit_price_final) * item.qty).toFixed(2)}</p>
-                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                {item.qty} x €{Number(item.unit_price_final).toFixed(2)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
 
                             <div className="flex justify-between items-center p-5 mt-4 bg-primary/5 rounded-2xl border border-primary/10">

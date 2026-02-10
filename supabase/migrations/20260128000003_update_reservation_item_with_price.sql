@@ -7,16 +7,23 @@ CREATE OR REPLACE FUNCTION update_reservation_item(
     p_new_price DECIMAL DEFAULT NULL
 ) RETURNS VOID AS $$
 DECLARE
-    v_old_qty INT;
-    v_variant_id UUID;
-    v_diff INT;
     v_available INT;
+    v_res_status TEXT;
+    v_res_id UUID;
 BEGIN
-    -- Get old qty and variant
-    SELECT qty, variant_id INTO v_old_qty, v_variant_id FROM reservation_items WHERE id = p_item_id;
+    -- Get old qty, variant and reservation status
+    SELECT ri.qty, ri.variant_id, r.status, r.id 
+    INTO v_old_qty, v_variant_id, v_res_status, v_res_id
+    FROM reservation_items ri
+    JOIN reservations r ON ri.reservation_id = r.id
+    WHERE ri.id = p_item_id;
     
     IF v_old_qty IS NULL THEN
         RAISE EXCEPTION 'Item non trovato.';
+    END IF;
+
+    IF v_res_status != 'RESERVED' THEN
+        RAISE EXCEPTION 'La prenotazione non è più attiva (Stato: %).', v_res_status;
     END IF;
 
     v_diff := p_new_qty - v_old_qty;
