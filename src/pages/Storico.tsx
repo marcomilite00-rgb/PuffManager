@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { safeNumber, formatEur } from '../lib/money';
 import {
     History,
     Search,
@@ -161,9 +162,9 @@ export const Storico: React.FC = () => {
                                                 <p className="text-xs text-slate-500">{item.variant?.flavor?.name}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="font-black text-primary text-lg">€{(Number(item.unit_price_final) * item.qty).toFixed(2)}</p>
+                                                <p className="font-black text-primary text-lg">€{formatEur(safeNumber(item.unit_price_final) * safeNumber(item.qty))}</p>
                                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                                    {item.qty} x €{Number(item.unit_price_final).toFixed(2)}
+                                                    {item.qty} x €{formatEur(item.unit_price_final)}
                                                 </p>
                                             </div>
                                         </div>
@@ -172,7 +173,7 @@ export const Storico: React.FC = () => {
 
                             <div className="flex justify-between items-center p-5 mt-4 bg-primary/5 rounded-2xl border border-primary/10">
                                 <span className="text-xs font-black text-primary uppercase tracking-[0.2em]">Totale Transazione</span>
-                                <span className="text-2xl font-black text-primary">€{Number(order.gross_total).toFixed(2)}</span>
+                                <span className="text-2xl font-black text-primary">€{formatEur(order.gross_total)}</span>
                             </div>
                         </div>
                     </div>

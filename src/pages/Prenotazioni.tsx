@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { safeNumber, toCents, fromCents } from '../lib/money';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../hooks/useRealtime';
 import type { Reservation } from '../types/database';
@@ -207,7 +208,7 @@ export const Prenotazioni: React.FC = () => {
                     reservations.map((res) => {
                         const isExpanded = expandedId === res.id;
                         const items = (res as any).items || [];
-                        const total = items.reduce((acc: number, curr: any) => acc + (curr.unit_price_final * curr.qty), 0);
+                        const total = fromCents(items.reduce((acc: number, curr: any) => acc + safeNumber(curr.qty) * toCents(curr.unit_price_final), 0));
 
                         return (
                             <div key={res.id} className="glass rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300">
@@ -405,7 +406,7 @@ export const Prenotazioni: React.FC = () => {
                                 <CheckCircle2 size={32} />
                             </div>
                             <h3 className="text-2xl font-black text-white">Conferma Pagamento</h3>
-                            <p className="text-slate-400 mt-2">Totale Ordine: <span className="text-emerald-400 font-bold">€{paymentData.total.toFixed(2)}</span></p>
+                            <p className="text-slate-400 mt-2">Totale Ordine: <span className="text-emerald-400 font-bold">€{safeNumber(paymentData.total).toFixed(2)}</span></p>
                         </div>
 
                         <div className="space-y-4">
@@ -416,7 +417,7 @@ export const Prenotazioni: React.FC = () => {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        placeholder={`Intero (€${paymentData.total.toFixed(2)})`}
+                                        placeholder={`Intero (€${safeNumber(paymentData.total).toFixed(2)})`}
                                         value={paymentAmount}
                                         onChange={(e) => setPaymentAmount(e.target.value)}
                                         className="w-full bg-black/20 border border-white/10 rounded-xl py-4 pl-8 pr-4 text-xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"

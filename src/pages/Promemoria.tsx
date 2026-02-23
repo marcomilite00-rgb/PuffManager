@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { safeNumber, formatEur } from '../lib/money';
 import { useAuth } from '../context/AuthContext';
 import {
     AlertCircle,
@@ -190,13 +191,13 @@ export const Promemoria: React.FC = () => {
                                         <div>
                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Prezzo Concordato</p>
                                             <h3 className="text-xl font-bold text-slate-300">
-                                                €{((reminder.order?.gross_total || 0) + reminder.amount_due).toFixed(2)}
+                                                €{formatEur(safeNumber(reminder.order?.gross_total) + safeNumber(reminder.amount_due))}
                                             </h3>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Rimanente</p>
                                             <h3 className="text-3xl font-black text-white">
-                                                €{reminder.amount_due.toFixed(2)}
+                                                €{formatEur(reminder.amount_due)}
                                             </h3>
                                         </div>
                                     </div>
@@ -227,8 +228,8 @@ export const Promemoria: React.FC = () => {
                                                             <p className="text-[10px] text-slate-500 truncate">{item.variant?.flavor?.name || '-'}</p>
                                                         </div>
                                                         <div className="text-right ml-4">
-                                                            <p className="text-sm font-black text-primary">€{(item.unit_price_final * item.qty).toFixed(2)}</p>
-                                                            <p className="text-[9px] text-slate-600 font-bold uppercase">{item.qty} X €{item.unit_price_final.toFixed(2)}</p>
+                                                            <p className="text-sm font-black text-primary">€{formatEur(safeNumber(item.unit_price_final) * safeNumber(item.qty))}</p>
+                                                            <p className="text-[9px] text-slate-600 font-bold uppercase">{item.qty} X €{formatEur(item.unit_price_final)}</p>
                                                         </div>
                                                     </div>
                                                 ))

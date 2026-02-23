@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { toCents, fromCents, safeNumber } from '../lib/money';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../hooks/useRealtime';
 import type { ProductVariant, Inventory } from '../types/database';
@@ -113,7 +114,7 @@ export const Vendita: React.FC = () => {
         setCart(cart.map(c => c.id === id ? { ...c, price_final: price } : c));
     };
 
-    const cartTotal = cart.reduce((acc, curr) => acc + (curr.price_final * curr.qty), 0);
+    const cartTotal = fromCents(cart.reduce((acc, curr) => acc + safeNumber(curr.qty) * toCents(curr.price_final), 0));
 
     const handleIncassaClick = () => {
         if (cart.length === 0) return;

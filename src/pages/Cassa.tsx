@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { safeNumber } from '../lib/money';
 import type { Order, Staff } from '../types/database';
 import {
     TrendingUp,
@@ -62,64 +63,67 @@ export const Cassa: React.FC = () => {
         setLoading(false);
     };
 
-    const sessionOrders = useMemo(() => {
-        if (!settings?.last_reset_date) return orders;
-        return orders.filter(o => new Date(o.created_at) > new Date(settings.last_reset_date));
+    // Session payments: filter individual payments by their created_at,
+    // matching the closing RPC logic (which filters payments.created_at >= last_reset_date).
+    // This correctly counts reminder payments made this session even if the
+    // original order was from a prior session.
+    const sessionPayments = useMemo(() => {
+        const resetDate = settings?.last_reset_date ? new Date(settings.last_reset_date) : null;
+        const all: { amount: number; staffId: string }[] = [];
+        orders.forEach(order => {
+            ((order as any).payments || []).forEach((p: any) => {
+                const pDate = new Date(p.created_at);
+                if (!resetDate || pDate >= resetDate) {
+                    all.push({ amount: safeNumber(p.amount), staffId: order.sold_by_staff_id });
+                }
+            });
+        });
+        return all;
     }, [orders, settings]);
 
     const totals = useMemo(() => {
-        // Source of truth: Total consolidated payments
-        const gross = sessionOrders.reduce((acc, curr) => {
-            const paymentsTotal = (curr as any).payments?.reduce((pAcc: number, p: any) => pAcc + Number(p.amount), 0) || 0;
-            return acc + paymentsTotal;
-        }, 0);
+        const gross = sessionPayments.reduce((acc, p) => acc + p.amount, 0);
 
-        const spentTotal = settings ? Number(settings.money_spent_total) : 0;
+        const spentTotal = safeNumber(settings?.money_spent_total);
 
-        // Calculate Reinvestment for THIS session
         let reinvestmentAmount = 0;
         if (settings) {
             if (settings.reinvest_mode === 'percentage') {
-                reinvestmentAmount = (gross * Number(settings.reinvest_value)) / 100;
+                reinvestmentAmount = (gross * safeNumber(settings.reinvest_value)) / 100;
             } else {
-                reinvestmentAmount = Number(settings.reinvest_value);
+                reinvestmentAmount = safeNumber(settings.reinvest_value);
             }
         }
 
-        // Net = Incasso Lordo - Reinvestimento
         const net = gross - reinvestmentAmount;
 
         return { gross, spent: spentTotal, net, reinvestment: reinvestmentAmount };
-    }, [sessionOrders, settings]);
+    }, [sessionPayments, settings]);
 
     const staffEarnings = useMemo(() => {
         const earnings: { [key: string]: { gross: number, net: number } } = {};
         staff.forEach(s => earnings[s.id] = { gross: 0, net: 0 });
 
-        // Prima calcola il lordo per ogni staff
-        sessionOrders.forEach(order => {
-            if (earnings[order.sold_by_staff_id] !== undefined) {
-                const totalPaid = (order as any).payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-                earnings[order.sold_by_staff_id].gross += totalPaid;
+        // Sum payments per staff member from session payments
+        sessionPayments.forEach(p => {
+            if (earnings[p.staffId] !== undefined) {
+                earnings[p.staffId].gross += p.amount;
             }
         });
 
         const totalGross = Object.values(earnings).reduce((a, b) => a + b.gross, 0);
 
-        // Calcola il reinvestimento
         let reinvestmentAmount = 0;
         if (settings) {
             if (settings.reinvest_mode === 'percentage') {
-                reinvestmentAmount = (totalGross * Number(settings.reinvest_value)) / 100;
+                reinvestmentAmount = (totalGross * safeNumber(settings.reinvest_value)) / 100;
             } else {
-                reinvestmentAmount = Number(settings.reinvest_value);
+                reinvestmentAmount = safeNumber(settings.reinvest_value);
             }
         }
 
-        // Netto totale = Lordo - Reinvestimento
         const totalNet = totalGross - reinvestmentAmount;
 
-        // Distribuisci il netto proporzionalmente al lordo di ogni staff
         return staff.map(s => {
             const staffPercent = totalGross > 0 ? earnings[s.id].gross / totalGross : 0;
             return {
@@ -129,7 +133,7 @@ export const Cassa: React.FC = () => {
                 percent: staffPercent * 100
             };
         }).sort((a, b) => b.gross - a.gross);
-    }, [sessionOrders, staff, settings]);
+    }, [sessionPayments, staff, settings]);
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
