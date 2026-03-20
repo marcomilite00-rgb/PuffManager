@@ -214,49 +214,50 @@ export const Prenotazioni: React.FC = () => {
                             <div key={res.id} className="glass rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-300">
                                 <div
                                     onClick={() => setExpandedId(isExpanded ? null : res.id)}
-                                    className="p-6 flex items-center justify-between cursor-pointer hover:bg-white/5"
+                                    className="p-5 sm:p-6 cursor-pointer hover:bg-white/5 transition-colors"
                                 >
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                                                <Calendar size={24} />
+                                    {/* Header: Customer name + Total */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-[#00E5FF]/10 flex items-center justify-center text-[#00E5FF]">
+                                                <User size={20} />
                                             </div>
-                                            <div>
-                                                <p className="font-black text-xl">€{total.toFixed(2)}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <User size={12} className="text-slate-500" />
-                                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-widest truncate max-w-[200px]">
-                                                        {res.customer_name || 'Generic'} {(res as any).staff?.name ? `(${(res as any).staff.name})` : ''}
-                                                    </span>
-                                                </div>
-                                            </div>
+                                            <p className="text-lg font-black text-white truncate max-w-[200px]">
+                                                {res.customer_name || 'Generic'}
+                                            </p>
                                         </div>
-
-                                        <div className="flex items-center gap-4 text-xs text-slate-500">
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/5">
-                                                <Clock size={14} className="text-primary" />
-                                                {new Date(res.created_at).toLocaleDateString('it-IT')} {new Date(res.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                            <div className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-black tracking-tighter uppercase">
-                                                {items.length} Articoli
-                                            </div>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-xl font-black text-[#00E5FF]">€{total.toFixed(2)}</p>
+                                            {isExpanded ? <ChevronUp size={22} className="text-slate-500" /> : <ChevronDown size={22} className="text-slate-500" />}
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-3">
-                                        {isExpanded ? <ChevronUp size={24} className="text-slate-500" /> : <ChevronDown size={24} className="text-slate-500" />}
+                                    {/* Subheader: Date/Time + N Articoli badge + Staff */}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/5 text-[10px] text-slate-400 font-bold">
+                                            <Clock size={12} className="text-[#00E5FF]" />
+                                            {new Date(res.created_at).toLocaleDateString('it-IT')} • {new Date(res.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                        <div className="px-3 py-1 rounded-full bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/20 text-[10px] font-black uppercase">
+                                            {items.length} Articoli
+                                        </div>
+                                        {(res as any).staff?.name && (
+                                            <div className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[10px] text-slate-500 font-bold">
+                                                BY: <span className="text-slate-300">{(res as any).staff.name}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
                                 {isExpanded && (
                                     <div className="p-6 bg-black/40 border-t border-white/5 animate-in slide-in-from-top-2 duration-300">
                                         <div className="space-y-6">
-                                            <div className="grid grid-cols-1 gap-3">
+                                            <div className="grid grid-cols-1 gap-0 divide-y divide-white/5">
                                                 {items.map((item: any) => (
-                                                    <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                                                    <div key={item.id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
                                                         <div className="flex-1">
                                                             <p className="font-bold text-slate-200">{item.variant.model.name}</p>
-                                                            <p className="text-xs text-slate-500">{item.variant.flavor.name}</p>
+                                                            <p className="text-xs text-slate-400 italic">{item.variant.flavor.name}</p>
                                                         </div>
 
                                                         <div className="flex items-center gap-6">
@@ -352,34 +353,37 @@ export const Prenotazioni: React.FC = () => {
                                             {/* Add Item Button */}
                                             <button
                                                 onClick={() => openAddItemModal(res.id)}
-                                                className="w-full py-3 mt-2 bg-primary/10 text-primary rounded-2xl border border-primary/20 hover:bg-primary/20 transition-all font-bold flex items-center justify-center gap-2"
+                                                className="w-full min-h-[48px] py-3 mt-2 bg-[#00E5FF] text-black rounded-xl hover:opacity-90 active:scale-[0.97] transition-all font-black flex items-center justify-center gap-2 text-sm"
                                             >
                                                 <Plus size={18} />
                                                 AGGIUNGI ARTICOLO
                                             </button>
 
-                                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-white/5">
+                                            {/* Sell Button */}
+                                            <button
+                                                onClick={() => handleVendutoClick(res.id, total)}
+                                                disabled={actionLoading === res.id}
+                                                className="w-full min-h-[48px] flex items-center justify-center gap-2 py-3 bg-emerald-500 text-black rounded-xl hover:bg-emerald-600 active:scale-[0.97] transition-all font-black shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50 text-sm"
+                                            >
+                                                {actionLoading === res.id ? (
+                                                    <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle2 size={20} />
+                                                        SEGNA COME VENDUTO
+                                                    </>
+                                                )}
+                                            </button>
+
+                                            {/* Annulla Button — separated at bottom */}
+                                            <div className="pt-4 border-t border-white/5">
                                                 <button
                                                     onClick={() => handleAnnulla(res.id)}
                                                     disabled={actionLoading === res.id}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-4 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/10 hover:bg-red-500/20 transition-all font-bold disabled:opacity-50"
+                                                    className="w-full min-h-[48px] flex items-center justify-center gap-2 py-3 bg-[#FF4444] text-white rounded-xl hover:opacity-90 active:scale-[0.97] transition-all font-bold disabled:opacity-50 text-sm"
                                                 >
-                                                    <XCircle size={20} />
+                                                    <XCircle size={18} />
                                                     ANNULLA PRENOTAZIONE
-                                                </button>
-                                                <button
-                                                    onClick={() => handleVendutoClick(res.id, total)}
-                                                    disabled={actionLoading === res.id}
-                                                    className="flex-1 flex items-center justify-center gap-2 py-4 bg-emerald-500 text-black rounded-2xl hover:bg-emerald-600 transition-all font-black shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50"
-                                                >
-                                                    {actionLoading === res.id ? (
-                                                        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                                                    ) : (
-                                                        <>
-                                                            <CheckCircle2 size={24} />
-                                                            SEGNA COME VENDUTO
-                                                        </>
-                                                    )}
                                                 </button>
                                             </div>
                                         </div>

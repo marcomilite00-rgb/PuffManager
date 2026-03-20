@@ -408,37 +408,38 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         ) : (
                             /* Profile List */
                             <>
-                                <div className="space-y-2">
+                                <div className={staffList.length > 6 ? "grid grid-cols-2 gap-2" : "space-y-2"}>
                                     {staffList.map((staff) => (
                                         <button
                                             key={staff.id}
                                             onClick={() => handleProfileSelect(staff)}
                                             className={clsx(
-                                                "w-full flex items-center gap-4 p-4 rounded-2xl border transition-all active:scale-[0.98]",
+                                                `w-full flex items-center gap-3 rounded-xl border transition-all active:scale-[0.98]`,
+                                                staffList.length > 6 ? 'p-3 h-16' : 'p-3 h-16',
                                                 staff.name === user.name
-                                                    ? "bg-primary/10 border-primary/30 text-primary"
+                                                    ? "bg-[#00E5FF]/10 border-[#00E5FF]/40 text-[#00E5FF]"
                                                     : "bg-white/5 border-white/5 hover:bg-white/10"
                                             )}
                                         >
                                             <div className={clsx(
-                                                "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg",
-                                                staff.name === user.name ? "bg-primary/20 text-primary" : "bg-slate-800 text-slate-400"
+                                                "w-10 h-10 rounded-xl flex items-center justify-center font-black text-base shrink-0",
+                                                staff.name === user.name ? "bg-[#00E5FF]/20 text-[#00E5FF]" : "bg-slate-800 text-slate-400"
                                             )}>
                                                 {staff.name[0]}
                                             </div>
-                                            <div className="flex-1 text-left">
-                                                <p className="font-bold text-base">{staff.name}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">{staff.role}</span>
+                                            <div className="flex-1 text-left overflow-hidden">
+                                                <p className="font-bold text-sm truncate">{staff.name}</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[9px] text-slate-500 uppercase tracking-widest">{staff.role}</span>
                                                     {staff.has_pin && (
-                                                        <span className="flex items-center gap-1 text-[9px] text-slate-600">
-                                                            <Lock size={10} /> PIN
+                                                        <span className="flex items-center gap-1 text-[8px] text-slate-600">
+                                                            <Lock size={9} /> PIN
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
                                             {staff.name === user.name && (
-                                                <span className="text-[10px] text-primary font-bold uppercase">Attivo</span>
+                                                <span className="text-[9px] text-[#00E5FF] font-black uppercase shrink-0">Attivo</span>
                                             )}
                                         </button>
                                     ))}

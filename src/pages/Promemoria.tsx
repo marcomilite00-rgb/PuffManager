@@ -187,16 +187,16 @@ export const Promemoria: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4 bg-white/5 rounded-2xl p-4">
                                         <div>
                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Prezzo Concordato</p>
-                                            <h3 className="text-xl font-bold text-slate-300">
+                                            <h3 className="text-[28px] font-bold text-white leading-tight">
                                                 €{formatEur(safeNumber(reminder.order?.gross_total) + safeNumber(reminder.amount_due))}
                                             </h3>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Rimanente</p>
-                                            <h3 className="text-3xl font-black text-white">
+                                            <h3 className={`text-[28px] font-black leading-tight ${safeNumber(reminder.amount_due) > 0 ? 'text-[#FF4444]' : 'text-[#00E676]'}`}>
                                                 €{formatEur(reminder.amount_due)}
                                             </h3>
                                         </div>
@@ -225,7 +225,7 @@ export const Promemoria: React.FC = () => {
                                                     <div key={item.id} className="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                                                         <div className="flex-1">
                                                             <p className="text-xs font-bold text-slate-200 line-clamp-1">{item.variant?.model?.name || 'Prodotto'}</p>
-                                                            <p className="text-[10px] text-slate-500 truncate">{item.variant?.flavor?.name || '-'}</p>
+                                                            <p className="text-[10px] text-slate-400 truncate italic">{item.variant?.flavor?.name || '-'}</p>
                                                         </div>
                                                         <div className="text-right ml-4">
                                                             <p className="text-sm font-black text-primary">€{formatEur(safeNumber(item.unit_price_final) * safeNumber(item.qty))}</p>

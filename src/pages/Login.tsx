@@ -90,23 +90,23 @@ export const Login: React.FC = () => {
                         <p className="text-slate-500 font-black uppercase tracking-widest text-[9px] sm:text-[10px]">Seleziona il tuo profilo</p>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className={staffList.length > 6 ? "grid grid-cols-2 gap-2" : "space-y-2"}>
                         {staffList.map((staff) => (
                             <button
                                 key={staff.id}
                                 onClick={() => setSelectedStaff(staff)}
-                                className="w-full flex items-center justify-between p-4 md:p-5 glass rounded-2xl md:rounded-3xl hover:bg-white/10 transition-all border border-white/5 hover:border-primary/20 group active:scale-[0.98]"
+                                className={`w-full flex items-center justify-between ${staffList.length > 6 ? 'p-3' : 'p-3 sm:p-4'} glass rounded-xl sm:rounded-2xl hover:bg-white/10 transition-all border hover:border-primary/20 group active:scale-[0.98] ${staffList.length > 6 ? 'h-16' : 'h-16 md:h-auto md:p-5'} border-white/5`}
                             >
-                                <div className="flex items-center gap-3 sm:gap-4">
-                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
-                                        <UserIcon className="w-5 h-5 md:w-6 md:h-6" />
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className={`${staffList.length > 6 ? 'w-9 h-9 rounded-lg' : 'w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl'} bg-slate-900 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors shrink-0`}>
+                                        <UserIcon className="w-4 h-4 md:w-5 md:h-5" />
                                     </div>
-                                    <div className="text-left">
-                                        <p className="text-base md:text-lg font-black group-hover:text-white transition-colors uppercase tracking-tight">{staff.name}</p>
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-slate-500 group-hover:text-primary/70 transition-colors">{staff.role}</p>
+                                    <div className="text-left overflow-hidden">
+                                        <p className={`${staffList.length > 6 ? 'text-sm' : 'text-sm md:text-base'} font-black group-hover:text-white transition-colors uppercase tracking-tight truncate`}>{staff.name}</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="text-[8px] md:text-[9px] uppercase font-black tracking-widest text-slate-500 group-hover:text-primary/70 transition-colors">{staff.role}</p>
                                             {staff.has_pin && (
-                                                <span className="text-[8px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-bold uppercase tracking-wide">PIN</span>
+                                                <span className="text-[7px] md:text-[8px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-bold uppercase tracking-wide">PIN</span>
                                             )}
                                         </div>
                                     </div>

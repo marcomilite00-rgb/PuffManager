@@ -40,7 +40,8 @@ export const Storico: React.FC = () => {
                     *,
                     variant:product_variants(
                         model:product_models(name),
-                        flavor:product_flavors(name)
+                        flavor:product_flavors(name),
+                        unit_cost
                     )
                 ),
                 staff:staff(name)
@@ -87,6 +88,37 @@ export const Storico: React.FC = () => {
         (order.customer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (order.staff?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
+
+    // Staff search summary: when search matches staff, show aggregate stats
+    const staffSearchSummary = useMemo(() => {
+        if (!searchTerm || searchTerm.length < 2) return null;
+
+        const term = searchTerm.toLowerCase();
+        const matchingStaffOrders = splitOrders.current.filter((o: any) =>
+            (o.staff?.name?.toLowerCase() || '').includes(term)
+        );
+
+        if (matchingStaffOrders.length === 0) return null;
+
+        // Find the matched staff name
+        const staffName = matchingStaffOrders[0]?.staff?.name || searchTerm;
+
+        const totalGross = matchingStaffOrders.reduce((acc: number, o: any) => acc + safeNumber(o.gross_total), 0);
+        const totalCost = matchingStaffOrders.reduce((acc: number, o: any) => {
+            const items = o.items || [];
+            return acc + items.reduce((itemAcc: number, item: any) => {
+                return itemAcc + safeNumber(item.qty) * safeNumber(item.variant?.unit_cost);
+            }, 0);
+        }, 0);
+        const totalNet = totalGross - totalCost;
+
+        return {
+            staffName,
+            totalGross,
+            totalNet,
+            orderCount: matchingStaffOrders.length
+        };
+    }, [searchTerm, splitOrders]);
 
     const OrderCard = ({ order }: { order: any }) => {
         const isExpanded = expandedId === order.id;
@@ -175,6 +207,20 @@ export const Storico: React.FC = () => {
                                 <span className="text-xs font-black text-primary uppercase tracking-[0.2em]">Totale Transazione</span>
                                 <span className="text-2xl font-black text-primary">€{formatEur(order.gross_total)}</span>
                             </div>
+
+                            {/* Average Unit Price */}
+                            {(() => {
+                                const totalQty = items.reduce((acc: number, item: any) => acc + safeNumber(item.qty), 0);
+                                const avgPrice = order.avg_unit_price != null
+                                    ? safeNumber(order.avg_unit_price)
+                                    : totalQty > 0 ? safeNumber(order.gross_total) / totalQty : 0;
+                                return avgPrice > 0 ? (
+                                    <div className="flex justify-between items-center px-5 py-3 mt-2 bg-white/5 rounded-xl border border-white/5">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Prezzo medio/pz</span>
+                                        <span className="text-sm font-black text-slate-300">€{avgPrice.toFixed(2)}</span>
+                                    </div>
+                                ) : null;
+                            })()}
                         </div>
                     </div>
                 )}
@@ -243,6 +289,31 @@ export const Storico: React.FC = () => {
                 </div>
             )
             }
+
+            {/* Staff Search Summary Card */}
+            {staffSearchSummary && (
+                <div className="glass rounded-[2rem] p-6 border border-[#00E5FF]/20 bg-[#00E5FF]/5 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#00E5FF]/10 flex items-center justify-center text-[#00E5FF]">
+                            <User size={20} />
+                        </div>
+                        <div>
+                            <p className="text-lg font-black text-white">{staffSearchSummary.staffName}</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{staffSearchSummary.orderCount} ordini completati</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Lordo</p>
+                            <p className="text-xl font-black text-emerald-400">€{staffSearchSummary.totalGross.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white/5 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Netto</p>
+                            <p className={`text-xl font-black ${staffSearchSummary.totalNet >= 0 ? 'text-[#00E676]' : 'text-[#FF4444]'}`}>€{staffSearchSummary.totalNet.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4">
                 {filteredOrders.length > 0 ? (

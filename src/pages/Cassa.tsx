@@ -40,7 +40,7 @@ export const Cassa: React.FC = () => {
         const [ordersRes, staffRes, settingsRes, remindersRes] = await Promise.all([
             supabase
                 .from('orders')
-                .select('*, payments(*), items:order_items(*)'),
+                .select('*, payments(*), items:order_items(*, variant:product_variants(unit_cost))'),
             supabase
                 .from('staff')
                 .select('*'),
@@ -101,39 +101,55 @@ export const Cassa: React.FC = () => {
     }, [sessionPayments, settings]);
 
     const staffEarnings = useMemo(() => {
-        const earnings: { [key: string]: { gross: number, net: number } } = {};
-        staff.forEach(s => earnings[s.id] = { gross: 0, net: 0 });
+        const earnings: { [key: string]: { gross: number, cost: number } } = {};
+        staff.forEach(s => earnings[s.id] = { gross: 0, cost: 0 });
 
-        // Sum payments per staff member from session payments
-        sessionPayments.forEach(p => {
-            if (earnings[p.staffId] !== undefined) {
-                earnings[p.staffId].gross += p.amount;
+        const resetDate = settings?.last_reset_date ? new Date(settings.last_reset_date) : null;
+
+        // Sum payments and costs per staff member from session
+        orders.forEach(order => {
+            const staffId = order.sold_by_staff_id;
+            if (earnings[staffId] === undefined) return;
+
+            // Sum session payments for this order
+            let orderSessionGross = 0;
+            ((order as any).payments || []).forEach((p: any) => {
+                const pDate = new Date(p.created_at);
+                if (!resetDate || pDate >= resetDate) {
+                    orderSessionGross += safeNumber(p.amount);
+                }
+            });
+
+            if (orderSessionGross > 0) {
+                earnings[staffId].gross += orderSessionGross;
+
+                // Calculate real cost from items (unit_cost × qty)
+                const orderItems = (order as any).items || [];
+                const orderCost = orderItems.reduce((acc: number, item: any) => {
+                    return acc + safeNumber(item.qty) * safeNumber(item.variant?.unit_cost);
+                }, 0);
+
+                // Proportional cost: if partial payment, take cost proportionally
+                const orderGrossTotal = safeNumber(order.gross_total);
+                const costProportion = orderGrossTotal > 0 ? orderSessionGross / orderGrossTotal : 1;
+                earnings[staffId].cost += orderCost * costProportion;
             }
         });
 
-        const totalGross = Object.values(earnings).reduce((a, b) => a + b.gross, 0);
-
-        let reinvestmentAmount = 0;
-        if (settings) {
-            if (settings.reinvest_mode === 'percentage') {
-                reinvestmentAmount = (totalGross * safeNumber(settings.reinvest_value)) / 100;
-            } else {
-                reinvestmentAmount = safeNumber(settings.reinvest_value);
-            }
-        }
-
-        const totalNet = totalGross - reinvestmentAmount;
+        const totalNet = Object.values(earnings).reduce((a, b) => a + (b.gross - b.cost), 0);
+        const absTotalNet = Math.abs(totalNet);
 
         return staff.map(s => {
-            const staffPercent = totalGross > 0 ? earnings[s.id].gross / totalGross : 0;
+            const net = earnings[s.id].gross - earnings[s.id].cost;
+            const percent = absTotalNet > 0 ? (net / absTotalNet) * 100 : 0;
             return {
                 ...s,
                 gross: earnings[s.id].gross,
-                net: totalNet * staffPercent,
-                percent: staffPercent * 100
+                net,
+                percent
             };
         }).sort((a, b) => b.gross - a.gross);
-    }, [sessionPayments, staff, settings]);
+    }, [orders, staff, settings]);
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -229,11 +245,11 @@ export const Cassa: React.FC = () => {
                                             </td>
                                             <td className="px-4 md:px-6 py-4 md:py-5 text-center">
                                                 <div className="inline-flex flex-col items-center">
-                                                    <span className="text-lg md:text-xl font-black text-primary">€{s.net.toFixed(0)}</span>
+                                                    <span className={`text-lg md:text-xl font-black ${s.net >= 0 ? 'text-[#00E676]' : 'text-[#FF4444]'}`}>€{s.net.toFixed(0)}</span>
                                                     <div className="w-12 md:w-16 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
                                                         <div
-                                                            className="h-full bg-primary"
-                                                            style={{ width: `${s.gross > 0 ? (s.net / s.gross) * 100 : 0}%` }}
+                                                            className={`h-full ${s.net >= 0 ? 'bg-[#00E676]' : 'bg-[#FF4444]'}`}
+                                                            style={{ width: `${s.gross > 0 ? Math.min(Math.abs(s.net / s.gross) * 100, 100) : 0}%` }}
                                                         ></div>
                                                     </div>
                                                 </div>
@@ -253,7 +269,7 @@ export const Cassa: React.FC = () => {
                                             <span className="text-base md:text-lg font-black text-emerald-400">€{totals.gross.toFixed(0)}</span>
                                         </td>
                                         <td className="px-4 md:px-6 py-4 md:py-5 text-center">
-                                            <span className="text-lg md:text-xl font-black text-primary">€{staffEarnings.reduce((acc, s) => acc + s.net, 0).toFixed(0)}</span>
+                                            <span className={`text-lg md:text-xl font-black ${staffEarnings.reduce((acc, s) => acc + s.net, 0) >= 0 ? 'text-[#00E676]' : 'text-[#FF4444]'}`}>€{staffEarnings.reduce((acc, s) => acc + s.net, 0).toFixed(0)}</span>
                                         </td>
                                         <td className="px-4 md:px-6 py-4 md:py-5 text-right">
                                             <span className="text-xs md:text-sm font-black text-slate-400 font-mono">100%</span>
@@ -266,7 +282,7 @@ export const Cassa: React.FC = () => {
                         <div className="p-4 md:p-6 border-t border-white/5 bg-white/5">
                             <div className="flex items-center gap-3 text-[10px] md:text-sm text-slate-500">
                                 <PieChart size={16} className="text-primary shrink-0" />
-                                <p className="leading-tight">Il netto è la differenza tra il prezzo di vendita e il costo stock attuale (dal menu Admin).</p>
+                                <p className="leading-tight">Il netto è calcolato come vendite lorde meno il costo reale degli articoli venduti (unit_cost dal database).</p>
                             </div>
                         </div>
                     </div>
