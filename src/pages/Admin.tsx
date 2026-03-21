@@ -29,7 +29,7 @@ export const Admin: React.FC = () => {
     const [models, setModels] = useState<any[]>([]);
     const [flavors, setFlavors] = useState<any[]>([]);
     const [settings, setSettings] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const [, setLoading] = useState(true);
 
     const [newModel, setNewModel] = useState('');
     const [newFlavor, setNewFlavor] = useState('');
@@ -49,7 +49,7 @@ export const Admin: React.FC = () => {
     const [closingPreview, setClosingPreview] = useState<{ gross_total: number } | null>(null);
     const [closingSoldiSpesi, setClosingSoldiSpesi] = useState('');
     const [closingPezziComprati, setClosingPezziComprati] = useState('');
-    const [closingLoading, setClosingLoading] = useState(false);
+    const [, setClosingLoading] = useState(false);
 
     const isAdmin = user?.role === 'admin';
 

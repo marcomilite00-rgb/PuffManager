@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, User as UserIcon, Delete, X, ArrowLeft } from 'lucide-react';
+import { LogIn, Delete, X, ArrowLeft } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface StaffForLogin {

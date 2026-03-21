@@ -7,10 +7,6 @@ import {
     Search,
     Copy,
     Check,
-    ArrowUpDown,
-    Filter,
-    Eye,
-    EyeOff,
     RefreshCw,
     AlertCircle
 } from 'lucide-react';
@@ -34,9 +30,9 @@ export const Inventario: React.FC = () => {
     const [inventory, setInventory] = useState<Inventory[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [sortBy, setSortBy] = useState<SortOption>('name');
+    const [sortBy] = useState<SortOption>('name');
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-    const [showOnlyInStock, setShowOnlyInStock] = useState(false);
+    const [showOnlyInStock] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
 
     const STOCK_THRESHOLD = 3;
