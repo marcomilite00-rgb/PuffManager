@@ -26,9 +26,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to={redirectTo} replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // If helper, they usually only have access to Vendita/Inventario/Prenotazioni
-        // Let's redirect to Vendita if they try to access something else
+    if (allowedRoles && !allowedRoles.includes(user.role.toLowerCase() as StaffRole)) {
         return <Navigate to="/vendita" replace />;
     }
 

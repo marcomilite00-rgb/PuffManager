@@ -48,4 +48,5 @@ export interface Order {
     customer_name: string | null;
     gross_total: number;
     status: OrderStatus;
+    is_archived?: boolean;
 }

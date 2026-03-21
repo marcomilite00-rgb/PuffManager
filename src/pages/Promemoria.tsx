@@ -161,10 +161,12 @@ export const Promemoria: React.FC = () => {
     );
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Promemoria</h1>
-                <p className="text-slate-400">Pagamenti in sospeso e note</p>
+        <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+            <div className="flex flex-col gap-1 px-1">
+                <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+                    Promemoria
+                </h1>
+                <p className="label-caps text-[10px] md:text-xs text-slate-500">Pagamenti in sospeso e note importanti</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -172,31 +174,31 @@ export const Promemoria: React.FC = () => {
                     reminders.map((reminder) => (
                         <div
                             key={reminder.id}
-                            className="glass p-6 rounded-[2rem] border border-red-500/20 relative group overflow-hidden hover:border-red-500/50 transition-all"
+                            className="glass-card p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-red-500/20 relative group overflow-hidden hover:border-red-500/50 transition-all"
                         >
-                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform duration-500">
-                                <AlertCircle size={120} className="text-red-500" />
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+                                <AlertCircle size={80} className="text-red-500" />
                             </div>
 
-                            <div className="relative z-10 space-y-4">
+                            <div className="relative z-10 space-y-3 md:space-y-4">
                                 {/* Header with Totals */}
-                                <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-3">
                                     <div className="flex justify-between items-start">
-                                        <div className="p-3 bg-red-500/10 text-red-400 rounded-full">
-                                            <AlertCircle size={24} />
+                                        <div className="p-2 bg-red-500/10 text-red-400 rounded-full">
+                                            <AlertCircle size={18} />
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 bg-white/5 rounded-2xl p-4">
+                                    <div className="grid grid-cols-2 gap-3 bg-white/5 rounded-xl p-3 md:p-4">
                                         <div>
-                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Prezzo Concordato</p>
-                                            <h3 className="text-[28px] font-bold text-white leading-tight">
+                                            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">TOTALE</p>
+                                            <h3 className="text-xl md:text-2xl font-black text-white leading-tight italic tracking-tighter">
                                                 €{formatEur(safeNumber(reminder.order?.gross_total) + safeNumber(reminder.amount_due))}
                                             </h3>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Rimanente</p>
-                                            <h3 className={`text-[28px] font-black leading-tight ${safeNumber(reminder.amount_due) > 0 ? 'text-[#FF4444]' : 'text-[#00E676]'}`}>
+                                        <div className="text-right border-l border-white/5 pl-3">
+                                            <p className="text-[8px] font-bold text-red-400 uppercase tracking-widest mb-0.5">RESTANTE</p>
+                                            <h3 className={`text-xl md:text-2xl font-black leading-tight italic tracking-tighter ${safeNumber(reminder.amount_due) > 0 ? 'text-[#FF4444]' : 'text-[#00E676]'}`}>
                                                 €{formatEur(reminder.amount_due)}
                                             </h3>
                                         </div>
@@ -205,31 +207,31 @@ export const Promemoria: React.FC = () => {
 
                                 {/* Customer Details */}
                                 <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
-                                            <User size={14} />
+                                    <div className="flex items-center gap-2 mb-2 px-1">
+                                        <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
+                                            <User size={12} />
                                         </div>
-                                        <p className="font-bold text-lg text-slate-200 tracking-tight">{reminder.customer_name || 'Cliente'}</p>
+                                        <p className="font-black text-sm text-slate-200 tracking-tight uppercase italic">{reminder.customer_name || 'Cliente'}</p>
                                     </div>
 
                                     {/* Items List (Visual transformation) */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2 mb-2 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] px-1">
-                                            <Package size={12} />
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-slate-600 text-[8px] font-black uppercase tracking-[0.2em] px-1">
+                                            <Package size={10} />
                                             DETTAGLIO ARTICOLI
                                         </div>
 
-                                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                                        <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
                                             {reminder.order?.items && reminder.order.items.length > 0 ? (
                                                 reminder.order.items.map((item) => (
-                                                    <div key={item.id} className="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                                        <div className="flex-1">
-                                                            <p className="text-xs font-bold text-slate-200 line-clamp-1">{item.variant?.model?.name || 'Prodotto'}</p>
-                                                            <p className="text-[10px] text-slate-400 truncate italic">{item.variant?.flavor?.name || '-'}</p>
+                                                    <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-black/20 rounded-xl border border-white/5">
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[11px] font-bold text-slate-300 truncate leading-tight uppercase">{item.variant?.model?.name || 'Prodotto'}</p>
+                                                            <p className="text-[9px] text-slate-500 truncate italic leading-tight">{item.variant?.flavor?.name || '-'}</p>
                                                         </div>
-                                                        <div className="text-right ml-4">
-                                                            <p className="text-sm font-black text-primary">€{formatEur(safeNumber(item.unit_price_final) * safeNumber(item.qty))}</p>
-                                                            <p className="text-[9px] text-slate-600 font-bold uppercase">{item.qty} X €{formatEur(item.unit_price_final)}</p>
+                                                        <div className="text-right shrink-0">
+                                                            <p className="text-xs font-black text-primary italic">€{formatEur(safeNumber(item.unit_price_final) * safeNumber(item.qty))}</p>
+                                                            <p className="text-[8px] text-slate-600 font-bold">{item.qty}pz</p>
                                                         </div>
                                                     </div>
                                                 ))
@@ -241,21 +243,21 @@ export const Promemoria: React.FC = () => {
                                         </div>
 
                                         {/* Total Transaction Bar */}
-                                        <div className="flex justify-between items-center p-3 bg-primary/5 rounded-xl border border-primary/10 mt-4">
-                                            <span className="text-[9px] font-black text-primary uppercase tracking-widest px-1">TOTALE TRANSAZIONE</span>
-                                            <span className="text-lg font-black text-primary">€{((reminder.order?.gross_total || 0) + reminder.amount_due).toFixed(2)}</span>
+                                        <div className="flex justify-between items-center p-2 bg-primary/5 rounded-xl border border-primary/10 mt-2">
+                                            <span className="text-[8px] font-black text-primary uppercase tracking-widest px-1">TOTALE TRANSAZIONE</span>
+                                            <span className="text-base font-black text-primary italic">€{((reminder.order?.gross_total || 0) + reminder.amount_due).toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Actions */}
-                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                <div className="grid grid-cols-2 gap-2 pt-1">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleReminderClick(reminder);
                                         }}
-                                        className="py-3 px-4 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-xl text-sm transition-colors border border-white/5"
+                                        className="py-2.5 px-3 bg-white/5 hover:bg-white/10 text-slate-300 font-bold rounded-xl text-xs transition-colors border border-white/5"
                                     >
                                         MODIFICA
                                     </button>
@@ -264,52 +266,52 @@ export const Promemoria: React.FC = () => {
                                             e.stopPropagation();
                                             finalizePayment(reminder.id, reminder.amount_due); // Immediate full pay (Resolved)
                                         }}
-                                        className="py-3 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-xl text-sm transition-colors border border-emerald-500/20 flex items-center justify-center gap-2"
+                                        className="py-2.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs transition-colors border border-emerald-500/20 flex items-center justify-center gap-1.5"
                                     >
-                                        <CheckCircle2 size={16} />
+                                        <CheckCircle2 size={14} />
                                         RISOLTO
                                     </button>
                                     <button
                                         onClick={(e) => handleCancelToReservation(reminder.id, e)}
                                         disabled={actionLoading === reminder.id}
-                                        className="py-3 px-4 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-bold rounded-xl text-sm transition-colors border border-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                                        className="py-2.5 px-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-bold rounded-xl text-xs transition-colors border border-orange-500/20 flex items-center justify-center gap-1.5 disabled:opacity-50"
                                     >
                                         {actionLoading === reminder.id ? (
-                                            <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                                            <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
                                         ) : (
                                             <>
-                                                <ArrowLeft size={16} />
-                                                ANNULLA
+                                                <ArrowLeft size={14} />
+                                                ANNUL.
                                             </>
                                         )}
                                     </button>
                                     <button
                                         onClick={(e) => handleDelete(reminder.id, e)}
-                                        className="py-3 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl text-sm transition-colors border border-red-500/20 flex items-center justify-center gap-2"
+                                        className="py-2.5 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl text-xs transition-colors border border-red-500/20 flex items-center justify-center gap-1.5"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={14} />
                                         ELIMINA
                                     </button>
                                 </div>
 
                                 {/* Footer Info */}
-                                <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-500">
-                                    <div className="flex items-center gap-1.5">
-                                        <Calendar size={12} />
-                                        {new Date(reminder.created_at).toLocaleDateString('it-IT')}
+                                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-600">
+                                    <div className="flex items-center gap-1">
+                                        <Calendar size={10} />
+                                        {new Date(reminder.created_at).toLocaleDateString()}
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock size={12} />
-                                        {new Date(reminder.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                                    <div className="flex items-center gap-1">
+                                        <Clock size={10} />
+                                        {new Date(reminder.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="col-span-full py-20 text-center glass rounded-[2.5rem] border-dashed border-white/10">
-                        <AlertCircle size={48} className="mx-auto text-slate-700 mb-4" />
-                        <p className="text-slate-500 font-medium">NESSUN PROMEMORIA DISPONIBILE</p>
+                    <div className="col-span-full py-16 text-center glass-card rounded-2xl border-dashed border-white/10">
+                        <AlertCircle size={40} className="mx-auto text-slate-800 mb-4 opacity-30" />
+                        <p className="text-slate-500 font-black label-caps text-xs">NESSUN PROMEMORIA ATTIVO</p>
                     </div>
                 )}
             </div>
