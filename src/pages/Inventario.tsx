@@ -137,7 +137,7 @@ export const Inventario: React.FC = () => {
     const copyForWhatsApp = async () => {
         const d = new Date();
         const date = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-        let text = `📦 *REPORTO INVENTARIO* 📦\n_${date}_\n\n`;
+        let text = `📦 *STOCK UPDATE* 📦\n_${date}_\n\n`;
         
         groupedData.forEach((group) => {
             const inStockItems = group.items.filter(item => item.qty > 0);
