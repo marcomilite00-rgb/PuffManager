@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import type { Staff, ProductVariant, StaffRole } from '../types/database';
+import type { Staff, ProductVariant, StaffRole, Inventory } from '../types/database';
 import {
     Plus,
     X,
@@ -26,6 +26,7 @@ export const Admin: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'settings' | 'staff' | 'inventory_management' | 'products'>('settings');
     const [staff, setStaff] = useState<Staff[]>([]);
     const [variants, setVariants] = useState<ProductVariant[]>([]);
+    const [, setInventory] = useState<Inventory[]>([]);
     const [models, setModels] = useState<any[]>([]);
     const [flavors, setFlavors] = useState<any[]>([]);
     const [settings, setSettings] = useState<any>(null);
@@ -59,21 +60,29 @@ export const Admin: React.FC = () => {
 
     const fetchData = async () => {
         setLoading(true);
-        const [staffRes, variantsRes, modelsRes, flavorsRes, settingsRes] = await Promise.all([
+        const [staffRes, variantsRes, modelsRes, flavorsRes, settingsRes, inventoryRes] = await Promise.all([
             supabase.from('staff').select('*').order('name'),
-            supabase.from('product_variants').select('*, model:product_models(name), flavor:product_flavors(name)').order('model_name'),
+            supabase.from('product_variants').select('*, model:product_models(name), flavor:product_flavors(name)'),
             supabase.from('product_models').select('*').order('name'),
             supabase.from('product_flavors').select('*').order('name'),
-            supabase.from('settings').select('*').single()
+            supabase.from('settings').select('*').single(),
+            supabase.from('inventory').select('*')
         ]);
 
         if (staffRes.data) setStaff(staffRes.data);
+        if (inventoryRes.data) setInventory(inventoryRes.data);
         if (variantsRes.data) {
-            setVariants(variantsRes.data.map((v: any) => ({
-                ...v,
-                model_name: v.model.name,
-                flavor_name: v.flavor.name
-            })));
+            const merged = variantsRes.data.map((v: any) => {
+                const inv = (inventoryRes.data || []).find((i: any) => i.variant_id === v.id);
+                return {
+                    ...v,
+                    model_name: v.model?.name ?? '',
+                    flavor_name: v.flavor?.name ?? '',
+                    qty: inv ? inv.qty : 0
+                };
+            });
+            merged.sort((a: any, b: any) => a.model_name.localeCompare(b.model_name) || a.flavor_name.localeCompare(b.flavor_name));
+            setVariants(merged);
         }
         if (modelsRes.data) setModels(modelsRes.data);
         if (flavorsRes.data) setFlavors(flavorsRes.data);
@@ -143,6 +152,18 @@ export const Admin: React.FC = () => {
         const { error } = await supabase.from('product_variants').delete().eq('id', id);
         if (error) showToast('In uso in alcuni ordini', 'error');
         else { fetchData(); showToast('Variante eliminata'); }
+    };
+
+    const handleUpdateQty = async (variantId: string, newQty: number) => {
+        const { error } = await supabase
+            .from('inventory')
+            .upsert({ variant_id: variantId, qty: newQty }, { onConflict: 'variant_id' });
+
+        if (error) showToast('Errore aggiornamento quantità', 'error');
+        else {
+            setVariants(prev => prev.map(v => v.id === variantId ? { ...v, qty: newQty } : v));
+            showToast('Quantità aggiornata');
+        }
     };
 
     const handleDeleteStaff = async (id: string) => {
@@ -424,6 +445,11 @@ export const Admin: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                            {variants.length === 0 && (
+                                <div className="col-span-full py-20 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
+                                    Nessuna variante trovata. Creane una con il pulsante VARIANTE.
+                                </div>
+                            )}
                             {variants.map((v) => (
                                 <div key={v.id} className="p-6 glass rounded-2xl border-white/5 hover:border-amber-500/20 transition-all group relative bg-surface-900/30">
                                     <div className="flex justify-between items-start mb-6">
@@ -435,9 +461,36 @@ export const Admin: React.FC = () => {
                                             <p className="text-lg font-black text-white italic leading-none pt-0.5">€{v.default_price}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                        <button onClick={() => setEditingVariant({ ...v })} className="px-5 py-2 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black uppercase text-white hover:bg-white/10 transition-all">MODIFICA</button>
-                                        <button onClick={() => handleDeleteVariant(v.id)} className="p-2 text-danger/60 hover:text-danger shrink-0"><Trash2 size={14} /></button>
+                                    
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl px-4 py-2">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase">Stock</span>
+                                            <div className="flex items-center gap-3">
+                                                <button 
+                                                    onClick={() => handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))}
+                                                    className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all"
+                                                >
+                                                    -
+                                                </button>
+                                                <input 
+                                                    type="number" 
+                                                    value={v.qty || 0}
+                                                    onChange={(e) => handleUpdateQty(v.id, parseInt(e.target.value) || 0)}
+                                                    className="w-12 bg-transparent text-center font-black text-white outline-none"
+                                                />
+                                                <button 
+                                                    onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)}
+                                                    className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                            <button onClick={() => setEditingVariant({ ...v })} className="px-5 py-2 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black uppercase text-white hover:bg-white/10 transition-all">MODIFICA</button>
+                                            <button onClick={() => handleDeleteVariant(v.id)} className="p-2 text-danger/60 hover:text-danger shrink-0"><Trash2 size={14} /></button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
