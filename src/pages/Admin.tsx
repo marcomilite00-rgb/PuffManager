@@ -48,7 +48,6 @@ export const Admin: React.FC = () => {
     const [newStaff, setNewStaff] = useState({ name: '', role: 'staff' as StaffRole, pin: '', confirmPin: '' });
 
     const [showClosingLoad, setShowClosingLoad] = useState(false);
-    const [closingPreview, setClosingPreview] = useState<{ gross_total: number } | null>(null);
     const [closingSoldiSpesi, setClosingSoldiSpesi] = useState('');
     const [closingPezziComprati, setClosingPezziComprati] = useState('');
     const [, setClosingLoading] = useState(false);
@@ -232,7 +231,6 @@ export const Admin: React.FC = () => {
         // Pre-fill spese from settings if available, then open modal directly
         setClosingSoldiSpesi('');
         setClosingPezziComprati('');
-        setClosingPreview(null);
         setShowClosingLoad(true);
     };
 
