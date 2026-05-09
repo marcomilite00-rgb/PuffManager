@@ -59,9 +59,8 @@ export const Cassa: React.FC = () => {
         });
 
         const spent = safeNumber(settings?.money_spent_total);
-        const netValue = grossTotal - spent;
-        
         const currentLoadExpenses = safeNumber(settings?.money_spent_current_load);
+        const netValue = grossTotal - spent - currentLoadExpenses;
 
         return { gross: grossTotal, spent, net: netValue, currentLoadExpenses };
     }, [orders, settings]);
@@ -88,13 +87,16 @@ export const Cassa: React.FC = () => {
             if (orderSessionGross > 0) {
                 earnings[staffId].gross += orderSessionGross;
                 const items = order.items || [];
+                let orderRealValue = 0;
                 const orderCost = items.reduce((acc: number, item: any) => {
+                    const qty = safeNumber(item.qty);
                     const cost = safeNumber(item.variant?.unit_cost);
-                    return acc + (safeNumber(item.qty) * cost);
+                    const priceFinal = safeNumber(item.unit_price_final);
+                    orderRealValue += (priceFinal * qty);
+                    return acc + (qty * cost);
                 }, 0);
                 
-                const orderGrossTotal = safeNumber(order.gross_total);
-                const costProportion = orderGrossTotal > 0 ? orderSessionGross / orderGrossTotal : 1;
+                const costProportion = orderRealValue > 0 ? orderSessionGross / orderRealValue : 1;
                 earnings[staffId].cost += (orderCost * costProportion);
             }
         });

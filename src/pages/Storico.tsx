@@ -15,7 +15,8 @@ import {
     Euro,
     Archive,
     ShoppingCart,
-    Clock
+    Clock,
+    Trash2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Badge } from '../components/ui/Badge';
@@ -25,6 +26,7 @@ export const Storico: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [showAllArchivedOrders, setShowAllArchivedOrders] = useState(false);
     const [staffList, setStaffList] = useState<any[]>([]);
 
     // Filter States
@@ -76,12 +78,50 @@ export const Storico: React.FC = () => {
         setLoading(false);
     };
 
+    const handleDeleteSession = async (load: any) => {
+        if (!confirm(`Eliminare la sessione del ${new Date(load.closed_at).toLocaleDateString()}? Questa operazione eliminerà anche tutti gli ordini archiviati in quella sessione. L'operazione è IRREVERSIBILE.`)) return;
+
+        // Determine the time window: from previous session or epoch, to this session's closed_at
+        const closedAt = new Date(load.closed_at);
+        // Find the previous session's closed_at to use as lower bound
+        const sortedLoads = [...archivedLoads].sort((a, b) => new Date(a.closed_at).getTime() - new Date(b.closed_at).getTime());
+        const idx = sortedLoads.findIndex(l => l.id === load.id);
+        const prevClosedAt = idx > 0 ? new Date(sortedLoads[idx - 1].closed_at) : new Date(0);
+
+        // Delete orders archived within this session's window
+        const { error: ordersError } = await supabase
+            .from('orders')
+            .delete()
+            .eq('is_archived', true)
+            .gte('created_at', prevClosedAt.toISOString())
+            .lt('created_at', closedAt.toISOString());
+
+        if (ordersError) {
+            alert('Errore eliminazione ordini: ' + ordersError.message);
+            return;
+        }
+
+        // Delete the archived_load record itself
+        const { error: loadError } = await supabase
+            .from('archived_loads')
+            .delete()
+            .eq('id', load.id);
+
+        if (loadError) {
+            alert('Errore eliminazione sessione: ' + loadError.message);
+            return;
+        }
+
+        // Refresh data
+        fetchData();
+    };
+
     const filteredOrders = useMemo(() => {
         return orders.filter(order => {
             const matchesSearch = (order.customer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (order.staff?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
             
-            const matchesStaff = filterStaff === 'all' || order.staff_id === filterStaff;
+            const matchesStaff = filterStaff === 'all' || order.sold_by_staff_id === filterStaff;
             
             const orderDate = new Date(order.created_at).toISOString().split('T')[0];
             const matchesDateStart = !filterDateStart || orderDate >= filterDateStart;
@@ -401,7 +441,7 @@ export const Storico: React.FC = () => {
                                         <h3 className="label-caps text-[10px] text-slate-500 uppercase font-black">Ordini in Archivio</h3>
                                     </div>
                                     <div className="space-y-3">
-                                        {archivedOrders.slice(0, expandedId === 'show_all_archived' ? Infinity : 5).map((order) => {
+                                        {archivedOrders.slice(0, showAllArchivedOrders ? Infinity : 5).map((order) => {
                                             const isExpanded = expandedId === order.id;
                                             const date = new Date(order.created_at);
                                             return (
@@ -439,8 +479,8 @@ export const Storico: React.FC = () => {
                                                 </div>
                                             );
                                         })}
-                                        {archivedOrders.length > 5 && expandedId !== 'show_all_archived' && (
-                                            <button onClick={() => setExpandedId('show_all_archived')} className="w-full py-3 text-center text-slate-500 text-[10px] label-caps hover:text-white transition-colors">Mostra tutti gli ordini archiviati ({archivedOrders.length})</button>
+                                        {archivedOrders.length > 5 && !showAllArchivedOrders && (
+                                            <button onClick={() => setShowAllArchivedOrders(true)} className="w-full py-3 text-center text-slate-500 text-[10px] label-caps hover:text-white transition-colors">Mostra tutti gli ordini archiviati ({archivedOrders.length})</button>
                                         )}
                                     </div>
                                 </div>
@@ -483,7 +523,7 @@ export const Storico: React.FC = () => {
                                                 <div className="flex flex-wrap gap-2 text-[10px] font-bold">
                                                     <div className="px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
                                                         <span className="text-slate-500 mr-2 uppercase">COSTO U:</span>
-                                                        <span className="text-primary italic">€{Number(load.unit_cost_calcolato || 0).toFixed(2)}</span>
+                                                        <span className="text-primary italic">€{Number(load.unit_cost_calcolato || (load.pezzi_comprati ? (load.soldi_spesi_carico / load.pezzi_comprati) : 0)).toFixed(2)}</span>
                                                     </div>
                                                     <div className="px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
                                                         <span className="text-slate-500 mr-2 uppercase">SPESA:</span>
@@ -495,6 +535,15 @@ export const Storico: React.FC = () => {
                                                     >
                                                         {selectedLoad?.id === load.id ? 'CHIUDI' : 'DETTAGLI'}
                                                     </button>
+                                                    {!load.is_legacy && (
+                                                        <button
+                                                            onClick={() => handleDeleteSession(load)}
+                                                            className="w-9 h-9 flex items-center justify-center bg-danger/10 border border-danger/20 text-danger rounded-lg hover:bg-danger/20 active:scale-90 transition-all"
+                                                            title="Elimina sessione e ordini correlati"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                             
@@ -512,6 +561,7 @@ export const Storico: React.FC = () => {
                                                                         <div className="min-w-0">
                                                                             <p className="text-[10px] font-black text-white uppercase truncate">{item.model_name}</p>
                                                                             <p className="text-[8px] text-slate-500 truncate">{item.flavor_name}</p>
+                                                                            {item.customer_name && <p className="text-[8px] text-primary/80 mt-0.5 font-bold italic truncate">👤 {item.customer_name}</p>}
                                                                         </div>
                                                                         <div className="text-right">
                                                                             <p className="text-xs font-black text-primary italic">{item.qty}pz</p>

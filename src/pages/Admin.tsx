@@ -37,6 +37,7 @@ export const Admin: React.FC = () => {
     const [newVariant, setNewVariant] = useState({ model_id: '', flavor_id: '', default_price: 15, initial_qty: 0 });
     const [editingVariant, setEditingVariant] = useState<any>(null);
     const [editingStaff, setEditingStaff] = useState<any>(null);
+    const [editingStaffRole, setEditingStaffRole] = useState<any>(null);
     const [showAddVariant, setShowAddVariant] = useState(false);
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -168,9 +169,33 @@ export const Admin: React.FC = () => {
 
     const handleDeleteStaff = async (id: string) => {
         if (!confirm('Rimuovere membro staff?')) return;
+
+        // Null out all FK references (none have ON DELETE CASCADE)
+        await supabase.from('reservations').update({ created_by_staff_id: null }).eq('created_by_staff_id', id);
+        await supabase.from('orders').update({ sold_by_staff_id: null }).eq('sold_by_staff_id', id);
+        await supabase.from('reminders').update({ created_by_staff_id: null }).eq('created_by_staff_id', id);
+        await supabase.from('audit_log').update({ staff_id: null }).eq('staff_id', id);
+        await supabase.from('archived_loads').update({ created_by: null }).eq('created_by', id);
+        // staff_sessions has ON DELETE CASCADE but delete explicitly for safety
+        await supabase.from('staff_sessions').delete().eq('staff_id', id);
+
         const { error } = await supabase.from('staff').delete().eq('id', id);
-        if (error) showToast('Errore eliminazione staff', 'error');
+        if (error) showToast('Errore: ' + error.message, 'error');
         else { fetchData(); showToast('Membro rimosso'); }
+    };
+
+    const handleUpdateStaffRole = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const { error } = await supabase
+            .from('staff')
+            .update({ role: editingStaffRole.role })
+            .eq('id', editingStaffRole.id);
+        if (error) showToast('Errore aggiornamento ruolo', 'error');
+        else {
+            setEditingStaffRole(null);
+            fetchData();
+            showToast('Ruolo aggiornato');
+        }
     };
 
     const handleAddStaff = async (e: React.FormEvent) => {
@@ -203,41 +228,52 @@ export const Admin: React.FC = () => {
         else { setEditingStaff(null); setNewPin(''); setConfirmPin(''); setPinError(''); showToast('PIN aggiornato'); }
     };
 
-    const handleClosingLoadClick = async () => {
-        setClosingLoading(true);
-        // Correctly handle JSON response from preview RPC
-        const { data, error } = await supabase.rpc('get_closing_preview');
-        if (error) {
-            showToast('Errore preview: ' + error.message, 'error');
-        } else {
-            setClosingPreview(data);
-            setClosingSoldiSpesi(settings?.money_spent_current_load?.toString() || '');
-            setShowClosingLoad(true);
-        }
-        setClosingLoading(false);
+    const handleClosingLoadClick = () => {
+        // Pre-fill spese from settings if available, then open modal directly
+        setClosingSoldiSpesi('');
+        setClosingPezziComprati('');
+        setClosingPreview(null);
+        setShowClosingLoad(true);
     };
 
     const handleConfirmClosingLoad = async () => {
+        if (!closingSoldiSpesi || Number(closingSoldiSpesi) < 0) {
+            showToast('Inserire i soldi spesi per il carico', 'error');
+            return;
+        }
         if (!closingPezziComprati || Number(closingPezziComprati) <= 0) {
-            showToast('Inserire pezzi comprati (> 0)', 'error');
+            showToast('Inserire i pezzi totali comprati (> 0)', 'error');
             return;
         }
 
+        const soldiSpesi = Number(closingSoldiSpesi);
+        const pezziComprati = Number(closingPezziComprati);
+
         setClosingLoading(true);
-        const { error } = await supabase.rpc('close_current_load', {
-            p_soldi_spesi: Number(closingSoldiSpesi) || 0,
-            p_pezzi_comprati: Number(closingPezziComprati) || 0
+
+        // Save soldiSpesi into money_spent_total — this is what Cassa shows as 'Spese Carico'
+        await supabase
+            .from('settings')
+            .update({ money_spent_total: soldiSpesi })
+            .eq('id', 1);
+
+        const { data, error } = await supabase.rpc('close_current_load', {
+            p_soldi_spesi: soldiSpesi,
+            p_pezzi_comprati: pezziComprati
         });
 
         if (error) {
             showToast(error.message, 'error');
+            setClosingLoading(false);
         } else {
+            const unitCost = data?.unit_cost_calcolato ?? (soldiSpesi / pezziComprati);
             setShowClosingLoad(false);
+            setClosingSoldiSpesi('');
             setClosingPezziComprati('');
             fetchData();
-            showToast('Carico chiuso');
+            showToast(`Carico chiuso ✓ Prezzo unit.: €${Number(unitCost).toFixed(2)}`);
+            setClosingLoading(false);
         }
-        setClosingLoading(false);
     };
 
     const handleDeleteModel = async (id: string) => {
@@ -320,28 +356,47 @@ export const Admin: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="glass rounded-3xl p-6 md:p-10 border-white/5 space-y-6">
+                        <div className="glass rounded-3xl p-6 md:p-10 border-white/5 space-y-5">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500"><DollarSign size={20} /></div>
                                 <h3 className="text-lg md:text-2xl font-black italic uppercase">Bilancio</h3>
                             </div>
-                            <form onSubmit={handleUpdateSettings} className="space-y-4">
-                                <div className="p-5 md:p-8 bg-black/40 border border-white/5 rounded-2xl">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Utile Netto</p>
-                                    <p className="text-3xl md:text-5xl font-black text-emerald-500 italic tabular-nums">€{settings?.total_net_earned?.toLocaleString('it-IT')}</p>
+
+                            {/* 1. Utile Netto — read only */}
+                            <div className="p-5 bg-black/40 border border-emerald-500/20 rounded-2xl">
+                                <p className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">Utile Netto (ultimo carico chiuso)</p>
+                                <p className="text-3xl md:text-5xl font-black text-emerald-500 italic tabular-nums">
+                                    €{(settings?.total_net_earned ?? 0).toLocaleString('it-IT')}
+                                </p>
+                            </div>
+
+                            <form onSubmit={handleUpdateSettings} className="space-y-3">
+                                {/* 2. Spese Carico — set automatically on closing, editable for correction */}
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-black uppercase text-danger/80 ml-1 tracking-widest">
+                                        Spese Carico (impostato alla chiusura)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={settings?.money_spent_total ?? ''}
+                                        onChange={e => setSettings({ ...settings, money_spent_total: Number(e.target.value) })}
+                                        className="w-full bg-black/40 border border-danger/20 rounded-xl py-3 px-4 font-black text-sm text-white outline-none focus:border-danger/50 transition-all"
+                                    />
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black uppercase text-slate-500 ml-1">Spese Carico</label>
-                                        <input type="number" value={settings?.money_spent_current_load || ''} onChange={e => setSettings({ ...settings, money_spent_current_load: Number(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl py-3 px-4 font-black text-sm text-white outline-none focus:border-primary/40 transition-all"/>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black uppercase text-slate-500 ml-1">Archive</label>
-                                        <input type="number" value={settings?.money_spent_total || ''} onChange={e => setSettings({ ...settings, money_spent_total: Number(e.target.value) })}
-                                            className="w-full bg-black/40 border border-white/5 rounded-xl py-3 px-4 font-black text-sm text-white outline-none focus:border-primary/40 transition-all"/>
-                                    </div>
+
+                                {/* 3. Spese Durante Carico — manually entered expenses during the load */}
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-black uppercase text-amber-400/80 ml-1 tracking-widest">
+                                        Spese Durante Carico (spese varie correnti)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={settings?.money_spent_current_load ?? ''}
+                                        onChange={e => setSettings({ ...settings, money_spent_current_load: Number(e.target.value) })}
+                                        className="w-full bg-black/40 border border-amber-500/20 rounded-xl py-3 px-4 font-black text-sm text-white outline-none focus:border-amber-500/50 transition-all"
+                                    />
                                 </div>
+
                                 <button type="submit" className="w-full py-3 bg-white/5 border border-white/5 rounded-xl text-white font-black text-[9px] uppercase tracking-widest hover:bg-white/10 transition-colors">SALVA DATI</button>
                             </form>
                         </div>
@@ -367,12 +422,18 @@ export const Admin: React.FC = () => {
                                      <div className="flex justify-between items-start mb-4">
                                         <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 font-black text-lg border border-white/5">{s.name[0]}</div>
                                         <div className="flex gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => setEditingStaff(s)} className="p-2 text-slate-500 hover:text-white bg-white/5 rounded-lg"><Key size={12} /></button>
-                                            <button onClick={() => handleDeleteStaff(s.id)} className="p-2 text-danger/60 hover:text-danger bg-white/5 rounded-lg"><Trash2 size={12} /></button>
+                                            <button onClick={() => setEditingStaffRole({ ...s })} className="p-2 text-slate-500 hover:text-primary bg-white/5 rounded-lg" title="Modifica ruolo"><Shield size={12} /></button>
+                                            <button onClick={() => setEditingStaff(s)} className="p-2 text-slate-500 hover:text-white bg-white/5 rounded-lg" title="Modifica PIN"><Key size={12} /></button>
+                                            <button onClick={() => handleDeleteStaff(s.id)} className="p-2 text-danger/60 hover:text-danger bg-white/5 rounded-lg" title="Elimina"><Trash2 size={12} /></button>
                                         </div>
                                      </div>
                                      <p className="font-black text-white text-lg uppercase italic truncate leading-none mb-1">{s.name}</p>
-                                     <span className="label-caps text-[8px] text-slate-600 font-bold uppercase tracking-widest">{s.role}</span>
+                                     <span className={clsx(
+                                        "label-caps text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                                        s.role === 'admin' ? 'bg-danger/10 text-danger' :
+                                        s.role === 'staff' ? 'bg-primary/10 text-primary' :
+                                        'bg-white/5 text-slate-500'
+                                     )}>{s.role}</span>
                                 </div>
                             ))}
                         </div>
@@ -501,7 +562,7 @@ export const Admin: React.FC = () => {
 
             {/* MODALS */}
             <AnimatePresence>
-                {(showAddStaff || showAddVariant || editingVariant || editingStaff || showClosingLoad) && (
+                {(showAddStaff || showAddVariant || editingVariant || editingStaff || editingStaffRole || showClosingLoad) && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto">
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="glass w-full max-w-md rounded-3xl p-8 md:p-12 border-white/10">
                             
@@ -555,6 +616,46 @@ export const Admin: React.FC = () => {
                                 </div>
                             )}
 
+                            {editingStaffRole && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div>
+                                            <h2 className="text-xl font-black italic uppercase">Modifica Ruolo</h2>
+                                            <p className="text-[9px] text-slate-500 mt-0.5">{editingStaffRole.name}</p>
+                                        </div>
+                                        <button onClick={() => setEditingStaffRole(null)}><X size={20} /></button>
+                                    </div>
+                                    <form onSubmit={handleUpdateStaffRole} className="space-y-4">
+                                        {(['admin', 'staff', 'helper'] as StaffRole[]).map(role => (
+                                            <label key={role} className={clsx(
+                                                "flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all",
+                                                editingStaffRole.role === role
+                                                    ? 'border-primary/40 bg-primary/10'
+                                                    : 'border-white/5 bg-white/[0.02] hover:bg-white/5'
+                                            )}>
+                                                <input
+                                                    type="radio"
+                                                    name="role"
+                                                    value={role}
+                                                    checked={editingStaffRole.role === role}
+                                                    onChange={() => setEditingStaffRole({ ...editingStaffRole, role })}
+                                                    className="accent-primary"
+                                                />
+                                                <div>
+                                                    <p className="font-black text-white uppercase text-sm">{role}</p>
+                                                    <p className="text-[9px] text-slate-500">
+                                                        {role === 'admin' ? 'Accesso completo + chiusura carico' :
+                                                         role === 'staff' ? 'Vendite, ordini e inventario' :
+                                                         'Solo prenotazioni e incassi'}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        ))}
+                                        <button type="submit" className="w-full py-4 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg mt-2">SALVA RUOLO</button>
+                                    </form>
+                                </div>
+                            )}
+
                             {editingStaff && (
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Modifica PIN: {editingStaff.name}</h2><button onClick={() => setEditingStaff(null)}><X size={20} /></button></div>
@@ -568,17 +669,65 @@ export const Admin: React.FC = () => {
                             )}
 
                             {showClosingLoad && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Chiusura Carico</h2><button onClick={() => setShowClosingLoad(false)}><X size={20} /></button></div>
-                                    <div className="grid grid-cols-2 gap-3 mb-6">
-                                        <div className="glass p-4 rounded-xl border-primary/20"><p className="text-[7px] text-primary font-black uppercase mb-1">Lordo</p><p className="text-xl font-black text-white tabular-nums">€{closingPreview?.gross_total?.toLocaleString('it-IT')}</p></div>
-                                        <div className="glass p-4 rounded-xl border-danger/20"><p className="text-[7px] text-danger font-black uppercase mb-1">Spese</p><p className="text-xl font-black text-white tabular-nums">€{Number(closingSoldiSpesi).toLocaleString('it-IT')}</p></div>
+                                <div className="space-y-5">
+                                    <div className="flex justify-between items-center">
+                                        <h2 className="text-xl font-black italic uppercase">Chiudi Carico</h2>
+                                        <button onClick={() => setShowClosingLoad(false)} className="p-2 text-slate-500 hover:text-white"><X size={18} /></button>
                                     </div>
-                                    <div className="space-y-3">
-                                        <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-1">Conferma Spese Durante Carico</label><input type="number" value={closingSoldiSpesi} onChange={(e) => setClosingSoldiSpesi(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-lg font-black italic text-white outline-none"/></div>
-                                        <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-1">Pezzi per Statistica U.</label><input type="number" required value={closingPezziComprati} onChange={(e) => setClosingPezziComprati(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-lg font-black italic text-white outline-none" placeholder="Esempio: 100"/></div>
+
+                                    {/* Warning banner */}
+                                    <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl">
+                                        <p className="text-[9px] font-black text-danger uppercase tracking-widest mb-1">⚠ Operazione Irreversibile</p>
+                                        <p className="text-[10px] text-slate-400">Tutti gli ordini, prenotazioni e promemoria attivi verranno eliminati. L'inventario verrà azzerato. Il prezzo unitario verrà aggiornato su tutte le varianti.</p>
                                     </div>
-                                    <button onClick={handleConfirmClosingLoad} className="w-full py-5 bg-danger text-white rounded-2xl font-black text-sm italic uppercase tracking-tighter shadow-xl active:scale-95 transition-all">CONFERMA E ARCHIVIA</button>
+
+                                    <div className="space-y-4">
+                                        {/* Input 1: Soldi spesi */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">1. Soldi spesi per il carico (€)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={closingSoldiSpesi}
+                                                onChange={(e) => setClosingSoldiSpesi(e.target.value)}
+                                                className="w-full bg-black/40 border border-white/10 focus:border-primary/40 rounded-xl px-4 py-3.5 text-xl font-black italic text-white outline-none transition-all"
+                                                placeholder="es. 800"
+                                            />
+                                        </div>
+
+                                        {/* Input 2: Pezzi totali */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">2. Pezzi totali comprati (per calcolo prezzo unitario)</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                value={closingPezziComprati}
+                                                onChange={(e) => setClosingPezziComprati(e.target.value)}
+                                                className="w-full bg-black/40 border border-white/10 focus:border-primary/40 rounded-xl px-4 py-3.5 text-xl font-black italic text-white outline-none transition-all"
+                                                placeholder="es. 100"
+                                            />
+                                        </div>
+
+                                        {/* Live preview of unit cost */}
+                                        {closingSoldiSpesi && closingPezziComprati && Number(closingPezziComprati) > 0 && (
+                                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex justify-between items-center">
+                                                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Prezzo Unitario Calcolato</span>
+                                                <span className="text-2xl font-black text-emerald-400 italic">
+                                                    €{(Number(closingSoldiSpesi) / Number(closingPezziComprati)).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={handleConfirmClosingLoad}
+                                        disabled={!closingSoldiSpesi || !closingPezziComprati || Number(closingPezziComprati) <= 0}
+                                        className="w-full py-5 bg-danger text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                                    >
+                                        CONFERMA E ARCHIVIA CARICO
+                                    </button>
                                 </div>
                             )}
                         </motion.div>
