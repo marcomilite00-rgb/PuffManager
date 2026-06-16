@@ -72,15 +72,17 @@ export const Admin: React.FC = () => {
         if (staffRes.data) setStaff(staffRes.data);
         if (inventoryRes.data) setInventory(inventoryRes.data);
         if (variantsRes.data) {
-            const merged = variantsRes.data.map((v: any) => {
-                const inv = (inventoryRes.data || []).find((i: any) => i.variant_id === v.id);
-                return {
-                    ...v,
-                    model_name: v.model?.name ?? '',
-                    flavor_name: v.flavor?.name ?? '',
-                    qty: inv ? inv.qty : 0
-                };
-            });
+            const merged = variantsRes.data
+                .filter((v: any) => !v.deleted)
+                .map((v: any) => {
+                    const inv = (inventoryRes.data || []).find((i: any) => i.variant_id === v.id);
+                    return {
+                        ...v,
+                        model_name: v.model?.name ?? '',
+                        flavor_name: v.flavor?.name ?? '',
+                        qty: inv ? inv.qty : 0
+                    };
+                });
             merged.sort((a: any, b: any) => a.model_name.localeCompare(b.model_name) || a.flavor_name.localeCompare(b.flavor_name));
             setVariants(merged);
         }
@@ -112,17 +114,81 @@ export const Admin: React.FC = () => {
     const handleAddModel = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newModel.trim()) return;
-        const { error } = await supabase.from('product_models').insert({ name: newModel.trim().toUpperCase() });
-        if (error) showToast('Errore modello', 'error');
-        else { setNewModel(''); fetchData(); showToast('Modello aggiunto'); }
+        const nameUpper = newModel.trim().toUpperCase();
+
+        // Usa RPC con SECURITY DEFINER per bypassare RLS
+        const { data, error } = await supabase.rpc('add_product_model', {
+            p_name: nameUpper
+        });
+
+        console.log('[handleAddModel] RPC result:', { data, error });
+
+        if (error) {
+            // Se la funzione RPC non esiste, prova insert diretto come fallback
+            if (error.message?.includes('function') || error.code === '42883') {
+                console.warn('[handleAddModel] RPC not found, trying direct insert...');
+                const { data: insertData, error: insertErr } = await supabase
+                    .from('product_models')
+                    .insert({ name: nameUpper })
+                    .select();
+                
+                if (insertErr) {
+                    showToast('Errore modello: ' + insertErr.message, 'error');
+                } else if (!insertData || insertData.length === 0) {
+                    showToast('Errore: controlla le RLS policies su Supabase per product_models', 'error');
+                } else {
+                    setNewModel(''); fetchData(); showToast('Modello aggiunto');
+                }
+            } else if (error.message?.includes('duplicate') || error.code === '23505') {
+                showToast('Modello già esistente', 'error');
+            } else {
+                showToast('Errore modello: ' + error.message, 'error');
+            }
+        } else {
+            setNewModel('');
+            fetchData();
+            showToast('Modello aggiunto');
+        }
     };
 
     const handleAddFlavor = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newFlavor.trim()) return;
-        const { error } = await supabase.from('product_flavors').insert({ name: newFlavor.trim().toUpperCase() });
-        if (error) showToast('Errore gusto', 'error');
-        else { setNewFlavor(''); fetchData(); showToast('Gusto aggiunto'); }
+        const nameUpper = newFlavor.trim().toUpperCase();
+
+        // Usa RPC con SECURITY DEFINER per bypassare RLS
+        const { data, error } = await supabase.rpc('add_product_flavor', {
+            p_name: nameUpper
+        });
+
+        console.log('[handleAddFlavor] RPC result:', { data, error });
+
+        if (error) {
+            // Se la funzione RPC non esiste, prova insert diretto come fallback
+            if (error.message?.includes('function') || error.code === '42883') {
+                console.warn('[handleAddFlavor] RPC not found, trying direct insert...');
+                const { data: insertData, error: insertErr } = await supabase
+                    .from('product_flavors')
+                    .insert({ name: nameUpper })
+                    .select();
+                
+                if (insertErr) {
+                    showToast('Errore gusto: ' + insertErr.message, 'error');
+                } else if (!insertData || insertData.length === 0) {
+                    showToast('Errore: controlla le RLS policies su Supabase per product_flavors', 'error');
+                } else {
+                    setNewFlavor(''); fetchData(); showToast('Gusto aggiunto');
+                }
+            } else if (error.message?.includes('duplicate') || error.code === '23505') {
+                showToast('Gusto già esistente', 'error');
+            } else {
+                showToast('Errore gusto: ' + error.message, 'error');
+            }
+        } else {
+            setNewFlavor('');
+            fetchData();
+            showToast('Gusto aggiunto');
+        }
     };
 
     const handleAddVariant = async (e: React.FormEvent) => {
@@ -150,14 +216,24 @@ export const Admin: React.FC = () => {
     const handleDeleteVariant = async (id: string) => {
         if (!confirm('Eliminare questa variante?')) return;
         const { error } = await supabase.from('product_variants').delete().eq('id', id);
-        if (error) showToast('In uso in alcuni ordini', 'error');
-        else { fetchData(); showToast('Variante eliminata'); }
+        if (error) {
+            const { error: updateError } = await supabase.from('product_variants').update({ deleted: true, active: false }).eq('id', id);
+            if (updateError) showToast('Errore eliminazione variante', 'error');
+            else { fetchData(); showToast('Variante eliminata'); }
+        } else {
+            fetchData();
+            showToast('Variante eliminata');
+        }
     };
 
     const handleUpdateQty = async (variantId: string, newQty: number) => {
         const { error } = await supabase
             .from('inventory')
-            .upsert({ variant_id: variantId, qty: newQty }, { onConflict: 'variant_id' });
+            .upsert({
+                variant_id: variantId,
+                qty: newQty,
+                initial_load_qty: newQty   // ogni modifica in Admin aggiorna il riferimento della linea
+            }, { onConflict: 'variant_id' });
 
         if (error) showToast('Errore aggiornamento quantità', 'error');
         else {
@@ -277,15 +353,35 @@ export const Admin: React.FC = () => {
     const handleDeleteModel = async (id: string) => {
         if (!confirm('Eliminare modello?')) return;
         const { error } = await supabase.from('product_models').delete().eq('id', id);
-        if (error) showToast('Errore: in uso', 'error');
-        else { fetchData(); showToast('Eliminato'); }
+        if (error) {
+            const { error: updateError } = await supabase.from('product_models').update({ deleted: true, active: false }).eq('id', id);
+            if (updateError) showToast('Errore eliminazione modello', 'error');
+            else {
+                await supabase.from('product_variants').update({ deleted: true, active: false }).eq('model_id', id);
+                fetchData();
+                showToast('Modello eliminato');
+            }
+        } else {
+            fetchData();
+            showToast('Modello eliminato');
+        }
     };
 
     const handleDeleteFlavor = async (id: string) => {
         if (!confirm('Eliminare gusto?')) return;
         const { error } = await supabase.from('product_flavors').delete().eq('id', id);
-        if (error) showToast('Errore: in uso', 'error');
-        else { fetchData(); showToast('Eliminato'); }
+        if (error) {
+            const { error: updateError } = await supabase.from('product_flavors').update({ deleted: true, active: false }).eq('id', id);
+            if (updateError) showToast('Errore eliminazione gusto', 'error');
+            else {
+                await supabase.from('product_variants').update({ deleted: true, active: false }).eq('flavor_id', id);
+                fetchData();
+                showToast('Gusto eliminato');
+            }
+        } else {
+            fetchData();
+            showToast('Gusto eliminato');
+        }
     };
 
     if (!isAdmin) return (
@@ -450,7 +546,7 @@ export const Admin: React.FC = () => {
                             <div className="space-y-4">
                                 <p className="label-caps text-[9px] text-primary font-black uppercase flex justify-between items-center group px-1">
                                     <span>MODELLI HARDWARE</span>
-                                    <span className="opacity-40 italic">{models.length} ITEMS</span>
+                                <span className="opacity-40 italic">{models.filter(m => !m.deleted && m.active !== false).length} ITEMS</span>
                                 </p>
                                 <form onSubmit={handleAddModel} className="flex gap-2">
                                     <input type="text" value={newModel} onChange={e => setNewModel(e.target.value)} placeholder="Nuovo modello..."
@@ -458,10 +554,10 @@ export const Admin: React.FC = () => {
                                     <button type="submit" className="w-12 h-12 bg-primary text-surface-950 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
                                 </form>
                                 <div className="grid grid-cols-1 gap-1.5">
-                                    {models.map(m => (
+                                    {models.filter(m => !m.deleted && m.active !== false).map(m => (
                                         <div key={m.id} className="p-3.5 bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between group hover:bg-white/5">
                                             <span className="font-black text-white italic tracking-tight uppercase text-xs">{m.name}</span>
-                                            <button onClick={() => handleDeleteModel(m.id)} className="p-1.5 text-danger/50 transition-all"><Trash2 size={14} /></button>
+                                            <button onClick={() => handleDeleteModel(m.id)} className="p-1.5 text-danger/50 hover:text-danger transition-all"><Trash2 size={14} /></button>
                                         </div>
                                     ))}
                                 </div>
@@ -470,7 +566,7 @@ export const Admin: React.FC = () => {
                             <div className="space-y-4">
                                 <p className="label-caps text-[9px] text-indigo-400 font-black uppercase flex justify-between items-center group px-1">
                                     <span>LIBRERIA AROMI</span>
-                                    <span className="opacity-40 italic">{flavors.length} GUSTI</span>
+                                    <span className="opacity-40 italic">{flavors.filter(f => !f.deleted && f.active !== false).length} GUSTI</span>
                                 </p>
                                 <form onSubmit={handleAddFlavor} className="flex gap-2">
                                     <input type="text" value={newFlavor} onChange={e => setNewFlavor(e.target.value)} placeholder="Nuovo gusto..."
@@ -478,10 +574,10 @@ export const Admin: React.FC = () => {
                                     <button type="submit" className="w-12 h-12 bg-indigo-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
                                 </form>
                                 <div className="grid grid-cols-2 gap-1.5">
-                                    {flavors.map(f => (
+                                    {flavors.filter(f => !f.deleted && f.active !== false).map(f => (
                                         <div key={f.id} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between group hover:bg-white/5">
                                             <span className="font-bold text-slate-400 text-[10px] uppercase italic truncate pr-1">{f.name}</span>
-                                            <button onClick={() => handleDeleteFlavor(f.id)} className="p-1 text-danger/40 shrink-0"><Trash2 size={12} /></button>
+                                            <button onClick={() => handleDeleteFlavor(f.id)} className="p-1 text-danger/40 hover:text-danger shrink-0"><Trash2 size={12} /></button>
                                         </div>
                                     ))}
                                 </div>
@@ -510,10 +606,13 @@ export const Admin: React.FC = () => {
                                 </div>
                             )}
                             {variants.map((v) => (
-                                <div key={v.id} className="p-6 glass rounded-2xl border-white/5 hover:border-amber-500/20 transition-all group relative bg-surface-900/30">
+                                <div key={v.id} className={`p-6 glass rounded-2xl border-white/5 hover:border-amber-500/20 transition-all group relative bg-surface-900/30 ${!v.active ? 'opacity-40' : ''}`}>
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="min-w-0 pr-2">
-                                            <p className="font-black text-white text-base md:text-xl uppercase italic leading-none truncate">{v.model_name}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-black text-white text-base md:text-xl uppercase italic leading-none truncate">{v.model_name}</p>
+                                                {!v.active && <span className="bg-danger/20 text-danger text-[7px] font-black uppercase px-1.5 py-0.5 rounded tracking-widest shrink-0">Inattivo</span>}
+                                            </div>
                                             <p className="label-caps text-[8px] text-amber-500 font-bold tracking-widest mt-1.5 opacity-80 uppercase italic truncate">{v.flavor_name}</p>
                                         </div>
                                         <div className="text-right shrink-0">
@@ -587,10 +686,10 @@ export const Admin: React.FC = () => {
                                     <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Nuova Variante</h2><button onClick={() => setShowAddVariant(false)}><X size={20} /></button></div>
                                     <form onSubmit={handleAddVariant} className="space-y-4 text-xs">
                                         <select required value={newVariant.model_id} onChange={e => setNewVariant({ ...newVariant, model_id: e.target.value })} className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-bold">
-                                            <option value="">Scegli Modello...</option>{models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                            <option value="">Scegli Modello...</option>{models.filter(m => !m.deleted && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                         </select>
                                         <select required value={newVariant.flavor_id} onChange={e => setNewVariant({ ...newVariant, flavor_id: e.target.value })} className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-bold">
-                                            <option value="">Scegli Gusto...</option>{flavors.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                            <option value="">Scegli Gusto...</option>{flavors.filter(f => !f.deleted && f.active !== false).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                                         </select>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-1">Prezzo Default</label><input type="number" required value={newVariant.default_price} onChange={e => setNewVariant({ ...newVariant, default_price: Number(e.target.value) })} className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-black"/></div>
@@ -609,7 +708,7 @@ export const Admin: React.FC = () => {
                                         <div className="flex items-center gap-3 p-3.5 bg-white/5 rounded-xl border border-white/5 cursor-pointer" onClick={() => setEditingVariant({ ...editingVariant, active: !editingVariant.active })}>
                                             <input type="checkbox" checked={editingVariant.active} readOnly className="w-5 h-5 rounded bg-surface-950 border-white/5 text-primary"/><span className="text-[10px] text-white font-bold uppercase tracking-widest">Variante Attiva</span>
                                         </div>
-                                        <button onClick={handleUpdateVariant} className="w-full py-5 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">SALVA MODIFICHE</button>
+                                        <button onClick={() => handleUpdateVariant(editingVariant)} className="w-full py-5 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">SALVA MODIFICHE</button>
                                     </div>
                                 </div>
                             )}

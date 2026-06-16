@@ -223,8 +223,11 @@ export const Vendita: React.FC = () => {
                             const inv = inventory.find(i => i.variant_id === v.id);
                             const qty = inv ? inv.qty : 0;
                             const inCart = cart.find(c => c.id === v.id)?.qty || 0;
-                            const avail = qty - inCart;
-                            const maxStock = 20; // Assume 20 as max for visual reference
+                            const avail = Math.max(qty - inCart, 0);
+                            // maxStock = initial_load_qty settato al primo aggiornamento in Admin dopo chiusura carico
+                            const maxStock = inv && inv.initial_load_qty && inv.initial_load_qty > 0
+                                ? inv.initial_load_qty
+                                : (qty > 0 ? qty : 1);
                             const stockPercent = Math.min((avail / maxStock) * 100, 100);
 
                             return (
@@ -264,6 +267,18 @@ export const Vendita: React.FC = () => {
                                                 )}
                                                 style={{ width: `${stockPercent}%` }}
                                             />
+                                        </div>
+                                        {/* Segment bar representing each piece */}
+                                        <div className="flex gap-0.5 mt-1">
+                                            {Array.from({ length: maxStock }).map((_, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={clsx(
+                                                        "h-2 flex-1 rounded-sm",
+                                                        i < avail ? "bg-success" : "bg-white/5"
+                                                    )}
+                                                />
+                                            ))}
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <p className="text-xl md:text-4xl font-black text-white italic tracking-tighter leading-none pt-1">€{Number(v.default_price).toFixed(0)}</p>

@@ -22,6 +22,7 @@ export interface ProductVariant {
     photo_urls: string[];
     video_urls: string[];
     active: boolean;
+    deleted?: boolean;
     model_name?: string;
     flavor_name?: string;
     qty?: number;
@@ -30,6 +31,7 @@ export interface ProductVariant {
 export interface Inventory {
     variant_id: string;
     qty: number;
+    initial_load_qty?: number;
 }
 
 export interface Reservation {
@@ -50,3 +52,18 @@ export interface Order {
     status: OrderStatus;
     is_archived?: boolean;
 }
+
+export interface ProductModel {
+    id: string;
+    name: string;
+    active: boolean;
+    deleted?: boolean;
+}
+
+export interface ProductFlavor {
+    id: string;
+    name: string;
+    active: boolean;
+    deleted?: boolean;
+}
+
