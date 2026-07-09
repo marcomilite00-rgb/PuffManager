@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -27,28 +27,32 @@ jobs:
 
       - name: Sync Capacitor iOS
         run: |
-          npx cap json
           npx cap sync ios
 
+      - name: Resolve Swift Package Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+                     -workspace ios/App/App.xcworkspace \
+                     -scheme App
+
       # Questa fase compila il progetto Xcode. 
-      # Nota: Per generare un .ipa installabile su dispositivi fisici non registrati,
-      # è solitamente necessario configurare i certificati di firma Apple (iOS Provisioning Profiles).
-      # Qui compiliamo l'app in modalità release senza firma automatica per generare il pacchetto Xcode.
+      # Usiamo -derivedDataPath per specificare esattamente dove salvare i file compilati.
       - name: Build Xcode Project
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace \
                      -scheme App \
                      -configuration Release \
                      -sdk iphoneos \
+                     -derivedDataPath ios/App/build \
                      CODE_SIGNING_ALLOWED=NO \
                      CODE_SIGNING_REQUIRED=NO \
                      clean build
 
-      # Opzionale: Se si vuole pacchettizzare l'app compilata in un archivio zip / app
+      # Pacchettizziamo l'app compilata (.app) in un archivio zip
       - name: Archive Build
         run: |
           mkdir -p build-output
-          cp -r ios/App/build/Release-iphoneos/App.app build-output/
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app build-output/
           cd build-output
           zip -r PuffManager.app.zip App.app
 
@@ -57,3 +61,4 @@ jobs:
         with:
           name: ios-build-app
           path: build-output/PuffManager.app.zip
+
