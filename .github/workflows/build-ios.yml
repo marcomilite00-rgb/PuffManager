@@ -51,8 +51,10 @@ jobs:
                      -configuration Release \
                      -sdk iphoneos \
                      -derivedDataPath ios/App/build \
+                     CODE_SIGN_STYLE=Manual \
                      CODE_SIGNING_ALLOWED=NO \
                      CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_IDENTITY="" \
                      clean build
 
       # Pacchettizziamo l'app compilata (.app) in un archivio zip
