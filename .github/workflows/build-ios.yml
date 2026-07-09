@@ -38,14 +38,15 @@ jobs:
       - name: Resolve Swift Package Dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
-                     -workspace ios/App/App.xcworkspace \
+                     -project ios/App/App.xcodeproj \
                      -scheme App
 
       # Questa fase compila il progetto Xcode. 
       # Usiamo -derivedDataPath per specificare esattamente dove salvare i file compilati.
+      # Usiamo -project anziché -workspace poiché SPM non crea workspace.
       - name: Build Xcode Project
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace \
+          xcodebuild -project ios/App/App.xcodeproj \
                      -scheme App \
                      -configuration Release \
                      -sdk iphoneos \
