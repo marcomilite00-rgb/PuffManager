@@ -41,6 +41,10 @@ jobs:
                      -project ios/App/App.xcodeproj \
                      -scheme App
 
+      - name: Start iOS Simulator (Workaround for ibtool hang)
+        run: |
+          xcrun simctl boot "iPhone 15" || true
+
       # Questa fase compila il progetto Xcode. 
       # Usiamo -derivedDataPath per specificare esattamente dove salvare i file compilati.
       # Usiamo -project anziché -workspace poiché SPM non crea workspace.
