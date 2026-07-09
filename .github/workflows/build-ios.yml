@@ -25,9 +25,15 @@ jobs:
       - name: Build Web Project
         run: npm run build
 
-      - name: Sync Capacitor iOS
+      - name: Sync / Add Capacitor iOS
         run: |
-          npx cap sync ios
+          if [ ! -d "ios" ]; then
+            echo "La cartella ios non esiste. Inizializzazione della piattaforma iOS..."
+            npx cap add ios
+          else
+            echo "Sincronizzazione della piattaforma iOS..."
+            npx cap sync ios
+          fi
 
       - name: Resolve Swift Package Dependencies
         run: |
