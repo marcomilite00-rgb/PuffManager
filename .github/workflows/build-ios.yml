@@ -52,7 +52,7 @@ jobs:
         run: |
           xcodebuild -project ios/App/App.xcodeproj \
                      -scheme App \
-                     -configuration Release \
+                     -configuration Debug \
                      -sdk iphoneos \
                      -destination 'generic/platform=iOS' \
                      -derivedDataPath ios/App/build \
@@ -61,13 +61,13 @@ jobs:
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGN_IDENTITY="" \
                      PROVISIONING_PROFILE_SPECIFIER="" \
-                     clean build
+                     clean build > xcodebuild.log 2>&1 || (tail -n 200 xcodebuild.log && exit 1)
 
       # Pacchettizziamo l'app compilata (.app) in un archivio zip
       - name: Archive Build
         run: |
           mkdir -p build-output
-          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app build-output/
+          cp -r ios/App/build/Build/Products/Debug-iphoneos/App.app build-output/
           cd build-output
           zip -r PuffManager.app.zip App.app
 
