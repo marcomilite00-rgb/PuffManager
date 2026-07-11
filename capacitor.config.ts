@@ -5,8 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Puff Manager Pro',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
-  }
+    // Use https scheme for iOS WebView — required for localStorage, cookies,
+    // and any fetch/API calls that expect a secure context
+    iosScheme: 'https',
+    androidScheme: 'https',
+  },
 };
 
 export default config;

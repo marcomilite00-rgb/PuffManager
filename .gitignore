@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# iOS platform — regenerated from scratch by GitHub Actions (cap add ios + cap sync ios)
+# Do NOT commit these files: they cause Xcode project.pbxproj merge conflicts
+# and become out-of-sync with @capacitor/ios npm package version.
+ios/

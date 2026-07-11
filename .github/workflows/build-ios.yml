@@ -1,79 +1,129 @@
-name: Build iOS IPA
+name: Build iOS App
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build iOS App
+    name: Build iOS App (unsigned)
     runs-on: macos-14
+
     steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ── 2. Node.js ─────────────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
-      - name: Install dependencies
+      # ── 3. Dipendenze npm ──────────────────────────────────────────────────
+      - name: Install npm dependencies
         run: npm ci
 
-      - name: Build Web Project
+      # ── 4. Build web (Vite → dist/) ────────────────────────────────────────
+      - name: Build web project
         run: npm run build
 
-      - name: Sync / Add Capacitor iOS
-        run: |
-          if [ ! -d "ios" ]; then
-            echo "La cartella ios non esiste. Inizializzazione della piattaforma iOS..."
-            npx cap add ios
-          else
-            echo "Sincronizzazione della piattaforma iOS..."
-            npx cap sync ios
-          fi
+      # ── 5. Rigenera ios/ da zero ───────────────────────────────────────────
+      # Eliminiamo la cartella ios/ committata nel repo (se presente) e la
+      # rigeneriamo con la versione esatta di @capacitor/ios installata.
+      # Questo evita file Xcode corrotti o project.pbxproj out-of-sync.
+      - name: Remove existing iOS platform
+        run: rm -rf ios
 
-      - name: Resolve Swift Package Dependencies
+      - name: Add iOS platform (cap add ios)
+        run: npx cap add ios
+
+      # ── 6. Sync web assets + plugin ────────────────────────────────────────
+      # CRITICO: copia dist/ nel bundle iOS e genera capacitor.config.json.
+      # Senza questo step xcodebuild fallisce — i file web non sono presenti.
+      - name: Sync Capacitor iOS (cap sync ios)
+        run: npx cap sync ios
+
+      # ── 7. Verifica struttura Xcode ────────────────────────────────────────
+      - name: Show generated iOS structure
+        run: |
+          echo "=== ios/ directory ==="
+          ls -la ios/
+          echo "=== ios/App/ ==="
+          ls -la ios/App/
+          echo "=== workspace ==="
+          ls -la ios/App/*.xcworkspace 2>/dev/null || echo "No .xcworkspace found"
+          ls -la ios/App/*.xcodeproj  2>/dev/null || echo "No .xcodeproj found"
+
+      # ── 8. Risolvi dipendenze Swift Package Manager ────────────────────────
+      - name: Resolve Swift Package dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
-                     -project ios/App/App.xcodeproj \
-                     -scheme App
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -clonedSourcePackagesDirPath "$HOME/spm-cache"
 
-      - name: Start iOS Simulator (Workaround for ibtool hang)
+      # ── 9. Boot simulatore (workaround ibtool hang su macOS CI) ───────────
+      - name: Start iOS Simulator
+        run: xcrun simctl boot "iPhone 15" || true
+
+      # ── 10. Compila il progetto Xcode ──────────────────────────────────────
+      # Usa -workspace (non -project) perché CapApp-SPM è un local SPM package.
+      # CODE_SIGNING_ALLOWED=NO / CODE_SIGNING_REQUIRED=NO = build senza firma.
+      - name: Build Xcode project
         run: |
-          xcrun simctl boot "iPhone 15" || true
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath ios/App/build \
+            -clonedSourcePackagesDirPath "$HOME/spm-cache" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            clean build \
+            2>&1 | tee xcodebuild.log; \
+          BUILD_EXIT=${PIPESTATUS[0]}; \
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "=== xcodebuild FAILED — last 300 lines ==="
+            tail -n 300 xcodebuild.log
+            exit $BUILD_EXIT
+          fi
 
-      # Questa fase compila il progetto Xcode. 
-      # Usiamo -derivedDataPath per specificare esattamente dove salvare i file compilati.
-      # Usiamo -project anziché -workspace poiché SPM non crea workspace.
-      - name: Build Xcode Project
-        run: |
-          xcodebuild -project ios/App/App.xcodeproj \
-                     -scheme App \
-                     -configuration Debug \
-                     -sdk iphoneos \
-                     -destination 'generic/platform=iOS' \
-                     -derivedDataPath ios/App/build \
-                     CODE_SIGN_STYLE=Manual \
-                     CODE_SIGNING_ALLOWED=NO \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGN_IDENTITY="" \
-                     PROVISIONING_PROFILE_SPECIFIER="" \
-                     clean build > xcodebuild.log 2>&1 || (tail -n 200 xcodebuild.log && exit 1)
-
-      # Pacchettizziamo l'app compilata (.app) in un archivio zip
-      - name: Archive Build
+      # ── 11. Pacchettizza il .app in un archivio zip ────────────────────────
+      - name: Archive build output
         run: |
           mkdir -p build-output
-          cp -r ios/App/build/Build/Products/Debug-iphoneos/App.app build-output/
+          APP_PATH=$(find ios/App/build -name "*.app" -maxdepth 6 | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: .app bundle not found!"
+            find ios/App/build -type d | head -30
+            exit 1
+          fi
+          echo "Found .app at: $APP_PATH"
+          cp -r "$APP_PATH" build-output/App.app
           cd build-output
           zip -r PuffManager.app.zip App.app
 
-      - name: Upload Artifacts
+      # ── 12. Upload artifact ────────────────────────────────────────────────
+      - name: Upload iOS build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build-app
+          name: ios-build-${{ github.sha }}
           path: build-output/PuffManager.app.zip
+          retention-days: 14
 
+      # ── 13. Upload log in caso di fallimento ───────────────────────────────
+      - name: Upload xcodebuild log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log-${{ github.sha }}
+          path: xcodebuild.log
+          retention-days: 7
