@@ -31,40 +31,34 @@ jobs:
         run: npm run build
 
       # ── 5. Rigenera ios/ da zero ───────────────────────────────────────────
-      # Eliminiamo la cartella ios/ e la rigeneriamo con la versione esatta di
-      # @capacitor/ios installata — evita file Xcode corrotti o out-of-sync.
       - name: Remove existing iOS platform
         run: rm -rf ios
 
       - name: Add iOS platform (cap add ios)
         run: npx cap add ios
 
-      # ── 6. Sync web assets + plugin ────────────────────────────────────────
-      # CRITICO: copia dist/ nel bundle iOS e genera capacitor.config.json.
-      # Senza questo step xcodebuild fallisce — i file web non sono presenti.
+      # ── 6. Sync web assets ─────────────────────────────────────────────────
       - name: Sync Capacitor iOS (cap sync ios)
         run: npx cap sync ios
 
       # ── 7. Rileva struttura Xcode generata ─────────────────────────────────
-      # Con Capacitor + SPM locale (CapApp-SPM) NON viene generato un
-      # .xcworkspace standalone (tipico di CocoaPods). Si usa .xcodeproj.
-      # Questo step rileva automaticamente quale usare.
+      # SPM locale (CapApp-SPM) → .xcodeproj (niente .xcworkspace standalone)
+      # CocoaPods                → .xcworkspace standalone
       - name: Detect Xcode project structure
         id: xcode
         run: |
           echo "=== ios/App/ contents ==="
           ls -la ios/App/
 
-          # Cerca .xcworkspace standalone (CocoaPods) prima, poi .xcodeproj (SPM)
           WORKSPACE=$(find ios/App -maxdepth 1 -name "*.xcworkspace" | head -1)
           PROJECT=$(find ios/App -maxdepth 1 -name "*.xcodeproj" | head -1)
 
           if [ -n "$WORKSPACE" ]; then
-            echo "Found standalone .xcworkspace: $WORKSPACE"
+            echo "→ Using standalone .xcworkspace: $WORKSPACE"
             echo "build_flag=-workspace" >> $GITHUB_OUTPUT
             echo "build_path=$WORKSPACE" >> $GITHUB_OUTPUT
           elif [ -n "$PROJECT" ]; then
-            echo "Found .xcodeproj (SPM mode): $PROJECT"
+            echo "→ Using .xcodeproj (SPM mode): $PROJECT"
             echo "build_flag=-project" >> $GITHUB_OUTPUT
             echo "build_path=$PROJECT" >> $GITHUB_OUTPUT
           else
@@ -72,13 +66,15 @@ jobs:
             exit 1
           fi
 
-      # ── 8. Risolvi dipendenze Swift Package Manager ────────────────────────
+      # ── 8. Risolvi dipendenze SPM ──────────────────────────────────────────
+      # NOTA: NON usiamo -clonedSourcePackagesDirPath — cambiar il path
+      # dei pacchetti SPM impedisce al compilatore Swift di trovare il
+      # modulo Capacitor durante la compilazione di AppDelegate.swift.
       - name: Resolve Swift Package dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
             ${{ steps.xcode.outputs.build_flag }} "${{ steps.xcode.outputs.build_path }}" \
-            -scheme App \
-            -clonedSourcePackagesDirPath "$HOME/spm-cache"
+            -scheme App
 
       # ── 9. Boot simulatore (workaround ibtool hang su macOS CI) ───────────
       - name: Start iOS Simulator
@@ -86,6 +82,8 @@ jobs:
 
       # ── 10. Compila il progetto Xcode ──────────────────────────────────────
       # CODE_SIGNING_ALLOWED=NO / CODE_SIGNING_REQUIRED=NO = build senza firma.
+      # NON usiamo -clonedSourcePackagesDirPath per evitare errori di modulo
+      # Swift ("no such module 'Capacitor'") in AppDelegate.swift.
       - name: Build Xcode project
         run: |
           xcodebuild \
@@ -95,7 +93,6 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -derivedDataPath ios/App/build \
-            -clonedSourcePackagesDirPath "$HOME/spm-cache" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -105,12 +102,18 @@ jobs:
             2>&1 | tee xcodebuild.log; \
           BUILD_EXIT=${PIPESTATUS[0]}; \
           if [ $BUILD_EXIT -ne 0 ]; then
-            echo "=== xcodebuild FAILED — last 300 lines ==="
-            tail -n 300 xcodebuild.log
+            echo ""
+            echo "==================================================================="
+            echo "BUILD FAILED — Errori Swift/Clang estratti dal log:"
+            echo "==================================================================="
+            grep -E "^.+error:.+" xcodebuild.log | head -60 || true
+            echo ""
+            echo "=== Ultime 100 righe del log ==="
+            tail -n 100 xcodebuild.log
             exit $BUILD_EXIT
           fi
 
-      # ── 11. Pacchettizza il .app in un archivio zip ────────────────────────
+      # ── 11. Pacchettizza il .app ───────────────────────────────────────────
       - name: Archive build output
         run: |
           mkdir -p build-output
@@ -133,7 +136,7 @@ jobs:
           path: build-output/PuffManager.app.zip
           retention-days: 14
 
-      # ── 13. Upload log in caso di fallimento ───────────────────────────────
+      # ── 13. Upload log xcodebuild (sempre, anche se fallisce) ─────────────
       - name: Upload xcodebuild log (always)
         if: always()
         uses: actions/upload-artifact@v4
