@@ -229,14 +229,16 @@ export const Admin: React.FC = () => {
     const handleUpdateQty = async (variantId: string, newQty: number) => {
         const { error } = await supabase
             .from('inventory')
-            .upsert({
-                variant_id: variantId,
+            .update({
                 qty: newQty,
                 initial_load_qty: newQty   // ogni modifica in Admin aggiorna il riferimento della linea
-            }, { onConflict: 'variant_id' });
+            })
+            .eq('variant_id', variantId);
 
-        if (error) showToast('Errore aggiornamento quantità', 'error');
-        else {
+        if (error) {
+            console.error('[handleUpdateQty] Error updating inventory:', error);
+            showToast('Errore aggiornamento quantità: ' + error.message, 'error');
+        } else {
             setVariants(prev => prev.map(v => v.id === variantId ? { ...v, qty: newQty } : v));
             showToast('Quantità aggiornata');
         }
@@ -298,9 +300,19 @@ export const Admin: React.FC = () => {
     const handleUpdateStaffPin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPin !== confirmPin) { setPinError('PIN non corrispondono'); return; }
-        const { error } = await supabase.from('staff').update({ pin_hash: newPin }).eq('id', editingStaff.id);
-        if (error) showToast('Errore PIN', 'error');
-        else { setEditingStaff(null); setNewPin(''); setConfirmPin(''); setPinError(''); showToast('PIN aggiornato'); }
+        const { error } = await supabase.rpc('update_staff_pin', {
+            p_staff_id: editingStaff.id,
+            p_new_pin: newPin
+        });
+        if (error) showToast('Errore PIN: ' + error.message, 'error');
+        else { 
+            setEditingStaff(null); 
+            setNewPin(''); 
+            setConfirmPin(''); 
+            setPinError(''); 
+            showToast('PIN aggiornato'); 
+            fetchData(); 
+        }
     };
 
     const handleClosingLoadClick = () => {
