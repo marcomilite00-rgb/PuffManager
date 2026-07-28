@@ -12,7 +12,6 @@ on:
         type: choice
         options: [Debug, Release]
 
-# ── Variabili globali ────────────────────────────────────────────────────────
 env:
   NODE_VERSION: '22'
   XCODE_SCHEME: 'App'
@@ -35,26 +34,25 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # ── 3. Cache SPM packages ────────────────────────────────────────────
-      # Cachare SourcePackages risparmia ~5-10 min per build
-      - name: Cache Swift Package Manager
+      # ── 3. Cache SPM globale ──────────────────────────────────────────────
+      # Cachiamo la global SPM cache (~/.swiftpm e Xcode DerivedData checkouts).
+      # Questo sopravvive alla ricreazione di ios/ ad ogni run.
+      - name: Cache Swift Package Manager (global)
         uses: actions/cache@v4
         with:
           path: |
-            ios/App/SourcePackages
             ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ runner.os }}-${{ hashFiles('ios/App/CapApp-SPM/Package.swift') }}
+            ~/.swiftpm
+          key: spm-global-${{ runner.os }}-${{ hashFiles('**/Package.swift', '**/Package.resolved') }}
           restore-keys: |
-            spm-${{ runner.os }}-
+            spm-global-${{ runner.os }}-
 
-      # ── 4. Dipendenze npm ────────────────────────────────────────────────
+      # ── 4. Install npm dependencies ──────────────────────────────────────
       - name: Install npm dependencies
         run: npm ci
 
       # ── 5. Build web (Vite → dist/) ──────────────────────────────────────
-      # Le variabili Supabase vengono iniettate dai GitHub Secrets.
-      # Se non presenti (fork pubblici ecc.) si usano i valori del .env.
-      # Per configurarle: repository → Settings → Secrets → Actions
+      # Secrets configurati in: Repository → Settings → Secrets → Actions
       #   VITE_SUPABASE_URL      = https://msmkwyoojgdbwwxnvcbf.supabase.co
       #   VITE_SUPABASE_ANON_KEY = (la tua anon key)
       - name: Build web project (Vite)
@@ -63,10 +61,17 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # ── 6. Sync web assets nel progetto iOS esistente ────────────────────
-      # NON eliminiamo ios/ — usiamo il progetto committato nel repo.
-      # cap sync copia dist/ in ios/App/App/public e aggiorna i plugin.
-      - name: Sync Capacitor iOS (cap sync)
+      # ── 6. Rigenera ios/ da zero ──────────────────────────────────────────
+      # cap sync ios fallisce se il progetto non è mai stato "aggiunto"
+      # in questo ambiente CI. Rigenerare è l'approccio ufficiale di Capacitor.
+      # La SPM cache globale (step 3) evita il re-download dei pacchetti.
+      - name: Remove existing iOS platform
+        run: rm -rf ios
+
+      - name: Add iOS platform (cap add ios)
+        run: npx cap add ios
+
+      - name: Sync web assets into iOS (cap sync ios)
         run: npx cap sync ios
 
       # ── 7. Rileva struttura Xcode (SPM .xcodeproj vs CocoaPods .xcworkspace)
@@ -92,28 +97,33 @@ jobs:
             exit 1
           fi
 
-      # ── 8. Risolvi dipendenze SPM ────────────────────────────────────────
+      # ── 8. Risolvi dipendenze SPM ─────────────────────────────────────────
+      # Non usiamo -clonedSourcePackagesDirPath: con la global cache lo SPM
+      # resolver trova già i pacchetti localmente senza re-download.
       - name: Resolve Swift Package dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
             ${{ steps.xcode.outputs.build_flag }} "${{ steps.xcode.outputs.build_path }}" \
-            -scheme "${{ env.XCODE_SCHEME }}" \
-            -clonedSourcePackagesDirPath ios/App/SourcePackages
+            -scheme "${{ env.XCODE_SCHEME }}"
 
-      # ── 9. Imposta version number automatico ─────────────────────────────
-      # MARKETING_VERSION = 1.0.0 fisso, CURRENT_PROJECT_VERSION = run number
+      # ── 9. Imposta build number automatico ───────────────────────────────
       - name: Set build version
         run: |
           BUILD_NUMBER="${{ github.run_number }}"
           echo "→ Build number: $BUILD_NUMBER"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" \
+            ios/App/App/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUMBER" \
             ios/App/App/Info.plist || true
 
       # ── 10. Boot simulatore (workaround ibtool hang su macOS CI) ─────────
       - name: Boot iOS Simulator
-        run: xcrun simctl boot "iPhone 16" 2>/dev/null || xcrun simctl boot "iPhone 15" 2>/dev/null || true
+        run: |
+          xcrun simctl boot "iPhone 16" 2>/dev/null || \
+          xcrun simctl boot "iPhone 15" 2>/dev/null || \
+          xcrun simctl boot "iPhone 14" 2>/dev/null || true
 
-      # ── 11. Compila il progetto Xcode (unsigned) ──────────────────────────
+      # ── 11. Compila (unsigned) ────────────────────────────────────────────
       - name: Build Xcode project
         run: |
           xcodebuild \
@@ -123,7 +133,6 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -derivedDataPath ios/App/build \
-            -clonedSourcePackagesDirPath ios/App/SourcePackages \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -171,7 +180,7 @@ jobs:
           path: build-output/PuffManager-${{ github.run_number }}.app.zip
           retention-days: 30
 
-      # ── 14. Upload xcodebuild log (sempre, anche se fallisce) ─────────────
+      # ── 14. Upload xcodebuild log (sempre) ───────────────────────────────
       - name: Upload xcodebuild log
         if: always()
         uses: actions/upload-artifact@v4
