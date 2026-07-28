@@ -4,107 +4,140 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      configuration:
+        description: 'Build configuration'
+        required: false
+        default: 'Debug'
+        type: choice
+        options: [Debug, Release]
+
+# ── Variabili globali ────────────────────────────────────────────────────────
+env:
+  NODE_VERSION: '22'
+  XCODE_SCHEME: 'App'
+  BUILD_CONFIGURATION: ${{ github.event.inputs.configuration || 'Debug' }}
 
 jobs:
   build:
-    name: Build iOS App (unsigned)
-    runs-on: macos-14
+    name: Build iOS (unsigned)
+    runs-on: macos-15
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────────
+      # ── 1. Checkout ──────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Node.js ─────────────────────────────────────────────────────────
-      - name: Setup Node.js
+      # ── 2. Node.js ───────────────────────────────────────────────────────
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # ── 3. Dipendenze npm ──────────────────────────────────────────────────
+      # ── 3. Cache SPM packages ────────────────────────────────────────────
+      # Cachare SourcePackages risparmia ~5-10 min per build
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/App/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('ios/App/CapApp-SPM/Package.swift') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      # ── 4. Dipendenze npm ────────────────────────────────────────────────
       - name: Install npm dependencies
         run: npm ci
 
-      # ── 4. Build web (Vite → dist/) ────────────────────────────────────────
-      - name: Build web project
+      # ── 5. Build web (Vite → dist/) ──────────────────────────────────────
+      # Le variabili Supabase vengono iniettate dai GitHub Secrets.
+      # Se non presenti (fork pubblici ecc.) si usano i valori del .env.
+      # Per configurarle: repository → Settings → Secrets → Actions
+      #   VITE_SUPABASE_URL      = https://msmkwyoojgdbwwxnvcbf.supabase.co
+      #   VITE_SUPABASE_ANON_KEY = (la tua anon key)
+      - name: Build web project (Vite)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # ── 5. Rigenera ios/ da zero ───────────────────────────────────────────
-      - name: Remove existing iOS platform
-        run: rm -rf ios
-
-      - name: Add iOS platform (cap add ios)
-        run: npx cap add ios
-
-      # ── 6. Sync web assets ─────────────────────────────────────────────────
-      - name: Sync Capacitor iOS (cap sync ios)
+      # ── 6. Sync web assets nel progetto iOS esistente ────────────────────
+      # NON eliminiamo ios/ — usiamo il progetto committato nel repo.
+      # cap sync copia dist/ in ios/App/App/public e aggiorna i plugin.
+      - name: Sync Capacitor iOS (cap sync)
         run: npx cap sync ios
 
-      # ── 7. Rileva struttura Xcode generata ─────────────────────────────────
-      # SPM locale (CapApp-SPM) → .xcodeproj (niente .xcworkspace standalone)
-      # CocoaPods                → .xcworkspace standalone
+      # ── 7. Rileva struttura Xcode (SPM .xcodeproj vs CocoaPods .xcworkspace)
       - name: Detect Xcode project structure
         id: xcode
         run: |
           echo "=== ios/App/ contents ==="
           ls -la ios/App/
 
-          WORKSPACE=$(find ios/App -maxdepth 1 -name "*.xcworkspace" | head -1)
+          WORKSPACE=$(find ios/App -maxdepth 1 -name "*.xcworkspace" ! -name "*.xcodeproj" | head -1)
           PROJECT=$(find ios/App -maxdepth 1 -name "*.xcodeproj" | head -1)
 
           if [ -n "$WORKSPACE" ]; then
-            echo "→ Using standalone .xcworkspace: $WORKSPACE"
+            echo "→ Usando .xcworkspace (CocoaPods): $WORKSPACE"
             echo "build_flag=-workspace" >> $GITHUB_OUTPUT
-            echo "build_path=$WORKSPACE" >> $GITHUB_OUTPUT
+            echo "build_path=$WORKSPACE"  >> $GITHUB_OUTPUT
           elif [ -n "$PROJECT" ]; then
-            echo "→ Using .xcodeproj (SPM mode): $PROJECT"
-            echo "build_flag=-project" >> $GITHUB_OUTPUT
-            echo "build_path=$PROJECT" >> $GITHUB_OUTPUT
+            echo "→ Usando .xcodeproj (SPM): $PROJECT"
+            echo "build_flag=-project"   >> $GITHUB_OUTPUT
+            echo "build_path=$PROJECT"   >> $GITHUB_OUTPUT
           else
-            echo "ERROR: No Xcode project or workspace found in ios/App/"
+            echo "ERROR: Nessun progetto Xcode trovato in ios/App/"
             exit 1
           fi
 
-      # ── 8. Risolvi dipendenze SPM ──────────────────────────────────────────
-      # NOTA: NON usiamo -clonedSourcePackagesDirPath — cambiar il path
-      # dei pacchetti SPM impedisce al compilatore Swift di trovare il
-      # modulo Capacitor durante la compilazione di AppDelegate.swift.
+      # ── 8. Risolvi dipendenze SPM ────────────────────────────────────────
       - name: Resolve Swift Package dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
             ${{ steps.xcode.outputs.build_flag }} "${{ steps.xcode.outputs.build_path }}" \
-            -scheme App
+            -scheme "${{ env.XCODE_SCHEME }}" \
+            -clonedSourcePackagesDirPath ios/App/SourcePackages
 
-      # ── 9. Boot simulatore (workaround ibtool hang su macOS CI) ───────────
-      - name: Start iOS Simulator
-        run: xcrun simctl boot "iPhone 15" || true
+      # ── 9. Imposta version number automatico ─────────────────────────────
+      # MARKETING_VERSION = 1.0.0 fisso, CURRENT_PROJECT_VERSION = run number
+      - name: Set build version
+        run: |
+          BUILD_NUMBER="${{ github.run_number }}"
+          echo "→ Build number: $BUILD_NUMBER"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" \
+            ios/App/App/Info.plist || true
 
-      # ── 10. Compila il progetto Xcode ──────────────────────────────────────
-      # CODE_SIGNING_ALLOWED=NO / CODE_SIGNING_REQUIRED=NO = build senza firma.
-      # NON usiamo -clonedSourcePackagesDirPath per evitare errori di modulo
-      # Swift ("no such module 'Capacitor'") in AppDelegate.swift.
+      # ── 10. Boot simulatore (workaround ibtool hang su macOS CI) ─────────
+      - name: Boot iOS Simulator
+        run: xcrun simctl boot "iPhone 16" 2>/dev/null || xcrun simctl boot "iPhone 15" 2>/dev/null || true
+
+      # ── 11. Compila il progetto Xcode (unsigned) ──────────────────────────
       - name: Build Xcode project
         run: |
           xcodebuild \
             ${{ steps.xcode.outputs.build_flag }} "${{ steps.xcode.outputs.build_path }}" \
-            -scheme App \
-            -configuration Debug \
+            -scheme "${{ env.XCODE_SCHEME }}" \
+            -configuration "${{ env.BUILD_CONFIGURATION }}" \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -derivedDataPath ios/App/build \
+            -clonedSourcePackagesDirPath ios/App/SourcePackages \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
+            MARKETING_VERSION="1.0.0" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             clean build \
             2>&1 | tee xcodebuild.log; \
           BUILD_EXIT=${PIPESTATUS[0]}; \
           if [ $BUILD_EXIT -ne 0 ]; then
             echo ""
             echo "==================================================================="
-            echo "BUILD FAILED — Errori Swift/Clang estratti dal log:"
+            echo "BUILD FAILED — Errori estratti dal log:"
             echo "==================================================================="
             grep -E "^.+error:.+" xcodebuild.log | head -60 || true
             echo ""
@@ -112,35 +145,55 @@ jobs:
             tail -n 100 xcodebuild.log
             exit $BUILD_EXIT
           fi
+          echo "✅ Build completata con successo!"
 
-      # ── 11. Pacchettizza il .app ───────────────────────────────────────────
-      - name: Archive build output
+      # ── 12. Pacchettizza il .app ──────────────────────────────────────────
+      - name: Archive .app bundle
         run: |
           mkdir -p build-output
-          APP_PATH=$(find ios/App/build -name "*.app" -maxdepth 6 | head -1)
+          APP_PATH=$(find ios/App/build -name "*.app" -maxdepth 8 | grep -v "\.xctest" | head -1)
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: .app bundle not found!"
+            echo "ERROR: .app bundle non trovato!"
             find ios/App/build -type d | head -30
             exit 1
           fi
-          echo "Found .app at: $APP_PATH"
+          echo "→ .app trovato: $APP_PATH"
           cp -r "$APP_PATH" build-output/App.app
           cd build-output
-          zip -r PuffManager.app.zip App.app
+          zip -r PuffManager-${{ github.run_number }}.app.zip App.app
+          echo "→ Archivio creato: PuffManager-${{ github.run_number }}.app.zip"
 
-      # ── 12. Upload artifact ────────────────────────────────────────────────
+      # ── 13. Upload artifact .app.zip ──────────────────────────────────────
       - name: Upload iOS build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-build-${{ github.sha }}
-          path: build-output/PuffManager.app.zip
-          retention-days: 14
+          name: PuffManager-iOS-${{ github.ref_name }}-build${{ github.run_number }}
+          path: build-output/PuffManager-${{ github.run_number }}.app.zip
+          retention-days: 30
 
-      # ── 13. Upload log xcodebuild (sempre, anche se fallisce) ─────────────
-      - name: Upload xcodebuild log (always)
+      # ── 14. Upload xcodebuild log (sempre, anche se fallisce) ─────────────
+      - name: Upload xcodebuild log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xcodebuild-log-${{ github.sha }}
+          name: xcodebuild-log-build${{ github.run_number }}
           path: xcodebuild.log
           retention-days: 7
+
+      # ── 15. Build summary ─────────────────────────────────────────────────
+      - name: Build summary
+        if: success()
+        run: |
+          echo "## ✅ iOS Build Completata" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo | Valore |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **App** | Puff Manager Pro |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Bundle ID** | com.puffmanager.app |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | 1.0.0 (build ${{ github.run_number }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Config** | ${{ env.BUILD_CONFIGURATION }} (unsigned) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 📦 Scarica l'artifact dalla tab **Artifacts** in questa run." >> $GITHUB_STEP_SUMMARY
+          echo "> ⚠️ Build non firmata — non installabile su dispositivi reali senza firma." >> $GITHUB_STEP_SUMMARY

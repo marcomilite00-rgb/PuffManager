@@ -134,9 +134,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </aside>
 
-            {/* Mobile Header */}
-            <header className="md:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5 safe-area-top h-14">
-                <div className="flex items-center justify-between px-5 h-full">
+            {/* Mobile Header — h-14 + safe-area-top per status bar / notch */}
+            <header className="md:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5 safe-area-top">
+                <div className="flex items-center justify-between px-5 h-14">
                     <h1 className="text-lg font-black italic tracking-tighter text-white uppercase pt-1">
                         Puff<span className="text-primary not-italic">Pro</span>
                     </h1>
@@ -208,9 +208,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
             </AnimatePresence>
 
-            {/* Mobile Bottom Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/5 safe-area-bottom h-16 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-                <div className="flex justify-around items-center h-full px-1">
+            {/* Mobile Bottom Nav — altezza fissa + safe-area-bottom per home indicator */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/5 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                <div className="flex justify-around items-center h-16 px-1">
                     {[navItems[0], navItems[1], navItems[2], navItems[5], navItems[3]].map((item) => (
                         <NavLink
                             key={item.to}
@@ -236,7 +236,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </nav>
 
-            <main className="flex-1 md:ml-80 pb-20 md:pb-0 min-h-screen pt-14 md:pt-0 bg-surface-950">
+            {/* Main content area */}
+            {/* Mobile: padding-top = header(56px) + notch; padding-bottom = bottom-nav(64px) + home indicator */}
+            {/* Desktop: padding handled by sidebar offset (md:ml-80) — no extra top/bottom needed */}
+            <main className="flex-1 md:ml-80 md:pt-0 md:pb-0 min-h-screen bg-surface-950 overflow-y-auto main-mobile-inset">
                 <div className="w-full max-w-[1920px] mx-auto px-3 py-4 md:p-10 lg:p-14">
                     {children}
                 </div>

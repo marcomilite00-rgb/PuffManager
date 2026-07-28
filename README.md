@@ -1,73 +1,135 @@
-# React + TypeScript + Vite
+# Puff Manager Pro 🌿
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+App gestionale per negozi, costruita con **React + Capacitor** e distribuita come **app nativa iOS**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack tecnologico
 
-## React Compiler
+| Layer | Tecnologia |
+|-------|-----------|
+| UI | React 19 + TypeScript + Vite |
+| Styling | Tailwind CSS v4 |
+| Backend | Supabase (PostgreSQL + Auth + Realtime) |
+| iOS wrapper | Capacitor v8 (SPM, senza CocoaPods) |
+| CI/CD | GitHub Actions → macOS 15 runner |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Funzionalità
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Vendita** — registra vendite rapide con selezione prodotto/quantità
+- **Prenotazioni** — gestisci prenotazioni clienti con stato RESERVED/SOLD/CANCELLED
+- **Inventario** — visualizza e aggiorna lo stock per variante prodotto
+- **Cassa** — riepilogo incassi con filtri per periodo e staff
+- **Storico** — archivio vendite con ricerca e filtri avanzati
+- **Promemoria** — sistema di alert interni con notifiche in tempo reale
+- **Admin Panel** — gestione staff, prodotti, modelli e sapori (solo admin)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Ruoli utente
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+| Ruolo | Accesso |
+|-------|---------|
+| `admin` | Tutto (incluso Admin Panel) |
+| `staff` | Vendita, Prenotazioni, Inventario, Cassa, Storico, Promemoria |
+| `helper` | Vendita, Prenotazioni, Inventario, Promemoria |
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Setup sviluppo locale
+
+### Prerequisiti
+- Node.js 22+
+- npm 10+
+
+### Installazione
+
+```bash
+git clone https://github.com/TUO_USERNAME/PuffManager
+cd PuffManager
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Variabili d'ambiente
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Crea un file `.env` nella root:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_xxxxx
+```
+
+### Avvio
+
+```bash
+npm run dev
+```
+
+---
+
+## Build iOS
+
+### Build web + sync Capacitor
+
+```bash
+npm run build
+npx cap sync ios
+```
+
+### Aprire in Xcode
+
+```bash
+npx cap open ios
+```
+
+Poi seleziona un simulatore e premi **⌘R**.
+
+---
+
+## GitHub Actions CI/CD
+
+Il workflow `.github/workflows/build-ios.yml` si attiva ad ogni push su `main`:
+
+1. **Installa** dipendenze npm
+2. **Build** Vite → `dist/`
+3. **Sync** Capacitor → `ios/App/`
+4. **Cache** SPM packages (risparmia ~8 min)
+5. **Compila** con `xcodebuild` (unsigned, Debug)
+6. **Archivia** il `.app.zip` come artifact (30 giorni)
+
+### Secrets richiesti
+
+Aggiungi questi secrets in **Settings → Secrets → Actions** del repository:
+
+| Secret | Valore |
+|--------|--------|
+| `VITE_SUPABASE_URL` | URL del progetto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Anon key pubblica di Supabase |
+
+> **⚠️ Nota**: La build CI produce un `.app` **non firmato**. Per installarlo su dispositivi fisici o pubblicarlo su TestFlight è necessaria la firma con certificato Apple Developer.
+
+---
+
+## Struttura progetto
+
+```
+PuffManager/
+├── .github/workflows/
+│   └── build-ios.yml          # CI/CD GitHub Actions
+├── ios/
+│   └── App/                   # Progetto Xcode nativo (Capacitor)
+│       ├── App/
+│       │   ├── AppDelegate.swift
+│       │   └── Info.plist     # Configurazione iOS (dark mode, ATS, etc.)
+│       └── CapApp-SPM/        # Swift Package Manager dependencies
+├── src/
+│   ├── components/
+│   │   ├── layout/Layout.tsx  # Sidebar desktop + bottom nav mobile
+│   │   └── auth/
+│   ├── context/AuthContext.tsx
+│   ├── pages/                 # Vendita, Prenotazioni, Inventario, ...
+│   ├── lib/supabase.ts
+│   └── index.css              # Design system + safe area iOS
+├── capacitor.config.ts        # Configurazione Capacitor/iOS
+└── index.html                 # viewport-fit=cover per safe area
 ```
