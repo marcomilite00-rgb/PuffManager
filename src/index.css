@@ -23,11 +23,11 @@
   --warning: #f59e0b;
   --surface: #0d1117;
 
-  /* Safe area inset — popolate dal browser/WebView nativo */
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
+  /* Safe area inset — popolate dal browser/WebView nativo con fallback per iOS legacy */
+  --safe-top: env(safe-area-inset-top, constant(safe-area-inset-top, 0px));
+  --safe-right: env(safe-area-inset-right, constant(safe-area-inset-right, 0px));
+  --safe-bottom: env(safe-area-inset-bottom, constant(safe-area-inset-bottom, 0px));
+  --safe-left: env(safe-area-inset-left, constant(safe-area-inset-left, 0px));
 }
 
 /* ── Base styles ─────────────────────────────────────────────────────────── */
@@ -50,6 +50,10 @@ body {
   background-color: var(--surface);
   color: white;
   font-family: var(--font-family-body);
+  /* Ottimizzazione rendering font su schermi Retina / OLED (iPhone 15) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   /* Disabilita text selection (touch) tranne che negli input */
   user-select: none;
   -webkit-user-select: none;
@@ -89,7 +93,11 @@ h1, h2, h3, h4, .title-case {
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
-/* ── Input: mantieni text-selection ─────────────────────────────────────── */
+/* ── Input e pulsanti: reattività immediata ed eliminazione delay di tap ──── */
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
 input, textarea, select {
   user-select: text !important;
   -webkit-user-select: text !important;
