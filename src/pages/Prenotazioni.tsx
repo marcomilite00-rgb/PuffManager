@@ -137,8 +137,8 @@ export const Prenotazioni: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-12 animate-fade safe-area-pt pb-28">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 px-4 md:px-6">
+        <div className="space-y-4 md:space-y-10 animate-fade safe-area-pt pb-20">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-6 px-2 md:px-6">
                 <div className="space-y-1 md:space-y-3">
                     <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Preno<span className="text-primary not-italic">tazioni</span>
@@ -152,7 +152,7 @@ export const Prenotazioni: React.FC = () => {
                 </div>
             </div>
 
-            <div className="space-y-4 px-4 md:px-6">
+            <div className="space-y-3 px-2 md:px-6">
                 {reservations.length > 0 ? (
                     reservations.map((res) => {
                         const isExpanded = expandedId === res.id;
@@ -160,25 +160,25 @@ export const Prenotazioni: React.FC = () => {
                         const total = fromCents(items.reduce((acc: number, curr: any) => acc + safeNumber(curr.qty) * toCents(curr.unit_price_final), 0));
 
                         return (
-                            <div key={res.id} className="glass-card rounded-2xl md:rounded-[2.5rem] border-white/5 overflow-hidden group">
+                            <div key={res.id} className="glass-card rounded-xl md:rounded-[2.5rem] border-white/5 overflow-hidden group">
                                 <div
                                     onClick={() => setExpandedId(isExpanded ? null : res.id)}
-                                    className="p-4 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer"
+                                    className="p-3 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4 cursor-pointer"
                                 >
-                                    <div className="flex items-center gap-4 md:gap-6">
-                                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-[1.5rem] bg-white/5 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform duration-500">
-                                            <User size={22} className="md:w-7 md:h-7" />
+                                    <div className="flex items-center gap-3 md:gap-6">
+                                        <div className="w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-[1.5rem] bg-white/5 flex items-center justify-center text-primary shadow-xl group-hover:scale-110 transition-transform duration-500">
+                                            <User size={18} className="md:w-7 md:h-7" />
                                         </div>
                                         <div>
-                                            <p className="text-lg md:text-2xl font-black text-white italic tracking-tighter uppercase leading-none">{res.customer_name || 'Generic'}</p>
-                                            <div className="flex items-center gap-2 mt-1 md:mt-2">
-                                                <Badge variant="primary" size="sm" className="text-[8px] md:text-[10px]">{items.length} Articoli</Badge>
-                                                <span className="text-[8px] md:text-[10px] label-caps text-slate-600">By {(res as any).staff?.name}</span>
+                                            <p className="text-base md:text-2xl font-black text-white italic tracking-tighter uppercase leading-none">{res.customer_name || 'Generic'}</p>
+                                            <div className="flex items-center gap-2 mt-0.5 md:mt-2">
+                                                <Badge variant="primary" size="xs" className="md:size-sm">{items.length} Articoli</Badge>
+                                                <span className="text-[7px] md:text-[10px] label-caps text-slate-600">By {(res as any).staff?.name}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-white/5">
+                                    <div className="flex items-center justify-between md:justify-end gap-2 md:gap-6 w-full md:w-auto mt-1 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/5">
                                         <div className="text-left md:text-right">
                                             <p className="text-2xl md:text-3xl font-black text-primary italic tracking-tighter">€{total.toFixed(2)}</p>
                                             <div className="flex items-center gap-1.5 justify-start md:justify-end py-1 text-[8px] md:text-[9px] label-caps text-slate-600">
@@ -200,10 +200,10 @@ export const Prenotazioni: React.FC = () => {
                                             exit={{ height: 0, opacity: 0 }}
                                             className="bg-black/40 border-t border-white/5 overflow-hidden"
                                         >
-                                            <div className="p-4 md:p-8 space-y-6 md:space-y-8">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                            <div className="p-3 md:p-8 space-y-3 md:space-y-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
                                                     {items.map((item: any) => (
-                                                        <div key={item.id} className="p-4 md:p-5 glass-card rounded-2xl md:rounded-[2rem] border-white/5 flex items-center justify-between group/item">
+                                                        <div key={item.id} className="p-3 md:p-5 glass-card rounded-xl md:rounded-[2rem] border-white/5 flex items-center justify-between group/item">
                                                             <div className="min-w-0 pr-2">
                                                                 <p className="font-black text-white text-sm md:text-base leading-tight uppercase truncate italic">{item.variant.model.name}</p>
                                                                 <p className="text-[8px] md:text-[10px] label-caps text-slate-600 mt-0.5 md:mt-1 italic uppercase tracking-widest">{item.variant.flavor.name}</p>
@@ -244,12 +244,12 @@ export const Prenotazioni: React.FC = () => {
                                                     </button>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                    <button onClick={() => { setPaymentData({ id: res.id, total }); setPaymentAmount(''); setShowPaymentModal(true); }} className="py-6 bg-primary text-surface-950 font-black rounded-3xl text-xl label-caps hover:scale-[1.02] active:scale-95 transition-all shadow-3xl shadow-primary/20 flex items-center justify-center gap-3">
-                                                        <CheckCircle2 size={24} /> Concludi Vendita
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
+                                                    <button onClick={() => { setPaymentData({ id: res.id, total }); setPaymentAmount(''); setShowPaymentModal(true); }} className="py-4 md:py-6 bg-primary text-surface-950 font-black rounded-2xl md:rounded-3xl text-base md:text-xl label-caps hover:scale-[1.02] active:scale-95 transition-all shadow-3xl shadow-primary/20 flex items-center justify-center gap-2">
+                                                        <CheckCircle2 size={20} /> Concludi Vendita
                                                     </button>
-                                                    <button onClick={() => handleAnnulla(res.id)} className="py-6 bg-surface-800 text-danger border border-danger/20 font-black rounded-3xl text-lg label-caps hover:bg-danger/10 transition-all flex items-center justify-center gap-3">
-                                                        <XCircle size={20} /> Annulla
+                                                    <button onClick={() => handleAnnulla(res.id)} className="py-4 md:py-6 bg-surface-800 text-danger border border-danger/20 font-black rounded-2xl md:rounded-3xl text-sm md:text-lg label-caps hover:bg-danger/10 transition-all flex items-center justify-center gap-2">
+                                                        <XCircle size={18} /> Annulla
                                                     </button>
                                                 </div>
                                             </div>

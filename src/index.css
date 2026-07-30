@@ -283,8 +283,8 @@ textarea {
 
 /* ── Main content mobile safe area ──────────────────────────────────────── */
 .main-mobile-inset {
-  padding-top: calc(56px + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-top: calc(48px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (min-width: 768px) {

@@ -171,9 +171,9 @@ export const Inventario: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-surface-950 pb-32 safe-area-pt">
+        <div className="min-h-screen bg-surface-950 pb-24 safe-area-pt">
             {/* Legend & Quick Info */}
-            <div className="px-4 md:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-6 border-b border-white/5 bg-white/[0.02] sticky top-0 z-50 backdrop-blur-xl">
+            <div className="px-3 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-white/5 bg-white/[0.02] sticky top-0 z-50 backdrop-blur-xl">
                 <div className="flex flex-col">
                     <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Magazzino<span className="text-primary not-italic">.</span>
@@ -207,7 +207,7 @@ export const Inventario: React.FC = () => {
             </div>
 
             {/* Controls */}
-            <div className="px-4 md:px-8 py-6 space-y-4">
+            <div className="px-3 md:px-8 py-4 space-y-3">
                 <div className="flex flex-col lg:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
@@ -241,7 +241,7 @@ export const Inventario: React.FC = () => {
             </div>
 
             {/* Content: List View (High Visibility) */}
-            <div className="px-4 md:px-8 space-y-10">
+            <div className="px-3 md:px-8 space-y-6">
                 {groupedData.length > 0 ? (
                     groupedData.map((group) => (
                         <div key={group.modelName} className="space-y-4">

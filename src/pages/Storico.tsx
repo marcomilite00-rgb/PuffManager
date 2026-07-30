@@ -171,8 +171,8 @@ export const Storico: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-10 animate-fade safe-area-pt pb-20">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 px-4 md:px-6">
+        <div className="space-y-4 md:space-y-8 animate-fade safe-area-pt pb-16">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-2 md:px-6">
                 <div className="space-y-2">
                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Storico<span className="text-primary not-italic">{viewMode === 'orders' ? 'Ordini' : 'Sessioni'}</span>
@@ -305,7 +305,7 @@ export const Storico: React.FC = () => {
             )}
 
             {/* Quick Search and Overview */}
-            <div className="px-4 md:px-6 relative group">
+            <div className="px-2 md:px-6 relative group">
                 <Search className="absolute left-10 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-primary transition-colors" size={18} />
                 <input
                     type="text"
@@ -317,7 +317,7 @@ export const Storico: React.FC = () => {
             </div>
 
             {/* Lists grid */}
-            <div className="space-y-3 px-4 md:px-6">
+            <div className="space-y-2 px-2 md:px-6">
                 {viewMode === 'orders' ? (
                     (() => {
                         const activeOrders = filteredOrders.filter(o => {
