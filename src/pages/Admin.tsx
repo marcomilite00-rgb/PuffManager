@@ -406,19 +406,18 @@ export const Admin: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-surface-950 pb-32 safe-area-pt overflow-x-hidden">
+        <div className="min-h-0 bg-surface-950 overflow-x-hidden">
             {/* Header */}
-            <header className="px-3 md:px-12 py-4 md:py-12 bg-white/[0.02] border-b border-white/5 sticky top-0 z-40 backdrop-blur-3xl overflow-hidden">
-                <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-3 md:gap-10 relative z-10">
+            <header className="px-2 md:px-6 py-2 md:py-4 bg-white/[0.02] border-b border-white/5 sticky top-0 z-40 backdrop-blur-3xl overflow-hidden">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-2 md:gap-6 relative z-10">
                     <div>
-                        <h1 className="text-2xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
+                        <h1 className="text-lg md:text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
                             Admin<span className="text-primary not-italic">.</span>
                         </h1>
-                        <p className="label-caps text-[7px] md:text-[8px] text-slate-600 tracking-widest mt-1 uppercase font-bold opacity-70">Infrastructure</p>
+                        <p className="label-caps text-[7px] md:text-[8px] text-slate-600 tracking-widest mt-0.5 uppercase font-bold opacity-70">Infrastructure</p>
                     </div>
 
-                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide w-full md:w-auto -mx-3 px-3 md:mx-0 md:px-0">
+                    <div className="flex flex-wrap gap-1 w-full md:w-auto">
                         {[
                             { id: 'settings', label: 'Home', icon: Settings },
                             { id: 'staff', label: 'Team', icon: Users },
@@ -429,13 +428,13 @@ export const Admin: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={clsx(
-                                    "flex items-center gap-1.5 px-3 py-2 rounded-lg font-black label-caps text-[7.5px] md:text-[10px] transition-all whitespace-nowrap uppercase tracking-widest shrink-0 border duration-300",
+                                    "flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded-lg font-black label-caps text-[7px] md:text-[9px] transition-all whitespace-nowrap uppercase tracking-widest shrink-0 border duration-300",
                                     activeTab === tab.id 
-                                        ? "bg-primary border-primary text-surface-950 scale-105" 
+                                        ? "bg-primary border-primary text-surface-950" 
                                         : "bg-surface-900/60 border-white/5 text-slate-500 hover:text-white"
                                 )}
                             >
-                                <tab.icon size={12} strokeWidth={activeTab === tab.id ? 3 : 2} />
+                                <tab.icon size={10} strokeWidth={activeTab === tab.id ? 3 : 2} />
                                 {tab.label}
                             </button>
                         ))}
@@ -443,67 +442,67 @@ export const Admin: React.FC = () => {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-3 md:px-12 py-6 md:py-16">
+            <div className="max-w-7xl mx-auto px-2 md:px-6 py-3 md:py-6">
                 {/* TAB: DASHBOARD */}
                 {activeTab === 'settings' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 animate-in slide-in-from-bottom-5 duration-700">
-                        <div className="glass rounded-3xl p-6 md:p-10 border-white/5 bg-surface-900/40 relative overflow-hidden group">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 animate-in slide-in-from-bottom-5 duration-700">
+                        <div className="glass rounded-2xl md:rounded-3xl p-5 md:p-8 border-white/5 bg-surface-900/40 relative overflow-hidden group">
                             <div className="relative z-10 space-y-4">
-                                <div className="w-12 h-12 bg-danger/20 rounded-xl flex items-center justify-center text-danger">
-                                    <TrendingUp size={24} />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-danger/20 rounded-xl flex items-center justify-center text-danger">
+                                    <TrendingUp size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl md:text-3xl font-black italic text-white uppercase">Chiudi Carico</h3>
-                                    <p className="text-slate-500 text-xs md:text-sm mt-1 max-w-xs">Sincronizza e archivia la sessione corrente.</p>
+                                    <h3 className="text-lg md:text-3xl font-black italic text-white uppercase">Chiudi Carico</h3>
+                                    <p className="text-slate-500 text-[10px] md:text-sm mt-0.5 md:mt-1 max-w-xs">Sincronizza e archivia la sessione corrente.</p>
                                 </div>
-                                <button onClick={handleClosingLoadClick} className="w-full py-4 bg-danger text-white font-black text-[10px] md:text-xs rounded-xl md:rounded-2xl uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-danger/20 active:scale-95 transition-transform">
-                                    <ArrowUpRight size={16} /> AVVIA CHIUSURA CARICO
+                                <button onClick={handleClosingLoadClick} className="w-full py-3.5 md:py-4 bg-danger text-white font-black text-[9px] md:text-xs rounded-xl md:rounded-2xl uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-danger/20 active:scale-95 transition-transform">
+                                    <ArrowUpRight size={14} /> AVVIA CHIUSURA CARICO
                                 </button>
                             </div>
                         </div>
 
-                        <div className="glass rounded-3xl p-6 md:p-10 border-white/5 space-y-5">
+                        <div className="glass rounded-2xl md:rounded-3xl p-5 md:p-8 border-white/5 space-y-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500"><DollarSign size={20} /></div>
-                                <h3 className="text-lg md:text-2xl font-black italic uppercase">Bilancio</h3>
+                                <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500"><DollarSign size={16} /></div>
+                                <h3 className="text-base md:text-2xl font-black italic uppercase">Bilancio</h3>
                             </div>
 
                             {/* 1. Utile Netto — read only */}
-                            <div className="p-5 bg-black/40 border border-emerald-500/20 rounded-2xl">
-                                <p className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">Utile Netto (ultimo carico chiuso)</p>
-                                <p className="text-3xl md:text-5xl font-black text-emerald-500 italic tabular-nums">
+                            <div className="p-4 md:p-5 bg-black/40 border border-emerald-500/20 rounded-2xl">
+                                <p className="text-[8px] md:text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-0.5">Utile Netto (ultimo carico chiuso)</p>
+                                <p className="text-2xl md:text-5xl font-black text-emerald-500 italic tabular-nums">
                                     €{(settings?.total_net_earned ?? 0).toLocaleString('it-IT')}
                                 </p>
                             </div>
 
-                            <form onSubmit={handleUpdateSettings} className="space-y-3">
+                            <form onSubmit={handleUpdateSettings} className="space-y-2.5">
                                 {/* 2. Spese Carico — set automatically on closing, editable for correction */}
-                                <div className="space-y-1">
-                                    <label className="text-[8px] font-black uppercase text-danger/80 ml-1 tracking-widest">
+                                <div className="space-y-0.5">
+                                    <label className="text-[7px] md:text-[8px] font-black uppercase text-danger/80 ml-1 tracking-widest">
                                         Spese Carico (impostato alla chiusura)
                                     </label>
                                     <input
                                         type="number"
                                         value={settings?.money_spent_total ?? ''}
                                         onChange={e => setSettings({ ...settings, money_spent_total: Number(e.target.value) })}
-                                        className="w-full bg-black/40 border border-danger/20 rounded-xl py-3 px-4 font-black text-sm text-white outline-none focus:border-danger/50 transition-all"
+                                        className="w-full bg-black/40 border border-danger/20 rounded-xl py-2.5 md:py-3 px-4 font-black text-xs md:text-sm text-white outline-none focus:border-danger/50 transition-all"
                                     />
                                 </div>
 
                                 {/* 3. Spese Durante Carico — manually entered expenses during the load */}
-                                <div className="space-y-1">
-                                    <label className="text-[8px] font-black uppercase text-amber-400/80 ml-1 tracking-widest">
+                                <div className="space-y-0.5">
+                                    <label className="text-[7px] md:text-[8px] font-black uppercase text-amber-400/80 ml-1 tracking-widest">
                                         Spese Durante Carico (spese varie correnti)
                                     </label>
                                     <input
                                         type="number"
                                         value={settings?.money_spent_current_load ?? ''}
                                         onChange={e => setSettings({ ...settings, money_spent_current_load: Number(e.target.value) })}
-                                        className="w-full bg-black/40 border border-amber-500/20 rounded-xl py-3 px-4 font-black text-sm text-white outline-none focus:border-amber-500/50 transition-all"
+                                        className="w-full bg-black/40 border border-amber-500/20 rounded-xl py-2.5 md:py-3 px-4 font-black text-xs md:text-sm text-white outline-none focus:border-amber-500/50 transition-all"
                                     />
                                 </div>
 
-                                <button type="submit" className="w-full py-3 bg-white/5 border border-white/5 rounded-xl text-white font-black text-[9px] uppercase tracking-widest hover:bg-white/10 transition-colors">SALVA DATI</button>
+                                <button type="submit" className="w-full py-2.5 md:py-3 bg-white/5 border border-white/5 rounded-xl text-white font-black text-[8px] md:text-[9px] uppercase tracking-widest hover:bg-white/10 transition-colors">SALVA DATI</button>
                             </form>
                         </div>
                     </div>
@@ -511,22 +510,22 @@ export const Admin: React.FC = () => {
 
                 {/* TAB: STAFF */}
                 {activeTab === 'staff' && (
-                    <div className="space-y-6 animate-in slide-in-from-right-10 duration-500">
+                    <div className="space-y-4 animate-in slide-in-from-right-10 duration-500">
                          <div className="flex justify-between items-center gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><Users size={20} /></div>
-                                <h3 className="text-lg md:text-2xl font-black italic uppercase">Organigramma</h3>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 md:w-10 md:h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><Users size={16} /></div>
+                                <h3 className="text-base md:text-2xl font-black italic uppercase">Organigramma</h3>
                             </div>
-                            <button onClick={() => setShowAddStaff(true)} className="px-5 py-3 bg-primary text-surface-950 font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all">
-                                <Plus size={14} className="inline mr-1" /> AGGIUNGI
+                            <button onClick={() => setShowAddStaff(true)} className="px-4 py-2 md:px-5 md:py-3 bg-primary text-surface-950 font-black rounded-xl text-[8px] md:text-[9px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all">
+                                <Plus size={12} className="inline mr-1" /> AGGIUNGI
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4">
                             {staff.map((s) => (
-                                <div key={s.id} className="p-5 glass rounded-2xl border-white/5 relative overflow-hidden group bg-surface-900/30">
-                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 font-black text-lg border border-white/5">{s.name[0]}</div>
+                                <div key={s.id} className="p-4 md:p-5 glass rounded-2xl border-white/5 relative overflow-hidden group bg-surface-900/30">
+                                     <div className="flex justify-between items-start mb-3">
+                                        <div className="w-8 h-8 md:w-10 md:h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-500 font-black text-sm md:text-lg border border-white/5">{s.name[0]}</div>
                                         <div className="flex gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => setEditingStaffRole({ ...s })} className="p-2 text-slate-500 hover:text-primary bg-white/5 rounded-lg" title="Modifica ruolo"><Shield size={12} /></button>
                                             <button onClick={() => setEditingStaff(s)} className="p-2 text-slate-500 hover:text-white bg-white/5 rounded-lg" title="Modifica PIN"><Key size={12} /></button>
@@ -548,13 +547,13 @@ export const Admin: React.FC = () => {
 
                 {/* TAB: CATALOG */}
                 {activeTab === 'products' && (
-                    <div className="space-y-10 animate-in slide-in-from-right-10 duration-500">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-400"><LayoutGrid size={20} /></div>
-                            <h3 className="text-lg md:text-2xl font-black italic uppercase">Catalogo</h3>
+                    <div className="space-y-6 animate-in slide-in-from-right-10 duration-500">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 md:w-10 md:h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-400"><LayoutGrid size={16} /></div>
+                            <h3 className="text-base md:text-2xl font-black italic uppercase">Catalogo</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <p className="label-caps text-[9px] text-primary font-black uppercase flex justify-between items-center group px-1">
                                     <span>MODELLI HARDWARE</span>
@@ -562,8 +561,8 @@ export const Admin: React.FC = () => {
                                 </p>
                                 <form onSubmit={handleAddModel} className="flex gap-2">
                                     <input type="text" value={newModel} onChange={e => setNewModel(e.target.value)} placeholder="Nuovo modello..."
-                                        className="flex-1 bg-surface-900 border border-white/5 rounded-xl px-5 py-3 text-white font-bold italic text-xs outline-none focus:border-primary/40 transition-all"/>
-                                    <button type="submit" className="w-12 h-12 bg-primary text-surface-950 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+                                        className="flex-1 bg-surface-900 border border-white/5 rounded-xl px-4 py-2.5 md:px-5 md:py-3 text-white font-bold italic text-[10px] md:text-xs outline-none focus:border-primary/40 transition-all"/>
+                                    <button type="submit" className="w-10 h-10 md:w-12 md:h-12 bg-primary text-surface-950 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={16} /></button>
                                 </form>
                                 <div className="grid grid-cols-1 gap-1.5">
                                     {models.filter(m => !m.deleted && m.active !== false).map(m => (
@@ -582,8 +581,8 @@ export const Admin: React.FC = () => {
                                 </p>
                                 <form onSubmit={handleAddFlavor} className="flex gap-2">
                                     <input type="text" value={newFlavor} onChange={e => setNewFlavor(e.target.value)} placeholder="Nuovo gusto..."
-                                        className="flex-1 bg-surface-900 border border-white/5 rounded-xl px-5 py-3 text-white font-bold italic text-xs outline-none focus:border-indigo-500/40 transition-all"/>
-                                    <button type="submit" className="w-12 h-12 bg-indigo-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={20} /></button>
+                                        className="flex-1 bg-surface-900 border border-white/5 rounded-xl px-4 py-2.5 md:px-5 md:py-3 text-white font-bold italic text-[10px] md:text-xs outline-none focus:border-indigo-500/40 transition-all"/>
+                                    <button type="submit" className="w-10 h-10 md:w-12 md:h-12 bg-indigo-500 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all"><Plus size={16} /></button>
                                 </form>
                                 <div className="grid grid-cols-2 gap-1.5">
                                     {flavors.filter(f => !f.deleted && f.active !== false).map(f => (
@@ -600,66 +599,51 @@ export const Admin: React.FC = () => {
 
                 {/* TAB: INVENTORY */}
                 {activeTab === 'inventory_management' && (
-                    <div className="space-y-6 animate-in slide-in-from-right-10 duration-500">
+                    <div className="space-y-4 animate-in slide-in-from-right-10 duration-500">
                         <div className="flex justify-between items-center gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-500"><Package size={20} /></div>
-                                <h3 className="text-lg md:text-2xl font-black italic uppercase">Assets</h3>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 md:w-10 md:h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-500"><Package size={16} /></div>
+                                <h3 className="text-base md:text-2xl font-black italic uppercase">Assets</h3>
                             </div>
-                            <button onClick={() => setShowAddVariant(true)} className="px-5 py-3 bg-amber-500 text-surface-950 font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-                                <Plus size={14} className="inline mr-1" /> VARIANTE
+                            <button onClick={() => setShowAddVariant(true)} className="px-4 py-2 md:px-5 md:py-3 bg-amber-500 text-surface-950 font-black rounded-xl text-[8px] md:text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                                <Plus size={12} className="inline mr-1" /> VARIANTE
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
                             {variants.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
                                     Nessuna variante trovata. Creane una con il pulsante VARIANTE.
                                 </div>
                             )}
                             {variants.map((v) => (
-                                <div key={v.id} className={`p-6 glass rounded-2xl border-white/5 hover:border-amber-500/20 transition-all group relative bg-surface-900/30 ${!v.active ? 'opacity-40' : ''}`}>
-                                    <div className="flex justify-between items-start mb-6">
+                                <div key={v.id} className={`p-4 md:p-5 glass rounded-2xl border-white/5 hover:border-amber-500/20 transition-all group relative bg-surface-900/30 ${!v.active ? 'opacity-40' : ''}`}>
+                                    <div className="flex justify-between items-start mb-4">
                                         <div className="min-w-0 pr-2">
                                             <div className="flex items-center gap-2">
-                                                <p className="font-black text-white text-base md:text-xl uppercase italic leading-none truncate">{v.model_name}</p>
+                                                <p className="font-black text-white text-sm md:text-base uppercase italic leading-none truncate">{v.model_name}</p>
                                                 {!v.active && <span className="bg-danger/20 text-danger text-[7px] font-black uppercase px-1.5 py-0.5 rounded tracking-widest shrink-0">Inattivo</span>}
                                             </div>
-                                            <p className="label-caps text-[8px] text-amber-500 font-bold tracking-widest mt-1.5 opacity-80 uppercase italic truncate">{v.flavor_name}</p>
+                                            <p className="label-caps text-[7px] md:text-[8px] text-amber-500 font-bold tracking-widest mt-1 opacity-80 uppercase italic truncate">{v.flavor_name}</p>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <p className="text-lg font-black text-white italic leading-none pt-0.5">€{v.default_price}</p>
+                                            <p className="text-base md:text-lg font-black text-white italic leading-none">€{v.default_price}</p>
                                         </div>
                                     </div>
                                     
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl px-4 py-2">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase">Stock</span>
-                                            <div className="flex items-center gap-3">
-                                                <button 
-                                                    onClick={() => handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))}
-                                                    className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all"
-                                                >
-                                                    -
-                                                </button>
-                                                <input 
-                                                    type="number" 
-                                                    value={v.qty || 0}
-                                                    onChange={(e) => handleUpdateQty(v.id, parseInt(e.target.value) || 0)}
-                                                    className="w-12 bg-transparent text-center font-black text-white outline-none"
-                                                />
-                                                <button 
-                                                    onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)}
-                                                    className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all"
-                                                >
-                                                    +
-                                                </button>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 md:px-4 md:py-2">
+                                            <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase">Stock</span>
+                                            <div className="flex items-center gap-2 md:gap-3">
+                                                <button onClick={() => handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all text-xs md:text-sm font-black">-</button>
+                                                <input type="number" value={v.qty || 0} onChange={(e) => handleUpdateQty(v.id, parseInt(e.target.value) || 0)} className="w-10 md:w-12 bg-transparent text-center font-black text-white outline-none" />
+                                                <button onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all text-xs md:text-sm font-black">+</button>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                            <button onClick={() => setEditingVariant({ ...v })} className="px-5 py-2 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black uppercase text-white hover:bg-white/10 transition-all">MODIFICA</button>
-                                            <button onClick={() => handleDeleteVariant(v.id)} className="p-2 text-danger/60 hover:text-danger shrink-0"><Trash2 size={14} /></button>
+                                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                                            <button onClick={() => setEditingVariant({ ...v })} className="px-4 py-1.5 md:px-5 md:py-2 bg-white/5 border border-white/10 rounded-lg text-[8px] md:text-[9px] font-black uppercase text-white hover:bg-white/10 transition-all">MODIFICA</button>
+                                            <button onClick={() => handleDeleteVariant(v.id)} className="p-1.5 md:p-2 text-danger/60 hover:text-danger shrink-0"><Trash2 size={12} /></button>
                                         </div>
                                     </div>
                                 </div>
@@ -667,12 +651,12 @@ export const Admin: React.FC = () => {
                         </div>
                     </div>
                 )}
-            </main>
+            </div>
 
             {/* MODALS */}
             <AnimatePresence>
                 {(showAddStaff || showAddVariant || editingVariant || editingStaff || editingStaffRole || showClosingLoad) && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="glass w-full max-w-md rounded-3xl p-8 md:p-12 border-white/10">
                             
                             {showAddStaff && (

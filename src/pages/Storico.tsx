@@ -171,62 +171,61 @@ export const Storico: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-10 animate-fade safe-area-pt pb-20">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 px-4 md:px-6">
-                <div className="space-y-2">
-                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-black italic tracking-tighter text-white uppercase leading-none">
+        <div className="space-y-3 md:space-y-6 animate-fade">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+                <div className="space-y-1">
+                    <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Storico<span className="text-primary not-italic">{viewMode === 'orders' ? 'Ordini' : 'Sessioni'}</span>
                     </h1>
-                    <p className="label-caps text-[10px] md:text-xs text-slate-500">
+                    <p className="label-caps text-[9px] md:text-xs text-slate-500">
                         {viewMode === 'orders' ? 'Archivio completo delle transazioni' : 'Registro delle chiusure cassa effettuate'}
                     </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 md:gap-3">
-                    <div className="flex p-1 bg-white/5 rounded-xl md:rounded-2xl border border-white/5 mr-auto md:mr-0 w-full md:w-auto">
+                <div className="flex flex-wrap gap-1.5 md:gap-2">
+                    <div className="flex p-0.5 bg-white/5 rounded-lg md:rounded-xl border border-white/5 mr-auto md:mr-0 w-full md:w-auto">
                         <button 
                             onClick={() => setViewMode('orders')}
                             className={clsx(
-                                "flex-1 md:flex-none px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-black label-caps text-[10px] md:text-xs transition-all flex items-center justify-center gap-2",
+                                "flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-lg font-black label-caps text-[9px] md:text-[10px] transition-all flex items-center justify-center gap-1.5",
                                 viewMode === 'orders' ? "bg-primary text-surface-950" : "text-slate-500 hover:text-white"
                             )}
                         >
-                            <ShoppingCart size={14} />
+                            <ShoppingCart size={12} />
                             <span>Ordini</span>
                         </button>
                         <button 
                             onClick={() => setViewMode('sessions')}
                             className={clsx(
-                                "flex-1 md:flex-none px-4 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl font-black label-caps text-[10px] md:text-xs transition-all flex items-center justify-center gap-2",
+                                "flex-1 md:flex-none px-3 py-1.5 md:px-4 md:py-2 rounded-md md:rounded-lg font-black label-caps text-[9px] md:text-[10px] transition-all flex items-center justify-center gap-1.5",
                                 viewMode === 'sessions' ? "bg-primary text-surface-950" : "text-slate-500 hover:text-white"
                             )}
                         >
-                            <Archive size={14} />
+                            <Archive size={12} />
                             <span>Archivio</span>
                         </button>
                     </div>
 
-                    <div className="flex gap-2 w-full md:w-auto">
+                    <div className="flex gap-1.5 w-full md:w-auto">
                         {viewMode === 'orders' && (
                             <button 
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={clsx(
-                                    "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black label-caps text-[10px] md:text-xs transition-all border",
-                                    showFilters ? "bg-primary text-surface-950 border-primary shadow-lg" : "bg-surface-900 text-slate-400 border-white/5"
+                                    "flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl font-black label-caps text-[9px] md:text-[10px] transition-all border",
+                                    showFilters ? "bg-primary text-surface-950 border-primary" : "bg-surface-900 text-slate-400 border-white/5"
                                 )}
                             >
-                                <Filter size={16} />
-                                <span className="hidden sm:inline">Filtri</span>
+                                <Filter size={12} />
+                                <span>Filtri</span>
                                 {filteredOrders.length !== orders.length && <span>({filteredOrders.length})</span>}
                             </button>
                         )}
                         <button 
                             onClick={exportToCSV}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 md:px-6 md:py-4 bg-surface-900 border border-white/5 text-white font-black rounded-xl md:rounded-2xl hover:bg-white/5 transition-all label-caps text-[10px] md:text-xs"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-surface-900 border border-white/5 text-white font-black rounded-lg md:rounded-xl hover:bg-white/5 transition-all label-caps text-[9px] md:text-[10px]"
                         >
-                            <Download size={16} />
-                            <span className="hidden sm:inline">Esporta</span>
-                            <span className="sm:hidden">CSV</span>
+                            <Download size={12} />
+                            <span>CSV</span>
                         </button>
                     </div>
                 </div>
@@ -234,90 +233,56 @@ export const Storico: React.FC = () => {
 
             {/* Filters Panels */}
             {showFilters && (
-                <div className="mx-4 md:mx-6 p-8 glass rounded-[2.5rem] border-primary/20 bg-primary/5 animate-slide-up grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative overflow-hidden">
-                    <div className="space-y-3">
-                        <label className="label-caps text-[10px] text-primary px-1 flex items-center gap-2"><User size={12}/> Staff</label>
+                <div className="p-4 md:p-6 glass rounded-[2rem] border-primary/20 bg-primary/5 animate-slide-up grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative overflow-hidden">
+                    <div className="space-y-2">
+                        <label className="label-caps text-[9px] text-primary flex items-center gap-1.5"><User size={10}/> Staff</label>
                         <select 
                             value={filterStaff}
                             onChange={(e) => setFilterStaff(e.target.value)}
-                            className="w-full bg-surface-950 border border-white/10 rounded-xl py-3 px-4 text-white font-bold focus:ring-1 focus:ring-primary/50"
+                            className="w-full bg-surface-950 border border-white/10 rounded-xl py-2 px-3 text-white font-bold text-xs focus:ring-1 focus:ring-primary/50"
                         >
-                            <option value="all">Tutti i membri</option>
+                            <option value="all">Tutti</option>
                             {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="label-caps text-[10px] text-primary px-1 flex items-center gap-2"><Calendar size={12}/> Range Date</label>
-                        <div className="flex gap-2">
-                            <input 
-                                type="date"
-                                value={filterDateStart}
-                                onChange={(e) => setFilterDateStart(e.target.value)}
-                                className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-3 px-3 text-white text-xs font-bold"
-                            />
-                            <input 
-                                type="date"
-                                value={filterDateEnd}
-                                onChange={(e) => setFilterDateEnd(e.target.value)}
-                                className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-3 px-3 text-white text-xs font-bold"
-                            />
+                    <div className="space-y-2">
+                        <label className="label-caps text-[9px] text-primary flex items-center gap-1.5"><Calendar size={10}/> Range Date</label>
+                        <div className="flex gap-1.5">
+                            <input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-2 px-2 text-white text-[10px] font-bold" />
+                            <input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-2 px-2 text-white text-[10px] font-bold" />
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="label-caps text-[10px] text-primary px-1 flex items-center gap-2"><Euro size={12}/> Importo Bruto</label>
-                        <div className="flex items-center gap-2">
-                            <input 
-                                type="number"
-                                placeholder="Min"
-                                value={filterMinAmount}
-                                onChange={(e) => setFilterMinAmount(e.target.value)}
-                                className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-3 px-4 text-white text-sm font-bold"
-                            />
-                            <span className="text-slate-600">→</span>
-                            <input 
-                                type="number"
-                                placeholder="Max"
-                                value={filterMaxAmount}
-                                onChange={(e) => setFilterMaxAmount(e.target.value)}
-                                className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-3 px-4 text-white text-sm font-bold"
-                            />
+                    <div className="space-y-2">
+                        <label className="label-caps text-[9px] text-primary flex items-center gap-1.5"><Euro size={10}/> Importo</label>
+                        <div className="flex items-center gap-1.5">
+                            <input type="number" placeholder="Min" value={filterMinAmount} onChange={(e) => setFilterMinAmount(e.target.value)} className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-2 px-3 text-white text-xs font-bold" />
+                            <span className="text-slate-600 text-xs">→</span>
+                            <input type="number" placeholder="Max" value={filterMaxAmount} onChange={(e) => setFilterMaxAmount(e.target.value)} className="flex-1 bg-surface-950 border border-white/10 rounded-xl py-2 px-3 text-white text-xs font-bold" />
                         </div>
                     </div>
 
                     <div className="flex flex-col justify-end">
-                        <button 
-                            onClick={() => {
-                                setFilterStaff('all');
-                                setFilterDateStart('');
-                                setFilterDateEnd('');
-                                setFilterMinAmount('');
-                                setFilterMaxAmount('');
-                                setSearchTerm('');
-                            }}
-                            className="w-full py-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 font-bold label-caps text-[10px] hover:text-white transition-colors"
-                        >
-                            Reset Filtri
-                        </button>
+                        <button onClick={() => { setFilterStaff('all'); setFilterDateStart(''); setFilterDateEnd(''); setFilterMinAmount(''); setFilterMaxAmount(''); setSearchTerm(''); }} className="w-full py-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 font-bold label-caps text-[9px] hover:text-white transition-colors">Reset Filtri</button>
                     </div>
                 </div>
             )}
 
-            {/* Quick Search and Overview */}
-            <div className="px-4 md:px-6 relative group">
-                <Search className="absolute left-10 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-primary transition-colors" size={18} />
+            {/* Quick Search */}
+            <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-primary transition-colors" size={14} />
                 <input
                     type="text"
                     placeholder={viewMode === 'orders' ? "Cerca cliente o staff..." : "Cerca in archivio..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-surface-900 border border-white/5 rounded-2xl py-4 md:py-5 pl-14 pr-6 focus:outline-none focus:ring-1 focus:ring-primary/40 text-base md:text-lg font-bold italic text-white placeholder:text-slate-700 transition-all"
+                    className="w-full bg-surface-900 border border-white/5 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-primary/40 text-sm font-bold italic text-white placeholder:text-slate-700 transition-all"
                 />
             </div>
 
             {/* Lists grid */}
-            <div className="space-y-3 px-4 md:px-6">
+            <div className="space-y-2">
                 {viewMode === 'orders' ? (
                     (() => {
                         const activeOrders = filteredOrders.filter(o => {

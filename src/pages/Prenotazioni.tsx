@@ -137,22 +137,22 @@ export const Prenotazioni: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-12 animate-fade safe-area-pt pb-28">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 px-4 md:px-6">
-                <div className="space-y-1 md:space-y-3">
-                    <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
+        <div className="space-y-3 md:space-y-8 animate-fade">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 md:gap-4">
+                <div className="space-y-0.5 md:space-y-2">
+                    <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Preno<span className="text-primary not-italic">tazioni</span>
                     </h1>
-                    <p className="label-caps text-[10px] md:text-xs text-slate-500 tracking-widest">Gestione ordini ed attese</p>
+                    <p className="label-caps text-[9px] md:text-xs text-slate-500 tracking-widest">Gestione ordini ed attese</p>
                 </div>
                 
-                <div className="px-6 py-3 md:px-10 md:py-6 rounded-2xl md:rounded-[3rem] bg-primary/5 border border-primary/20 backdrop-blur-xl shrink-0 flex flex-col items-center">
-                    <span className="label-caps text-[8px] md:text-[10px] text-primary/70 mb-0.5 block uppercase font-black">In Attesa</span>
-                    <span className="text-3xl md:text-5xl font-black italic tracking-tighter text-white leading-none">{reservations.length}</span>
+                <div className="px-4 py-2 md:px-6 md:py-4 rounded-2xl md:rounded-[2rem] bg-primary/5 border border-primary/20 backdrop-blur-xl shrink-0 flex flex-col items-center">
+                    <span className="label-caps text-[7px] md:text-[10px] text-primary/70 mb-0.5 block uppercase font-black">In Attesa</span>
+                    <span className="text-2xl md:text-4xl font-black italic tracking-tighter text-white leading-none">{reservations.length}</span>
                 </div>
             </div>
 
-            <div className="space-y-4 px-4 md:px-6">
+            <div className="space-y-3">
                 {reservations.length > 0 ? (
                     reservations.map((res) => {
                         const isExpanded = expandedId === res.id;
@@ -313,7 +313,7 @@ export const Prenotazioni: React.FC = () => {
                                     <input type="text" placeholder="Cerca prodotto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-surface-950 border border-white/5 rounded-2xl py-5 pl-16 pr-6 focus:outline-none focus:border-primary/40 text-white font-bold italic" />
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                            <div className="flex-1 p-6 space-y-3">
                                 {filteredVariants.map((v: any) => {
                                     const avail = getAvailableQty(v.id);
                                     const isSelected = selectedVariant?.id === v.id;

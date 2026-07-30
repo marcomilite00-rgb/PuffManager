@@ -62,29 +62,29 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     ];
 
     return (
-        <div className="min-h-screen bg-surface-950 text-white flex flex-col md:flex-row font-body overflow-x-hidden">
+        <div className="h-full bg-surface-950 text-white flex flex-col md:flex-row font-body overflow-hidden">
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex flex-col w-80 h-screen fixed left-0 top-0 bg-surface-900 border-r border-white/5 z-50">
-                <div className="p-10">
-                    <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase leading-none">
+            <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-surface-900 border-r border-white/5 z-50">
+                <div className="p-5">
+                    <h1 className="text-2xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Puff Manager<span className="text-primary not-italic">Pro</span>
                     </h1>
                 </div>
 
-                <nav className="flex-1 px-6 space-y-2">
+                <nav className="flex-1 px-3 space-y-1">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
                             className={({ isActive }) => clsx(
-                                "group flex items-center gap-4 px-6 py-4 rounded-[1.5rem] transition-all duration-500 relative overflow-hidden",
+                                "group flex items-center gap-3 px-4 py-3 rounded-[1rem] transition-all duration-300 relative overflow-hidden",
                                 isActive 
                                     ? "bg-primary text-surface-950 shadow-[0_10px_25px_rgba(34,211,238,0.2)]" 
                                     : "text-slate-500 hover:text-white hover:bg-white/5"
                             )}
                         >
-                            <item.icon size={22} className={clsx("transition-transform duration-500", "group-hover:scale-110")} />
-                            <span className="font-black label-caps text-[11px]">{item.label}</span>
+                            <item.icon size={20} className={clsx("transition-transform duration-300", "group-hover:scale-110")} />
+                            <span className="font-black label-caps text-[10px]">{item.label}</span>
                             {item.alert && (
                                 <span className={clsx(
                                     "ml-auto w-2 h-2 rounded-full",
@@ -95,39 +95,39 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     ))}
                 </nav>
 
-                <div className="p-6 mt-auto space-y-4">
+                <div className="p-3 mt-auto space-y-2">
                     {isAdmin && (
                         <Link
                             to="/admin"
-                            className="flex items-center gap-4 p-5 rounded-[2rem] bg-surface-800/50 hover:bg-surface-800 border border-white/5 text-slate-400 transition-all hover:border-primary/30 group"
+                            className="flex items-center gap-3 p-3 rounded-[1.5rem] bg-surface-800/50 hover:bg-surface-800 border border-white/5 text-slate-400 transition-all hover:border-primary/30 group"
                         >
-                            <div className="p-3 bg-primary/10 rounded-xl text-primary group-hover:scale-110 transition-transform">
-                                <Settings size={20} />
+                            <div className="p-2 bg-primary/10 rounded-xl text-primary group-hover:scale-110 transition-transform">
+                                <Settings size={18} />
                             </div>
                             <div className="flex flex-col">
-                                <span className="label-caps text-[9px] text-primary">Sistema</span>
-                                <span className="font-black text-sm uppercase italic">Admin Panel</span>
+                                <span className="label-caps text-[8px] text-primary">Sistema</span>
+                                <span className="font-black text-xs uppercase italic">Admin Panel</span>
                             </div>
-                            <ChevronRight size={16} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Link>
                     )}
 
-                    <div className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 space-y-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-surface-950 text-xl font-black">
+                    <div className="p-4 bg-white/5 rounded-[2rem] border border-white/5 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-surface-950 text-lg font-black">
                                 {user.name[0]}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-black text-white text-base truncate leading-tight uppercase">{user.name}</p>
-                                <p className="label-caps text-[9px] text-slate-500 uppercase tracking-widest">{user.role}</p>
+                                <p className="font-black text-white text-sm truncate leading-tight uppercase">{user.name}</p>
+                                <p className="label-caps text-[8px] text-slate-500 uppercase tracking-widest">{user.role}</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <Link to="/login" className="flex items-center justify-center p-3 bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors" title="Cambia Profilo">
-                                <ArrowLeftRight size={18} />
+                            <Link to="/login" className="flex items-center justify-center p-2 bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors" title="Cambia Profilo">
+                                <ArrowLeftRight size={16} />
                             </Link>
-                            <button onClick={logout} className="flex items-center justify-center p-3 bg-danger/10 rounded-xl text-danger hover:bg-danger/20 transition-all" title="Esci">
-                                <LogOut size={18} />
+                            <button onClick={logout} className="flex items-center justify-center p-2 bg-danger/10 rounded-xl text-danger hover:bg-danger/20 transition-all" title="Esci">
+                                <LogOut size={16} />
                             </button>
                         </div>
                     </div>
@@ -162,45 +162,45 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed top-0 right-0 bottom-0 w-80 bg-surface-900 z-[70] p-8 flex flex-col shadow-3xl md:hidden safe-area-pt safe-area-pb"
+                            className="fixed top-0 right-0 bottom-0 w-72 bg-surface-900 z-[70] p-5 flex flex-col shadow-3xl md:hidden safe-area-pt safe-area-pb"
                         >
-                            <div className="flex justify-between items-center mb-10">
-                                <span className="label-caps text-xs text-slate-500">Menu Navigazione</span>
-                                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
-                                    <X size={24} />
+                            <div className="flex justify-between items-center mb-6">
+                                <span className="label-caps text-[10px] text-slate-500">Menu Navigazione</span>
+                                <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-slate-400 hover:text-white">
+                                    <X size={20} />
                                 </button>
                             </div>
 
-                            <nav className="flex-1 space-y-2">
+                            <nav className="flex-1 space-y-1">
                                 {navItems.map((item) => (
                                     <NavLink
                                         key={item.to}
                                         to={item.to}
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className={({ isActive }) => clsx(
-                                            "flex items-center gap-4 px-6 py-5 rounded-2xl transition-all",
+                                            "flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all",
                                             isActive ? "bg-primary text-surface-950 font-black shadow-lg" : "text-slate-400 hover:bg-white/5"
                                         )}
                                     >
-                                        <item.icon size={22} />
-                                        <span className="label-caps text-xs">{item.label}</span>
+                                        <item.icon size={18} />
+                                        <span className="label-caps text-[10px]">{item.label}</span>
                                     </NavLink>
                                 ))}
                             </nav>
 
-                            <div className="mt-auto space-y-6">
+                            <div className="mt-auto space-y-4">
                                 {isAdmin && (
-                                    <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 p-5 rounded-2xl bg-white/5 text-slate-400 border border-white/5">
-                                        <Settings size={20} className="text-primary" />
-                                        <span className="label-caps text-xs">Admin Panel</span>
+                                    <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 text-slate-400 border border-white/5">
+                                        <Settings size={18} className="text-primary" />
+                                        <span className="label-caps text-[10px]">Admin Panel</span>
                                     </Link>
                                 )}
-                                <div className="flex items-center gap-4 p-5 bg-white/5 rounded-[2rem] border border-white/5">
-                                    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-surface-950 font-black">{user.name[0]}</div>
+                                <div className="flex items-center gap-3 p-4 bg-white/5 rounded-[2rem] border border-white/5">
+                                    <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-surface-950 font-black text-sm">{user.name[0]}</div>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-black text-sm uppercase truncate italic">{user.name}</p>
                                     </div>
-                                    <button onClick={logout} className="p-3 text-danger"><LogOut size={20} /></button>
+                                    <button onClick={logout} className="p-2 text-danger"><LogOut size={18} /></button>
                                 </div>
                             </div>
                         </motion.div>
@@ -208,10 +208,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
             </AnimatePresence>
 
-            {/* Mobile Bottom Nav — altezza fissa + safe-area-bottom per home indicator */}
+            {/* Mobile Bottom Nav */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/5 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-                <div className="flex justify-around items-center h-16 px-1">
-                    {[navItems[0], navItems[1], navItems[2], navItems[5], navItems[3]].map((item) => (
+                <div className="flex items-center justify-around h-[52px]">
+                    {[navItems[0], navItems[1], navItems[2], navItems[3], navItems[5]].map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
@@ -219,16 +219,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         >
                             {({ isActive }) => (
                                 <div className={clsx(
-                                    "flex flex-col items-center justify-center h-full transition-all duration-300 gap-1 relative",
-                                    isActive ? "text-primary scale-105" : "text-slate-600"
+                                    "flex flex-col items-center justify-center h-full transition-all duration-200 relative",
+                                    isActive ? "text-primary" : "text-slate-600"
                                 )}>
+                                    {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-primary rounded-full" />}
                                     <div className="relative">
-                                        <item.icon size={20} strokeWidth={isActive ? 3 : 2} />
+                                        <item.icon size={18} strokeWidth={isActive ? 2.5 : 1.5} />
                                         {item.alert && (
-                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-danger rounded-full border border-surface-900" />
+                                            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-danger rounded-full border border-surface-900" />
                                         )}
                                     </div>
-                                    <span className="text-[7.5px] font-black uppercase tracking-widest opacity-80 leading-none pt-0.5">{item.label}</span>
+                                    <span className="text-[8px] font-black uppercase tracking-wider leading-none mt-0.5">{item.label}</span>
                                 </div>
                             )}
                         </NavLink>
@@ -236,11 +237,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </nav>
 
-            {/* Main content area */}
-            {/* Mobile: padding-top = header(56px) + notch; padding-bottom = bottom-nav(64px) + home indicator */}
-            {/* Desktop: padding handled by sidebar offset (md:ml-80) — no extra top/bottom needed */}
-            <main className="flex-1 md:ml-80 md:pt-0 md:pb-0 min-h-screen bg-surface-950 overflow-y-auto main-mobile-inset">
-                <div className="w-full max-w-[1920px] mx-auto px-3 py-4 md:p-10 lg:p-14">
+            <main className="flex-1 md:ml-64 md:pt-0 md:pb-0 bg-surface-950 overflow-hidden main-mobile-inset">
+                <div className="w-full max-w-[1920px] mx-auto px-2 py-2 md:p-8 lg:p-10">
                     {children}
                 </div>
             </main>

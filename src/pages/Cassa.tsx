@@ -123,50 +123,50 @@ export const Cassa: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-12 animate-fade safe-area-pt p-4 md:p-8 max-w-6xl mx-auto pb-28">
+        <div className="space-y-3 md:space-y-8 animate-fade max-w-6xl mx-auto">
             {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div className="space-y-1 md:space-y-3">
-                    <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
+                <div className="space-y-0.5 md:space-y-2">
+                    <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
                         Cassa<span className="text-primary not-italic">Pro</span>
                     </h1>
-                    <p className="label-caps text-[10px] md:text-xs text-slate-500 tracking-widest uppercase">Analisi finanziaria sessione</p>
+                    <p className="label-caps text-[9px] md:text-xs text-slate-500 tracking-widest uppercase">Analisi finanziaria sessione</p>
                 </div>
                 {settings?.last_reset_date && (
-                    <div className="px-3 py-1.5 md:px-6 md:py-3 glass rounded-xl md:rounded-2xl flex items-center gap-2 md:gap-3 border-white/5 w-fit">
-                        <Clock size={12} className="text-primary md:w-4 md:h-4" />
-                        <span className="label-caps text-[8px] md:text-[9px] text-slate-500 font-bold uppercase">Reset: <span className="text-white ml-1">{new Date(settings.last_reset_date).toLocaleDateString()}</span></span>
+                    <div className="px-2 py-1 md:px-4 md:py-2 glass rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-white/5 w-fit">
+                        <Clock size={10} className="text-primary" />
+                        <span className="label-caps text-[7px] md:text-[9px] text-slate-500 font-bold uppercase">Reset: <span className="text-white ml-1">{new Date(settings.last_reset_date).toLocaleDateString()}</span></span>
                     </div>
                 )}
             </div>
 
             {/* Main Net Profit View */}
             <div className="relative group">
-                <div className="absolute -inset-0.5 md:-inset-1 bg-gradient-to-r from-primary/30 to-success/30 rounded-3xl md:rounded-[3.5rem] blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
-                <div className="relative glass rounded-3xl md:rounded-[3rem] p-6 md:p-20 flex flex-col items-center justify-center text-center border-white/10 shadow-2xl overflow-hidden bg-surface-900/40 backdrop-blur-3xl">
-                    <div className="w-10 h-10 md:w-24 md:h-24 bg-primary/10 rounded-xl md:rounded-[2rem] flex items-center justify-center text-primary mb-3 md:mb-8 relative z-10 shadow-inner border border-primary/20">
-                        <Scale size={20} className="md:w-12 md:h-12" />
+                <div className="absolute -inset-0.5 md:-inset-1 bg-gradient-to-r from-primary/30 to-success/30 rounded-3xl blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
+                <div className="relative glass rounded-3xl md:rounded-[3rem] p-4 md:p-10 flex flex-col items-center justify-center text-center border-white/10 shadow-2xl overflow-hidden bg-surface-900/40 backdrop-blur-3xl">
+                    <div className="w-8 h-8 md:w-16 md:h-16 bg-primary/10 rounded-xl md:rounded-[2rem] flex items-center justify-center text-primary mb-2 md:mb-4 relative z-10 shadow-inner border border-primary/20">
+                        <Scale size={16} className="md:w-8 md:h-8" />
                     </div>
-                    <p className="text-[8px] md:text-sm font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-slate-500 mb-1 md:mb-6 leading-none pt-1">Bilancio Netto Sessione</p>
-                    <h2 className={clsx("text-4xl md:text-9xl font-black tracking-tighter mb-2 md:mb-8 italic leading-none tabular-nums drop-shadow-2xl", totals.net >= 0 ? "text-white" : "text-danger")}>
+                    <p className="text-[7px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-slate-500 mb-1 md:mb-4 leading-none">Bilancio Netto Sessione</p>
+                    <h2 className={clsx("text-3xl md:text-7xl font-black tracking-tighter mb-1 md:mb-4 italic leading-none tabular-nums drop-shadow-2xl", totals.net >= 0 ? "text-white" : "text-danger")}>
                         €{totals.net.toFixed(2)}
                     </h2>
-                    <Badge variant={totals.net >= 0 ? 'success' : 'danger'} size="sm" className="px-2 py-0 md:px-4 md:py-1 md:text-xs">
+                    <Badge variant={totals.net >= 0 ? 'success' : 'danger'} size="sm" className="px-1.5 py-0 md:px-3 md:py-0.5">
                         {totals.net >= 0 ? 'SESSIONE IN POSITIVO' : 'DEFICIT OPERATIVO'}
                     </Badge>
                 </div>
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
                 {[
                     { label: 'Incasso Lordo', val: totals.gross, icon: TrendingUp, color: 'text-success', bg: 'bg-success/10' },
                     { label: 'Spese Carico', val: totals.spent, icon: DollarSign, color: 'text-danger', bg: 'bg-danger/10' },
                     { label: 'Spese Durante Carico', val: totals.currentLoadExpenses, icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-500/10' }
                 ].map((stat, i) => (
-                    <div key={i} className="glass rounded-xl md:rounded-[2.5rem] p-4 md:p-8 border-white/5 flex items-center md:flex-col gap-4 md:gap-5 group hover:border-primary/20 transition-all">
-                        <div className={clsx("w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.color)}>
-                            <stat.icon size={18} className="md:w-8 md:h-8" />
+                    <div key={i} className="glass rounded-xl md:rounded-[2.5rem] p-3 md:p-6 border-white/5 flex items-center md:flex-col gap-3 md:gap-4 group hover:border-primary/20 transition-all">
+                        <div className={clsx("w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.color)}>
+                            <stat.icon size={14} className="md:w-6 md:h-6" />
                         </div>
                         <div className="flex-1 md:text-center min-w-0">
                             <p className="label-caps text-[8px] md:text-[10px] text-slate-500 mb-0.5 md:mb-2 uppercase tracking-widest">{stat.label}</p>

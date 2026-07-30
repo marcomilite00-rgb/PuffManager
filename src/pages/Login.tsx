@@ -92,11 +92,11 @@ export const Login: React.FC = () => {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb">
                 <div className="w-full max-w-md space-y-12 animate-fade">
-                    <div className="text-center space-y-4">
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase italic">
+                    <div className="text-center space-y-2">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase italic">
                             Puff Manager<span className="text-primary not-italic">Pro</span>
                         </h1>
-                        <p className="label-caps text-slate-500 text-xs">Seleziona il tuo profilo per iniziare</p>
+                        <p className="label-caps text-slate-500 text-[10px]">Seleziona il tuo profilo per iniziare</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -128,7 +128,7 @@ export const Login: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb animate-fade">
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-surface-950 safe-area-pt safe-area-pb animate-fade">
             <div className="w-full max-w-sm space-y-10">
                 <div className="flex flex-col items-center text-center space-y-6">
                     <button 

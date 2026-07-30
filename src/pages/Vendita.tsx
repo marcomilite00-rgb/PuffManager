@@ -196,15 +196,15 @@ export const Vendita: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-12 animate-fade safe-area-pt pb-28">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 px-4 md:px-6">
+        <div className="space-y-3 animate-fade">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-6">
                 {/* Selection Area */}
-                <div className="lg:col-span-8 space-y-5 md:space-y-8">
-                    <div className="flex flex-col gap-1">
-                        <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
+                <div className="lg:col-span-8 space-y-3 md:space-y-6">
+                    <div className="flex flex-col gap-0.5">
+                        <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
                             Vendita<span className="text-primary not-italic">Rapida</span>
                         </h1>
-                        <p className="label-caps text-[10px] md:text-xs text-slate-500 tracking-widest">Seleziona i prodotti dal magazzino</p>
+                        <p className="label-caps text-[9px] md:text-xs text-slate-500 tracking-widest">Seleziona i prodotti dal magazzino</p>
                     </div>
 
                     <div className="relative group">
@@ -324,7 +324,7 @@ export const Vendita: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="flex-1 space-y-3 max-h-[40vh] md:max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar mb-6 md:mb-10">
+                        <div className="flex-1 space-y-3 mb-6 md:mb-10">
                             {cart.length > 0 ? (
                                 cart.map((item) => (
                                     <div key={item.id} className="p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] border border-white/5 bg-white/5 space-y-4 group transition-all hover:bg-white/10">

@@ -198,11 +198,9 @@ input, textarea, select {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── Scrollable content area (main) ─────────────────────────────────────── */
-/* Il main deve scorrere, non il body */
+/* ── Main content ────────────────────────────────────────────────────────── */
 main {
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   height: 100%;
 }
 
@@ -280,11 +278,17 @@ textarea {
 }
 
 /* ── Main content mobile safe area ──────────────────────────────────────── */
-/* Su mobile: spazio per header (56px) + notch + bottom nav (64px) + home indicator */
+/* Su mobile: spazio per header (56px) + notch + bottom nav (52px) + home indicator */
 /* Su desktop (md:): Tailwind md:pt-0 md:pb-0 sovrascrive questi valori */
 .main-mobile-inset {
   padding-top: calc(56px + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Nessun scroll orizzontale */
+html, body, #root {
+  overflow-x: hidden !important;
+  max-width: 100vw;
 }
 
 @media (min-width: 768px) {

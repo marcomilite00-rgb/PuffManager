@@ -161,12 +161,12 @@ export const Promemoria: React.FC = () => {
     );
 
     return (
-        <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-            <div className="flex flex-col gap-1 px-1">
-                <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+        <div className="space-y-3 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col gap-0.5">
+                <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
                     Promemoria
                 </h1>
-                <p className="label-caps text-[10px] md:text-xs text-slate-500">Pagamenti in sospeso e note importanti</p>
+                <p className="label-caps text-[9px] md:text-xs text-slate-500">Pagamenti in sospeso e note importanti</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -221,7 +221,7 @@ export const Promemoria: React.FC = () => {
                                             DETTAGLIO ARTICOLI
                                         </div>
 
-                                        <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                                        <div className="space-y-1.5">
                                             {reminder.order?.items && reminder.order.items.length > 0 ? (
                                                 reminder.order.items.map((item) => (
                                                     <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-black/20 rounded-xl border border-white/5">
