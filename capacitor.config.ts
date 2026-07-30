@@ -6,17 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist',
 
   server: {
+    // https scheme: obbligatorio per localStorage, cookies e fetch in contesto sicuro
     iosScheme: 'https',
     androidScheme: 'https',
-  },
-
-  ios: {
-    contentInset: 'always',
-    preferredContentMode: 'mobile',
-    scrollEnabled: true,
-    allowsLinkPreview: false,
-    minimumZoomScale: 1.0,
-    maximumZoomScale: 1.0,
   },
 };
 

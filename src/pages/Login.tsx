@@ -90,33 +90,32 @@ export const Login: React.FC = () => {
 
     if (!selectedStaff) {
         return (
-            <div className="w-full h-full overflow-y-auto bg-surface-950 safe-area-pt safe-area-pb">
-                <div className="w-full min-h-full flex flex-col items-center justify-center p-6 animate-fade">
-                    <div className="w-full max-w-md py-6 space-y-10">
-                    <div className="text-center space-y-3">
-                        <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white uppercase italic leading-none">
+            <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb">
+                <div className="w-full max-w-md space-y-12 animate-fade">
+                    <div className="text-center space-y-4">
+                        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase italic">
                             Puff Manager<span className="text-primary not-italic">Pro</span>
                         </h1>
-                        <p className="label-caps text-slate-500 text-[9px]">Seleziona il tuo profilo per iniziare</p>
+                        <p className="label-caps text-slate-500 text-xs">Seleziona il tuo profilo per iniziare</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 sm:gap-6">
+                    <div className="grid grid-cols-2 gap-4 sm:gap-6">
                         {staffList.map((staff) => (
                             <button
                                 key={staff.id}
                                 onClick={() => setSelectedStaff(staff)}
-                                    className="group flex flex-col items-center gap-3 p-4 glass-card rounded-2xl md:rounded-[2.5rem] relative overflow-hidden active:scale-95"
-                                >
-                                    <div className={clsx(
-                                        "w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-[1.5rem] flex items-center justify-center text-xl md:text-2xl font-black text-white shadow-2xl transition-transform group-hover:scale-110 duration-500",
-                                        getAvatarColor(staff.name)
-                                    )}>
-                                        {staff.name.charAt(0)}
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="font-black text-white text-sm md:text-lg tracking-tight uppercase">{staff.name}</p>
-                                        <p className="label-caps text-[8px] md:text-[9px] text-slate-500 group-hover:text-primary transition-colors">{staff.role}</p>
-                                    </div>
+                                className="group flex flex-col items-center gap-4 p-6 glass-card rounded-[2.5rem] relative overflow-hidden active:scale-95"
+                            >
+                                <div className={clsx(
+                                    "w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-2xl font-black text-white shadow-2xl transition-transform group-hover:scale-110 duration-500",
+                                    getAvatarColor(staff.name)
+                                )}>
+                                    {staff.name.charAt(0)}
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-black text-white text-lg tracking-tight uppercase">{staff.name}</p>
+                                    <p className="label-caps text-[9px] text-slate-500 group-hover:text-primary transition-colors">{staff.role}</p>
+                                </div>
                                 {staff.has_pin && (
                                     <div className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_rgba(0,188,212,0.5)]"></div>
                                 )}
@@ -125,37 +124,35 @@ export const Login: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
+        );
+    }
 
     return (
-        <div className="w-full h-full overflow-y-auto bg-surface-950 safe-area-pt safe-area-pb">
-            <div className="w-full min-h-full flex flex-col items-center justify-center p-4 animate-fade">
-                <div className="w-full max-w-sm space-y-5">
-                <div className="flex flex-col items-center text-center space-y-4">
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb animate-fade">
+            <div className="w-full max-w-sm space-y-10">
+                <div className="flex flex-col items-center text-center space-y-6">
                     <button 
                         onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
-                        className="flex items-center gap-2 text-slate-500 hover:text-white label-caps text-[9px] transition-colors bg-white/5 px-3 py-1.5 rounded-full"
+                        className="flex items-center gap-2 text-slate-500 hover:text-white label-caps text-[10px] transition-colors bg-white/5 px-4 py-2 rounded-full"
                     >
-                        <ArrowLeft size={12} /> cambia profilo
+                        <ArrowLeft size={14} /> cambia profilo
                     </button>
 
                     <div className={clsx(
-                        "w-20 h-20 md:w-24 md:h-24 rounded-2xl md:rounded-[2rem] flex items-center justify-center text-3xl md:text-4xl font-black text-white shadow-3xl animate-slide-up",
+                        "w-24 h-24 rounded-[2rem] flex items-center justify-center text-4xl font-black text-white shadow-3xl animate-slide-up",
                         getAvatarColor(selectedStaff.name)
                     )}>
                         {selectedStaff.name.charAt(0)}
                     </div>
                     
                     <div>
-                        <h2 className="text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase">{selectedStaff.name}</h2>
-                        <p className="label-caps text-[9px] text-primary mt-0.5">{selectedStaff.role}</p>
+                        <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">{selectedStaff.name}</h2>
+                        <p className="label-caps text-[10px] text-primary mt-1">{selectedStaff.role}</p>
                     </div>
                 </div>
 
                 {/* PIN Dots Display */}
-                <div className="flex justify-center gap-3 py-2">
+                <div className="flex justify-center gap-4 py-4">
                     {[...Array(4)].map((_, i) => (
                         <div 
                             key={i}
@@ -176,35 +173,35 @@ export const Login: React.FC = () => {
                 )}
 
                 {/* Visual Numpad */}
-                <div className="grid grid-cols-3 gap-2 md:gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                         <button
                             key={num}
                             onClick={() => handleNumberClick(num.toString())}
-                            className="h-14 md:h-20 glass-card rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl font-black text-white hover:bg-white/10 active:scale-90 transition-all"
+                            className="h-20 glass-card rounded-2xl flex items-center justify-center text-2xl font-black text-white hover:bg-white/10 active:scale-90 transition-all"
                         >
                             {num}
                         </button>
                     ))}
                     <button
                         onClick={() => setPin('')}
-                        className="h-14 md:h-20 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                        className="h-20 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
                         aria-label="Cancella tutto"
                     >
-                        <X size={20} />
+                        <X size={24} />
                     </button>
                     <button
                         onClick={() => handleNumberClick('0')}
-                        className="h-14 md:h-20 glass-card rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl font-black text-white hover:bg-white/10 active:scale-90 transition-all"
+                        className="h-20 glass-card rounded-2xl flex items-center justify-center text-2xl font-black text-white hover:bg-white/10 active:scale-90 transition-all"
                     >
                         0
                     </button>
                     <button
                         onClick={handleBackspace}
-                        className="h-14 md:h-20 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                        className="h-20 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
                         aria-label="Cancella cifra"
                     >
-                        <Delete size={20} />
+                        <Delete size={24} />
                     </button>
                 </div>
 
@@ -212,7 +209,7 @@ export const Login: React.FC = () => {
                     onClick={handleLogin}
                     disabled={loading || pin.length < 4}
                     className={clsx(
-                        "w-full py-4 md:py-6 rounded-2xl md:rounded-[2rem] text-base md:text-xl font-black transition-all flex items-center justify-center gap-3 shadow-3xl label-caps",
+                        "w-full py-6 rounded-[2rem] text-xl font-black transition-all flex items-center justify-center gap-3 shadow-3xl label-caps",
                         loading || pin.length < 4 
                             ? "bg-surface-800 text-slate-600 border border-white/5 opacity-50 cursor-not-allowed" 
                             : "bg-primary text-surface-950 hover:scale-105 active:scale-95 shadow-primary/20"
@@ -227,7 +224,6 @@ export const Login: React.FC = () => {
                         </>
                     )}
                 </button>
-                </div>
             </div>
         </div>
     );

@@ -185,9 +185,9 @@ export const Vendita: React.FC = () => {
         <div className="flex flex-col gap-8 p-6 animate-pulse">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-8 space-y-6">
-                    <div className="h-10 w-40 skeleton" />
-                    <div className="h-14 w-full skeleton" />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="h-12 w-48 skeleton" />
+                    <div className="h-16 w-full skeleton" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {[...Array(6)].map((_, i) => <div key={i} className="h-40 skeleton" />)}
                     </div>
                 </div>
@@ -196,10 +196,10 @@ export const Vendita: React.FC = () => {
     );
 
     return (
-        <div className="space-y-4 md:space-y-10 animate-fade safe-area-pt pb-20">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 px-2 md:px-6">
+        <div className="space-y-6 md:space-y-12 animate-fade safe-area-pt pb-28">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 px-4 md:px-6">
                 {/* Selection Area */}
-                <div className="lg:col-span-8 space-y-3 md:space-y-8">
+                <div className="lg:col-span-8 space-y-5 md:space-y-8">
                     <div className="flex flex-col gap-1">
                         <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
                             Vendita<span className="text-primary not-italic">Rapida</span>
@@ -218,7 +218,7 @@ export const Vendita: React.FC = () => {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-4 max-h-[65vh] overflow-y-auto pr-1 custom-scrollbar">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                         {filteredVariants.map((v) => {
                             const inv = inventory.find(i => i.variant_id === v.id);
                             const qty = inv ? inv.qty : 0;

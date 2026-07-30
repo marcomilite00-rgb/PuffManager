@@ -42,8 +42,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 p-3">
-            <div className="w-full max-w-md bg-[#1a1c2e] p-5 md:p-8 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-[#1a1c2e] p-8 rounded-[2rem] border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200 m-4">
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto mb-4">
                         <CheckCircle2 size={32} />

@@ -123,7 +123,7 @@ export const Cassa: React.FC = () => {
     );
 
     return (
-        <div className="space-y-4 md:space-y-10 animate-fade safe-area-pt p-3 md:p-8 max-w-6xl mx-auto pb-20">
+        <div className="space-y-6 md:space-y-12 animate-fade safe-area-pt p-4 md:p-8 max-w-6xl mx-auto pb-28">
             {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-1 md:space-y-3">
@@ -158,22 +158,22 @@ export const Cassa: React.FC = () => {
             </div>
 
             {/* Stats Overview */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6">
-                        {[
-                            { label: 'Incasso Lordo', val: totals.gross, icon: TrendingUp, color: 'text-success', bg: 'bg-success/10' },
-                            { label: 'Spese Carico', val: totals.spent, icon: DollarSign, color: 'text-danger', bg: 'bg-danger/10' },
-                            { label: 'Spese Durante Carico', val: totals.currentLoadExpenses, icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-500/10' }
-                        ].map((stat, i) => (
-                            <div key={i} className="glass rounded-xl md:rounded-[2.5rem] p-3 md:p-8 border-white/5 flex items-center md:flex-col gap-3 md:gap-5 group hover:border-primary/20 transition-all">
-                                <div className={clsx("w-8 h-8 md:w-16 md:h-16 rounded-lg md:rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.color)}>
-                                    <stat.icon size={14} className="md:w-8 md:h-8" />
-                                </div>
-                                <div className="flex-1 md:text-center min-w-0">
-                                    <p className="label-caps text-[7px] md:text-[10px] text-slate-500 mb-0.5 md:mb-2 uppercase tracking-widest">{stat.label}</p>
-                                    <p className="text-lg md:text-4xl font-black text-white italic tracking-tighter truncate leading-none">€{stat.val.toFixed(2)}</p>
-                                </div>
-                            </div>
-                        ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+                {[
+                    { label: 'Incasso Lordo', val: totals.gross, icon: TrendingUp, color: 'text-success', bg: 'bg-success/10' },
+                    { label: 'Spese Carico', val: totals.spent, icon: DollarSign, color: 'text-danger', bg: 'bg-danger/10' },
+                    { label: 'Spese Durante Carico', val: totals.currentLoadExpenses, icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-500/10' }
+                ].map((stat, i) => (
+                    <div key={i} className="glass rounded-xl md:rounded-[2.5rem] p-4 md:p-8 border-white/5 flex items-center md:flex-col gap-4 md:gap-5 group hover:border-primary/20 transition-all">
+                        <div className={clsx("w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.color)}>
+                            <stat.icon size={18} className="md:w-8 md:h-8" />
+                        </div>
+                        <div className="flex-1 md:text-center min-w-0">
+                            <p className="label-caps text-[8px] md:text-[10px] text-slate-500 mb-0.5 md:mb-2 uppercase tracking-widest">{stat.label}</p>
+                            <p className="text-xl md:text-4xl font-black text-white italic tracking-tighter truncate leading-none">€{stat.val.toFixed(2)}</p>
+                        </div>
+                    </div>
+                ))}
             </div>
             
             {/* Staff Distribution Section */}

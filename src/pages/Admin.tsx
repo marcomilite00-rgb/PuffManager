@@ -406,19 +406,19 @@ export const Admin: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-surface-950 pb-24 safe-area-pt overflow-x-hidden">
+        <div className="min-h-screen bg-surface-950 pb-32 safe-area-pt overflow-x-hidden">
             {/* Header */}
-            <header className="px-3 md:px-10 py-3 md:py-8 bg-white/[0.02] border-b border-white/5 sticky top-0 z-40 backdrop-blur-3xl overflow-hidden">
+            <header className="px-3 md:px-12 py-4 md:py-12 bg-white/[0.02] border-b border-white/5 sticky top-0 z-40 backdrop-blur-3xl overflow-hidden">
                 <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-2 md:gap-8 relative z-10">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-3 md:gap-10 relative z-10">
                     <div>
-                        <h1 className="text-xl md:text-6xl font-black italic tracking-tighter text-white uppercase leading-none">
+                        <h1 className="text-2xl md:text-7xl font-black italic tracking-tighter text-white uppercase leading-none">
                             Admin<span className="text-primary not-italic">.</span>
                         </h1>
-                        <p className="label-caps text-[7px] md:text-[8px] text-slate-600 tracking-widest mt-0.5 uppercase font-bold opacity-70">Infrastructure</p>
+                        <p className="label-caps text-[7px] md:text-[8px] text-slate-600 tracking-widest mt-1 uppercase font-bold opacity-70">Infrastructure</p>
                     </div>
 
-                    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide w-full md:w-auto -mx-3 px-3 md:mx-0 md:px-0">
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide w-full md:w-auto -mx-3 px-3 md:mx-0 md:px-0">
                         {[
                             { id: 'settings', label: 'Home', icon: Settings },
                             { id: 'staff', label: 'Team', icon: Users },
@@ -429,13 +429,13 @@ export const Admin: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={clsx(
-                                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-black label-caps text-[7px] md:text-[10px] transition-all whitespace-nowrap uppercase tracking-widest shrink-0 border duration-300",
+                                    "flex items-center gap-1.5 px-3 py-2 rounded-lg font-black label-caps text-[7.5px] md:text-[10px] transition-all whitespace-nowrap uppercase tracking-widest shrink-0 border duration-300",
                                     activeTab === tab.id 
-                                        ? "bg-primary border-primary text-surface-950" 
+                                        ? "bg-primary border-primary text-surface-950 scale-105" 
                                         : "bg-surface-900/60 border-white/5 text-slate-500 hover:text-white"
                                 )}
                             >
-                                <tab.icon size={11} strokeWidth={activeTab === tab.id ? 3 : 2} />
+                                <tab.icon size={12} strokeWidth={activeTab === tab.id ? 3 : 2} />
                                 {tab.label}
                             </button>
                         ))}
@@ -443,11 +443,11 @@ export const Admin: React.FC = () => {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-3 md:px-10 py-4 md:py-12">
+            <main className="max-w-7xl mx-auto px-3 md:px-12 py-6 md:py-16">
                 {/* TAB: DASHBOARD */}
                 {activeTab === 'settings' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6 animate-in slide-in-from-bottom-5 duration-700">
-                        <div className="glass rounded-2xl p-4 md:p-8 border-white/5 bg-surface-900/40 relative overflow-hidden group">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 animate-in slide-in-from-bottom-5 duration-700">
+                        <div className="glass rounded-3xl p-6 md:p-10 border-white/5 bg-surface-900/40 relative overflow-hidden group">
                             <div className="relative z-10 space-y-4">
                                 <div className="w-12 h-12 bg-danger/20 rounded-xl flex items-center justify-center text-danger">
                                     <TrendingUp size={24} />
@@ -462,7 +462,7 @@ export const Admin: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="glass rounded-2xl p-4 md:p-8 border-white/5 space-y-4">
+                        <div className="glass rounded-3xl p-6 md:p-10 border-white/5 space-y-5">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500"><DollarSign size={20} /></div>
                                 <h3 className="text-lg md:text-2xl font-black italic uppercase">Bilancio</h3>
@@ -511,18 +511,18 @@ export const Admin: React.FC = () => {
 
                 {/* TAB: STAFF */}
                 {activeTab === 'staff' && (
-                    <div className="space-y-4 animate-in slide-in-from-right-10 duration-500">
-                         <div className="flex justify-between items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary"><Users size={16} /></div>
-                                <h3 className="text-base md:text-2xl font-black italic uppercase">Organigramma</h3>
+                    <div className="space-y-6 animate-in slide-in-from-right-10 duration-500">
+                         <div className="flex justify-between items-center gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><Users size={20} /></div>
+                                <h3 className="text-lg md:text-2xl font-black italic uppercase">Organigramma</h3>
                             </div>
-                            <button onClick={() => setShowAddStaff(true)} className="px-4 py-2.5 bg-primary text-surface-950 font-black rounded-lg text-[8px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all">
-                                <Plus size={12} className="inline mr-1" /> AGGIUNGI
+                            <button onClick={() => setShowAddStaff(true)} className="px-5 py-3 bg-primary text-surface-950 font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all">
+                                <Plus size={14} className="inline mr-1" /> AGGIUNGI
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                             {staff.map((s) => (
                                 <div key={s.id} className="p-5 glass rounded-2xl border-white/5 relative overflow-hidden group bg-surface-900/30">
                                      <div className="flex justify-between items-start mb-4">
@@ -548,13 +548,13 @@ export const Admin: React.FC = () => {
 
                 {/* TAB: CATALOG */}
                 {activeTab === 'products' && (
-                    <div className="space-y-6 animate-in slide-in-from-right-10 duration-500">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400"><LayoutGrid size={16} /></div>
-                            <h3 className="text-base md:text-2xl font-black italic uppercase">Catalogo</h3>
+                    <div className="space-y-10 animate-in slide-in-from-right-10 duration-500">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-400"><LayoutGrid size={20} /></div>
+                            <h3 className="text-lg md:text-2xl font-black italic uppercase">Catalogo</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="space-y-4">
                                 <p className="label-caps text-[9px] text-primary font-black uppercase flex justify-between items-center group px-1">
                                     <span>MODELLI HARDWARE</span>
@@ -600,18 +600,18 @@ export const Admin: React.FC = () => {
 
                 {/* TAB: INVENTORY */}
                 {activeTab === 'inventory_management' && (
-                    <div className="space-y-4 animate-in slide-in-from-right-10 duration-500">
-                        <div className="flex justify-between items-center gap-3">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-500"><Package size={16} /></div>
-                                <h3 className="text-base md:text-2xl font-black italic uppercase">Assets</h3>
+                    <div className="space-y-6 animate-in slide-in-from-right-10 duration-500">
+                        <div className="flex justify-between items-center gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-500"><Package size={20} /></div>
+                                <h3 className="text-lg md:text-2xl font-black italic uppercase">Assets</h3>
                             </div>
-                            <button onClick={() => setShowAddVariant(true)} className="px-4 py-2.5 bg-amber-500 text-surface-950 font-black rounded-lg text-[8px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-                                <Plus size={12} className="inline mr-1" /> VARIANTE
+                            <button onClick={() => setShowAddVariant(true)} className="px-5 py-3 bg-amber-500 text-surface-950 font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                                <Plus size={14} className="inline mr-1" /> VARIANTE
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                             {variants.length === 0 && (
                                 <div className="col-span-full py-20 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
                                     Nessuna variante trovata. Creane una con il pulsante VARIANTE.
@@ -672,8 +672,8 @@ export const Admin: React.FC = () => {
             {/* MODALS */}
             <AnimatePresence>
                 {(showAddStaff || showAddVariant || editingVariant || editingStaff || editingStaffRole || showClosingLoad) && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/80 backdrop-blur-xl overflow-y-auto">
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="glass w-full max-w-md rounded-2xl p-5 md:p-10 border-white/10">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto">
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="glass w-full max-w-md rounded-3xl p-8 md:p-12 border-white/10">
                             
                             {showAddStaff && (
                                 <div className="space-y-6">

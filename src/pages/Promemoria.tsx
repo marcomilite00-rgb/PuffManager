@@ -161,15 +161,15 @@ export const Promemoria: React.FC = () => {
     );
 
     return (
-        <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+        <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col gap-1 px-1">
-                <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+                <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
                     Promemoria
                 </h1>
-                <p className="label-caps text-[9px] md:text-xs text-slate-500">Pagamenti in sospeso e note importanti</p>
+                <p className="label-caps text-[10px] md:text-xs text-slate-500">Pagamenti in sospeso e note importanti</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {reminders.length > 0 ? (
                     reminders.map((reminder) => (
                         <div
