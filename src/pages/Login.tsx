@@ -90,8 +90,8 @@ export const Login: React.FC = () => {
 
     if (!selectedStaff) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb">
-                <div className="w-full max-w-md space-y-12 animate-fade">
+            <div className="w-full h-screen h-[100dvh] overflow-y-auto flex flex-col items-center p-6 bg-surface-950 safe-area-pt safe-area-pb">
+                <div className="w-full max-w-md my-auto py-6 space-y-10 animate-fade">
                     <div className="text-center space-y-4">
                         <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase italic">
                             Puff Manager<span className="text-primary not-italic">Pro</span>
@@ -128,8 +128,8 @@ export const Login: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb animate-fade">
-            <div className="w-full max-w-sm space-y-10">
+        <div className="w-full h-screen h-[100dvh] overflow-y-auto flex flex-col items-center p-6 bg-surface-950 safe-area-pt safe-area-pb animate-fade">
+            <div className="w-full max-w-sm my-auto py-6 space-y-8">
                 <div className="flex flex-col items-center text-center space-y-6">
                     <button 
                         onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
