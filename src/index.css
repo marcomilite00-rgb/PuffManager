@@ -23,11 +23,10 @@
   --warning: #f59e0b;
   --surface: #0d1117;
 
-  /* Safe area inset — popolate dal browser/WebView nativo con fallback per iOS legacy */
-  --safe-top: env(safe-area-inset-top, constant(safe-area-inset-top, 0px));
-  --safe-right: env(safe-area-inset-right, constant(safe-area-inset-right, 0px));
-  --safe-bottom: env(safe-area-inset-bottom, constant(safe-area-inset-bottom, 0px));
-  --safe-left: env(safe-area-inset-left, constant(safe-area-inset-left, 0px));
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 /* ── Base styles ─────────────────────────────────────────────────────────── */
@@ -36,12 +35,9 @@
 }
 
 html {
-  /* Evita il rimpicciolimento del testo su iOS quando si cambia orientamento */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* Riempi l'intero display inclusa la safe area */
   height: 100%;
-  height: -webkit-fill-available;
 }
 
 body {
@@ -50,31 +46,20 @@ body {
   background-color: var(--surface);
   color: white;
   font-family: var(--font-family-body);
-  /* Ottimizzazione rendering font su schermi Retina / OLED (iPhone 15) */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* Disabilita text selection (touch) tranne che negli input */
   user-select: none;
   -webkit-user-select: none;
-  /* Rimuove il flash grigio al tap su iOS */
   -webkit-tap-highlight-color: transparent;
-  /* Blocca overscroll (iOS bounce effect che espone lo sfondo) */
+  -webkit-touch-callout: none;
   overscroll-behavior: none;
-  overscroll-behavior-y: contain;
-  /* Riempi tutta l'area disponibile inclusa la safe area */
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  min-height: 100dvh;
-  /* Riempi tutta l'area disponibile inclusa la safe area */
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  overscroll-behavior-x: none;
   min-height: 100dvh;
 }
 
 #root {
   width: 100%;
-  min-height: 100vh;
   min-height: 100dvh;
   position: relative;
 }
@@ -100,14 +85,12 @@ button, a, input, select, textarea, [role="button"] {
 input, textarea, select {
   user-select: text !important;
   -webkit-user-select: text !important;
-  /* Rimuove bordi di focus nativi su iOS */
+  caret-color: var(--primary);
   outline: none;
   -webkit-appearance: none;
 }
 
 /* ── Safe Area Utilities ─────────────────────────────────────────────────── */
-/* Padding aggiuntivo = safe area (notch, Dynamic Island, Home Indicator) */
-
 .safe-area-top {
   padding-top: var(--safe-top);
 }
@@ -132,7 +115,6 @@ input, textarea, select {
   padding-bottom: var(--safe-bottom);
 }
 
-/* Altezze che escludono la safe area (per elementi fixed) */
 .h-safe-top {
   height: var(--safe-top);
 }
@@ -141,7 +123,6 @@ input, textarea, select {
   height: var(--safe-bottom);
 }
 
-/* Margini con safe area */
 .mt-safe {
   margin-top: var(--safe-top);
 }
@@ -171,6 +152,7 @@ input, textarea, select {
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, border-color;
 }
 
 .glass-card:hover {
@@ -199,14 +181,7 @@ input, textarea, select {
   opacity: 0.5;
 }
 
-/* Scroll nativo fluido su iOS (momentum scrolling) */
-.overflow-y-auto, .overflow-y-scroll,
-.overflow-auto, .overflow-scroll {
-  -webkit-overflow-scrolling: touch;
-}
-
 /* ── Scrollable content area (main) ─────────────────────────────────────── */
-/* Il main deve scorrere, non il body */
 main {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -227,6 +202,11 @@ main {
 @keyframes slideDown {
   from { transform: translateY(-10px); opacity: 0; }
   to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes loading {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .animate-fade {
@@ -254,41 +234,54 @@ main {
   border-radius: 1rem;
 }
 
-@keyframes loading {
-  0%   { background-position:  200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* ── iOS specific fixes ──────────────────────────────────────────────────── */
-/* Rimuovi input[type=number arrows] su WebKit */
+/* ── iOS / Safari specific fixes ──────────────────────────────────────────── */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Fix per le modal/drawer che usano position:fixed su iOS */
 .fixed-ios {
   position: fixed;
   -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
 }
 
-/* Previeni zoom al tap su input su iPhone (font size < 16px = zoom automatico) */
 input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
 input[type="search"],
 input[type="tel"],
+input[type="url"],
 select,
 textarea {
   font-size: 16px;
 }
 
+/* ── ProMotion 120Hz: transizioni fluide ──────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .smooth-120hz {
+    transition-duration: 0.2s;
+    transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Contenuti fuori schermo: performance scroll ─────────────────────────── */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 500px;
+}
+
 /* ── Main content mobile safe area ──────────────────────────────────────── */
-/* Su mobile: spazio per header (56px) + notch + bottom nav (64px) + home indicator */
-/* Su desktop (md:): Tailwind md:pt-0 md:pb-0 sovrascrive questi valori */
 .main-mobile-inset {
   padding-top: calc(56px + env(safe-area-inset-top, 0px));
   padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));

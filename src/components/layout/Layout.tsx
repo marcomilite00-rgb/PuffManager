@@ -134,13 +134,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </aside>
 
-            {/* Mobile Header — h-14 + safe-area-top per status bar / notch */}
-            <header className="md:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5 safe-area-top">
+            {/* Mobile Header — h-14 + safe-area-top per status bar / notch / Dynamic Island */}
+            <header className="md:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5 safe-area-top will-change-transform">
                 <div className="flex items-center justify-between px-5 h-14">
                     <h1 className="text-lg font-black italic tracking-tighter text-white uppercase pt-1">
                         Puff<span className="text-primary not-italic">Pro</span>
                     </h1>
-                    <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-500">
+                    <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 text-slate-500 active:scale-90 transition-transform duration-150">
                         <Menu size={20} />
                     </button>
                 </div>
@@ -161,8 +161,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed top-0 right-0 bottom-0 w-80 bg-surface-900 z-[70] p-8 flex flex-col shadow-3xl md:hidden safe-area-pt safe-area-pb"
+                            transition={{ type: 'spring', damping: 30, stiffness: 250, mass: 0.8 }}
+                            className="fixed top-0 right-0 bottom-0 w-80 bg-surface-900 z-[70] p-8 flex flex-col shadow-3xl md:hidden safe-area-pt safe-area-pb will-change-transform"
                         >
                             <div className="flex justify-between items-center mb-10">
                                 <span className="label-caps text-xs text-slate-500">Menu Navigazione</span>
@@ -209,17 +209,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </AnimatePresence>
 
             {/* Mobile Bottom Nav — altezza fissa + safe-area-bottom per home indicator */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/5 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/5 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.5)] will-change-transform">
                 <div className="flex justify-around items-center h-16 px-1">
                     {[navItems[0], navItems[1], navItems[2], navItems[5], navItems[3]].map((item) => (
                         <NavLink
                             key={item.to}
                             to={item.to}
-                            className="flex-1 h-full"
+                            className="flex-1 h-full active:scale-95 transition-transform duration-150"
                         >
                             {({ isActive }) => (
                                 <div className={clsx(
-                                    "flex flex-col items-center justify-center h-full transition-all duration-300 gap-1 relative",
+                                    "flex flex-col items-center justify-center h-full transition-all duration-200 gap-1 relative",
                                     isActive ? "text-primary scale-105" : "text-slate-600"
                                 )}>
                                     <div className="relative">
@@ -239,7 +239,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Main content area */}
             {/* Mobile: padding-top = header(56px) + notch; padding-bottom = bottom-nav(64px) + home indicator */}
             {/* Desktop: padding handled by sidebar offset (md:ml-80) — no extra top/bottom needed */}
-            <main className="flex-1 md:ml-80 md:pt-0 md:pb-0 min-h-screen bg-surface-950 overflow-y-auto main-mobile-inset">
+            <main className="flex-1 md:ml-80 md:pt-0 md:pb-0 min-h-dvh bg-surface-950 overflow-y-auto main-mobile-inset content-visibility-auto">
                 <div className="w-full max-w-[1920px] mx-auto px-3 py-4 md:p-10 lg:p-14">
                     {children}
                 </div>

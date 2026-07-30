@@ -6,18 +6,30 @@
 
   <!-- ── Viewport: viewport-fit=cover essenziale per env(safe-area-inset-*) ── -->
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
 
   <!-- ── iOS WebApp / Status bar ─────────────────────────────────────────── -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Puff Manager Pro" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- ── Safari: nessuna formattazione automatica di numeri telefono ─────── -->
+  <meta name="format-detection" content="telephone=no" />
 
   <!-- ── Theme color (Android + PWA) ────────────────────────────────────── -->
   <meta name="theme-color" content="#0d1117" />
+  <meta name="msapplication-TileColor" content="#0d1117" />
+
+  <!-- ── Preconnect per Google Fonts (Outfit + Inter) ─────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
   <!-- ── Favicon ─────────────────────────────────────────────────────────── -->
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+  <!-- ── Apple Touch Icon (iOS home screen) ──────────────────────────────── -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
   <title>Puff Manager Pro</title>
 </head>
