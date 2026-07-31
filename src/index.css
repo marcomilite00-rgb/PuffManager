@@ -1,45 +1,51 @@
 @import "tailwindcss";
 
-/* ── Design System tokens ───────────────────────────────────────────────── */
 @theme {
-  --color-primary: #00bcd4;
-  --color-primary-dark: #0097a7;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-surface-950: #0d1117;
-  --color-surface-900: #161b22;
-  --color-surface-800: #21262d;
+  --color-primary: #00E5FF;
+  --color-primary-dark: #00B8D4;
+  --color-primary-light: #80F0FF;
+  --color-secondary: #A855F7;
+  --color-secondary-dark: #7C3AED;
+  --color-success: #00FFA3;
+  --color-success-dark: #00CC82;
+  --color-danger: #FF3B5C;
+  --color-danger-dark: #CC2F4A;
+  --color-warning: #FFB800;
+  --color-warning-dark: #CC9300;
+  --color-accent: #FF6B9D;
+  --color-surface-950: #0A0C10;
+  --color-surface-925: #0D1117;
+  --color-surface-900: #111520;
+  --color-surface-875: #151A28;
+  --color-surface-850: #1A2035;
+  --color-surface-800: #212639;
 
-  --font-family-title: 'Outfit', 'Inter', system-ui;
+  --font-family-title: 'Space Grotesk', 'Inter', system-ui;
   --font-family-body: 'Inter', system-ui;
 }
 
-/* ── CSS Custom Properties ───────────────────────────────────────────────── */
 :root {
-  --primary: #00bcd4;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --surface: #0d1117;
+  --primary: #00E5FF;
+  --success: #00FFA3;
+  --danger: #FF3B5C;
+  --warning: #FFB800;
+  --accent: #FF6B9D;
+  --secondary: #A855F7;
+  --surface: #0A0C10;
 
-  /* Safe area inset — popolate dal browser/WebView nativo */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
 }
 
-/* ── Base styles ─────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
 html {
-  /* Evita il rimpicciolimento del testo su iOS quando si cambia orientamento */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* Riempi l'intero display inclusa la safe area */
   height: 100%;
   height: -webkit-fill-available;
 }
@@ -50,19 +56,14 @@ body {
   background-color: var(--surface);
   color: white;
   font-family: var(--font-family-body);
-  /* Disabilita text selection (touch) tranne che negli input */
   user-select: none;
   -webkit-user-select: none;
-  /* Rimuove il flash grigio al tap su iOS */
   -webkit-tap-highlight-color: transparent;
-  /* Blocca overscroll (iOS bounce effect che espone lo sfondo) */
   overscroll-behavior: none;
   overscroll-behavior-y: contain;
-  /* Riempi tutta l'area disponibile inclusa la safe area */
   min-height: 100vh;
   min-height: -webkit-fill-available;
   min-height: 100dvh;
-  /* Previeni il momentum scroll del body su iOS */
   position: fixed;
   width: 100%;
   overflow: hidden;
@@ -76,196 +77,325 @@ body {
   position: relative;
 }
 
-/* ── Typography ──────────────────────────────────────────────────────────── */
 h1, h2, h3, h4, .title-case {
   font-family: var(--font-family-title);
-  text-transform: capitalize;
 }
 
 .label-caps {
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 900;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.12em;
+  font-weight: 800;
 }
 
-/* ── Input: mantieni text-selection ─────────────────────────────────────── */
 input, textarea, select {
   user-select: text !important;
   -webkit-user-select: text !important;
-  /* Rimuove bordi di focus nativi su iOS */
   outline: none;
   -webkit-appearance: none;
 }
 
-/* ── Safe Area Utilities ─────────────────────────────────────────────────── */
-/* Padding aggiuntivo = safe area (notch, Dynamic Island, Home Indicator) */
+.h-18 { height: 4.5rem; }
 
-.safe-area-top {
-  padding-top: var(--safe-top);
-}
+.safe-area-top { padding-top: var(--safe-top); }
+.safe-area-bottom { padding-bottom: var(--safe-bottom); }
+.safe-area-left { padding-left: var(--safe-left); }
+.safe-area-right { padding-right: var(--safe-right); }
+.safe-area-pt { padding-top: var(--safe-top); }
+.safe-area-pb { padding-bottom: var(--safe-bottom); }
+.h-safe-top { height: var(--safe-top); }
+.h-safe-bottom { height: var(--safe-bottom); }
+.mt-safe { margin-top: var(--safe-top); }
+.mb-safe { margin-bottom: var(--safe-bottom); }
 
-.safe-area-bottom {
-  padding-bottom: var(--safe-bottom);
-}
-
-.safe-area-left {
-  padding-left: var(--safe-left);
-}
-
-.safe-area-right {
-  padding-right: var(--safe-right);
-}
-
-.safe-area-pt {
-  padding-top: var(--safe-top);
-}
-
-.safe-area-pb {
-  padding-bottom: var(--safe-bottom);
-}
-
-/* Altezze che escludono la safe area (per elementi fixed) */
-.h-safe-top {
-  height: var(--safe-top);
-}
-
-.h-safe-bottom {
-  height: var(--safe-bottom);
-}
-
-/* Margini con safe area */
-.mt-safe {
-  margin-top: var(--safe-top);
-}
-
-.mb-safe {
-  margin-bottom: var(--safe-bottom);
-}
-
-/* ── Glass Morphism ──────────────────────────────────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .glass-dark {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .glass-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.005) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(0, 188, 212, 0.3);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 229, 255, 0.25);
+  transform: translateY(-1px);
 }
 
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); opacity: 0.5; }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
-  opacity: 0.5;
-}
-
-/* Scroll nativo fluido su iOS (momentum scrolling) */
 .overflow-y-auto, .overflow-y-scroll,
 .overflow-auto, .overflow-scroll {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── Main content ────────────────────────────────────────────────────────── */
-main {
-  overflow-y: auto;
-  height: 100%;
-}
+main { overflow-y: auto; height: 100%; }
 
-/* ── Animation Utilities ─────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(10px); opacity: 0; }
+  from { transform: translateY(12px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
 @keyframes slideDown {
-  from { transform: translateY(-10px); opacity: 0; }
+  from { transform: translateY(-8px); opacity: 0; }
   to   { transform: translateY(0);     opacity: 1; }
 }
 
-.animate-fade {
-  animation: fadeIn 0.4s ease-out forwards;
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-5px); }
+  30%, 70% { transform: translateX(5px); }
 }
 
-.animate-slide-up {
-  animation: slideUp 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(168, 85, 247, 0.15); }
 }
 
-.animate-slide-down {
-  animation: slideDown 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-/* ── Skeleton Loading ────────────────────────────────────────────────────── */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0.05) 25%,
-    rgba(255,255,255,0.10) 50%,
-    rgba(255,255,255,0.05) 75%
-  );
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-  border-radius: 1rem;
-}
-
-@keyframes loading {
-  0%   { background-position:  200% 0; }
+@keyframes skeleton-loading {
+  0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-/* ── iOS specific fixes ──────────────────────────────────────────────────── */
-/* Rimuovi input[type=number arrows] su WebKit */
+@keyframes border-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes grid-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(40px); }
+}
+
+@keyframes nebula-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.25; }
+  33% { transform: translate(15px, -20px) scale(1.05); opacity: 0.4; }
+  66% { transform: translate(-10px, 12px) scale(0.95); opacity: 0.3; }
+}
+
+@keyframes ring-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(0,229,255,0.25), 0 0 40px rgba(168,85,247,0.08); }
+  50% { box-shadow: 0 0 25px rgba(0,229,255,0.5), 0 0 60px rgba(168,85,247,0.2), 0 0 80px rgba(0,229,255,0.08); }
+}
+
+@keyframes hex-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(0,229,255,0.4)); }
+  50% { filter: drop-shadow(0 0 10px rgba(0,229,255,0.7)) drop-shadow(0 0 20px rgba(168,85,247,0.3)); }
+}
+
+@keyframes shimmer-metallic {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes particle-drift {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  20% { opacity: 0.5; }
+  80% { opacity: 0.3; }
+  100% { transform: translateY(-120px) translateX(20px) scale(0.5); opacity: 0; }
+}
+
+@keyframes border-scan {
+  0% { top: -100%; }
+  100% { top: 200%; }
+}
+
+@keyframes glow-rotate {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(1deg); }
+}
+
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.2; }
+  98% { opacity: 0.8; }
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade { animation: fadeIn 0.35s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.45s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.animate-slide-down { animation: slideDown 0.35s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.animate-shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.animate-glow-pulse { animation: glow-pulse 2.5s ease-in-out infinite; }
+.animate-grid-scroll { animation: grid-scroll 4s linear infinite; }
+.animate-nebula { animation: nebula-drift 12s ease-in-out infinite; }
+.animate-ring-pulse { animation: ring-pulse 3s ease-in-out infinite; }
+.animate-hex-glow { animation: hex-glow 2s ease-in-out infinite; }
+.animate-shimmer-metallic {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 30%, #fde68a 50%, #f59e0b 70%, #b45309 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-metallic 3s linear infinite;
+}
+.animate-particle { animation: particle-drift 6s ease-out infinite; }
+.animate-float-gentle { animation: float-gentle 4s ease-in-out infinite; }
+.animate-neon-flicker { animation: neon-flicker 3s ease-in-out infinite; }
+.animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+
+.neon-border {
+  position: relative;
+}
+.neon-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #00E5FF, #A855F7, #00E5FF, #A855F7);
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-rotate 4s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.neon-border:hover::before { opacity: 1; }
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.8s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+.glass-key {
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-key:active {
+  transform: scale(0.92);
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.15), inset 0 1px 0 rgba(0, 229, 255, 0.1);
+}
+
+.hex-dot {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.gem-avatar {
+  background: linear-gradient(135deg, #A855F7 0%, #3B82F6 30%, #00E5FF 60%, #A855F7 100%);
+  background-size: 200% 200%;
+  animation: shimmer-metallic 4s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+.gem-avatar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%);
+  border-radius: inherit;
+}
+.gem-avatar::after {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  top: 50%;
+  left: -50%;
+  transform: translateY(-50%) rotate(-30deg);
+  animation: border-scan 3s ease-in-out infinite;
+}
+
+.neon-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1.5px solid rgba(0, 229, 255, 0.35);
+  animation: ring-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.neon-ring::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from 0deg, transparent, rgba(0,229,255,0.3), rgba(168,85,247,0.3), transparent, rgba(0,229,255,0.3), rgba(168,85,247,0.3), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glow-rotate 6s linear infinite;
+}
+
+.digital-grid {
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.chrome-badge {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+  border: 0.5px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.08), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.neon-text {
+  text-shadow: 0 0 7px rgba(0,229,255,0.25), 0 0 15px rgba(0,229,255,0.1);
+}
+
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Fix per le modal/drawer che usano position:fixed su iOS */
 .fixed-ios {
   position: fixed;
   -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
 }
 
-/* Previeni zoom al tap su input su iPhone (font size < 16px = zoom automatico) */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -277,15 +407,11 @@ textarea {
   font-size: 16px;
 }
 
-/* ── Main content mobile safe area ──────────────────────────────────────── */
-/* Su mobile: spazio per header (56px) + notch + bottom nav (52px) + home indicator */
-/* Su desktop (md:): Tailwind md:pt-0 md:pb-0 sovrascrive questi valori */
 .main-mobile-inset {
   padding-top: calc(56px + env(safe-area-inset-top, 0px));
-  padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Nessun scroll orizzontale */
 html, body, #root {
   overflow-x: hidden !important;
   max-width: 100vw;
@@ -295,5 +421,13 @@ html, body, #root {
   .main-mobile-inset {
     padding-top: 0;
     padding-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

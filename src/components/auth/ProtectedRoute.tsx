@@ -16,8 +16,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center min-h-screen bg-surface-950 p-6">
+                <div className="space-y-6 w-full max-w-md">
+                    <div className="h-8 w-48 skeleton mx-auto" />
+                    <div className="space-y-4">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="h-20 skeleton" />
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }

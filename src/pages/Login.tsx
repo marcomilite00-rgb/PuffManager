@@ -1,230 +1,331 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Delete, X, ArrowLeft } from 'lucide-react';
+import { LogIn, Delete, ArrowLeft, Eye, EyeOff, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface StaffForLogin {
-    id: string;
-    name: string;
-    role: string;
-    has_pin: boolean;
+  id: string;
+  name: string;
+  role: string;
+  has_pin: boolean;
+  pin_length?: number;
 }
 
 const getAvatarColor = (name: string) => {
-    const colors = [
-        'bg-cyan-500', 'bg-emerald-500', 'bg-blue-500', 
-        'bg-purple-500', 'bg-pink-500', 'bg-orange-500', 
-        'bg-indigo-500', 'bg-rose-500'
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length];
+  const colors = [
+    'from-cyan-500 to-blue-600', 'from-emerald-500 to-teal-600',
+    'from-blue-500 to-indigo-600', 'from-purple-500 to-violet-600',
+    'from-pink-500 to-rose-600', 'from-orange-500 to-amber-600',
+    'from-indigo-500 to-purple-600', 'from-rose-500 to-pink-600',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
 };
 
 export const Login: React.FC = () => {
-    const navigate = useNavigate();
-    const { user, login } = useAuth();
-    const [staffList, setStaffList] = useState<StaffForLogin[]>([]);
-    const [selectedStaff, setSelectedStaff] = useState<StaffForLogin | null>(null);
-    const [pin, setPin] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user, login } = useAuth();
+  const [staffList, setStaffList] = useState<StaffForLogin[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<StaffForLogin | null>(null);
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        if (user) navigate('/inventario');
-        fetchStaff();
-    }, [user, navigate]);
+  useEffect(() => {
+    if (user) navigate('/inventario');
+    fetchStaff();
+  }, [user, navigate]);
 
-    const fetchStaff = async () => {
-        try {
-            const { data } = await supabase.from('staff').select('id, name, role, pin_hash').order('name');
-            if (data) {
-                setStaffList(data.map(s => ({
-                    id: s.id,
-                    name: s.name,
-                    role: s.role,
-                    has_pin: s.pin_hash !== null
-                })));
-            }
-        } catch (err) {
-            console.error('Fetch failed');
-        }
-    };
+  const fetchStaff = async () => {
+    try {
+      const { data } = await supabase.from('staff').select('id, name, role, pin_hash, pin_length').order('name');
+      if (data) {
+        setStaffList(data.map(s => ({
+          id: s.id,
+          name: s.name,
+          role: s.role,
+          has_pin: s.pin_hash !== null,
+          pin_length: s.pin_length ?? 6,
+        })));
+      }
+    } catch { console.error('Fetch failed'); }
+  };
 
-    const handleNumberClick = (num: string) => {
-        if (pin.length < 8) {
-            setPin(prev => prev + num);
-            if (error) setError('');
-        }
-    };
+  const requiredPinLen = selectedStaff?.has_pin ? (selectedStaff.pin_length || 6) : 0;
 
-    const handleBackspace = () => {
-        setPin(prev => prev.slice(0, -1));
-    };
-
-    const handleLogin = async () => {
-        if (!selectedStaff) return;
-        setLoading(true);
-        setError('');
-        try {
-            await login(selectedStaff.name, selectedStaff.has_pin ? pin : undefined);
-            navigate('/inventario');
-        } catch (err: any) {
-            setError(err.message || 'PIN Errato');
-            setPin('');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Auto-login if no PIN required
-    useEffect(() => {
-        if (selectedStaff && !selectedStaff.has_pin) {
-            handleLogin();
-        }
-    }, [selectedStaff]);
-
-    if (!selectedStaff) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb">
-                <div className="w-full max-w-md space-y-12 animate-fade">
-                    <div className="text-center space-y-2">
-                        <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-white uppercase italic">
-                            Puff Manager<span className="text-primary not-italic">Pro</span>
-                        </h1>
-                        <p className="label-caps text-slate-500 text-[10px]">Seleziona il tuo profilo per iniziare</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                        {staffList.map((staff) => (
-                            <button
-                                key={staff.id}
-                                onClick={() => setSelectedStaff(staff)}
-                                className="group flex flex-col items-center gap-4 p-6 glass-card rounded-[2.5rem] relative overflow-hidden active:scale-95"
-                            >
-                                <div className={clsx(
-                                    "w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-2xl font-black text-white shadow-2xl transition-transform group-hover:scale-110 duration-500",
-                                    getAvatarColor(staff.name)
-                                )}>
-                                    {staff.name.charAt(0)}
-                                </div>
-                                <div className="text-center">
-                                    <p className="font-black text-white text-lg tracking-tight uppercase">{staff.name}</p>
-                                    <p className="label-caps text-[9px] text-slate-500 group-hover:text-primary transition-colors">{staff.role}</p>
-                                </div>
-                                {staff.has_pin && (
-                                    <div className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full shadow-[0_0_10px_rgba(0,188,212,0.5)]"></div>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
+  const handleNumberClick = useCallback((num: string) => {
+    if (pin.length < requiredPinLen) {
+      setPin(prev => prev + num);
+      if (error) setError('');
     }
+  }, [pin.length, requiredPinLen, error]);
 
+  const handleBackspace = useCallback(() => {
+    setPin(prev => prev.slice(0, -1));
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && pin.length === requiredPinLen) handleLogin();
+    if (e.key === 'Backspace') handleBackspace();
+    if (/^[0-9]$/.test(e.key)) handleNumberClick(e.key);
+    if (e.key === 'Escape') { setSelectedStaff(null); setPin(''); setError(''); }
+  }, [pin, requiredPinLen]);
+
+  const handleLogin = async () => {
+    if (!selectedStaff) return;
+    if (selectedStaff.has_pin && pin.length !== requiredPinLen) return;
+    setLoading(true);
+    setError('');
+    try {
+      await login(selectedStaff.name, selectedStaff.has_pin ? pin : undefined);
+      navigate('/inventario');
+    } catch (err: any) {
+      setError(err.message || 'PIN Errato');
+      setPin('');
+      setShakeKey(k => k + 1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedStaff && !selectedStaff.has_pin) handleLogin();
+  }, [selectedStaff]);
+
+  useEffect(() => {
+    if (selectedStaff?.has_pin) inputRef.current?.focus();
+  }, [selectedStaff]);
+
+  if (!selectedStaff) {
     return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-surface-950 safe-area-pt safe-area-pb animate-fade">
-            <div className="w-full max-w-sm space-y-10">
-                <div className="flex flex-col items-center text-center space-y-6">
-                    <button 
-                        onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
-                        className="flex items-center gap-2 text-slate-500 hover:text-white label-caps text-[10px] transition-colors bg-white/5 px-4 py-2 rounded-full"
-                    >
-                        <ArrowLeft size={14} /> cambia profilo
-                    </button>
-
-                    <div className={clsx(
-                        "w-24 h-24 rounded-[2rem] flex items-center justify-center text-4xl font-black text-white shadow-3xl animate-slide-up",
-                        getAvatarColor(selectedStaff.name)
-                    )}>
-                        {selectedStaff.name.charAt(0)}
-                    </div>
-                    
-                    <div>
-                        <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">{selectedStaff.name}</h2>
-                        <p className="label-caps text-[10px] text-primary mt-1">{selectedStaff.role}</p>
-                    </div>
-                </div>
-
-                {/* PIN Dots Display */}
-                <div className="flex justify-center gap-4 py-4">
-                    {[...Array(4)].map((_, i) => (
-                        <div 
-                            key={i}
-                            className={clsx(
-                                "w-4 h-4 rounded-full border-2 transition-all duration-300",
-                                pin.length > i 
-                                    ? "bg-primary border-primary shadow-[0_0_15px_rgba(0,188,212,0.6)] scale-110" 
-                                    : "bg-transparent border-white/10"
-                            )}
-                        />
-                    ))}
-                </div>
-
-                {error && (
-                    <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[10px] label-caps text-center animate-shake">
-                        {error}
-                    </div>
-                )}
-
-                {/* Visual Numpad */}
-                <div className="grid grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                        <button
-                            key={num}
-                            onClick={() => handleNumberClick(num.toString())}
-                            className="h-20 glass-card rounded-2xl flex items-center justify-center text-2xl font-black text-white hover:bg-white/10 active:scale-90 transition-all"
-                        >
-                            {num}
-                        </button>
-                    ))}
-                    <button
-                        onClick={() => setPin('')}
-                        className="h-20 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
-                        aria-label="Cancella tutto"
-                    >
-                        <X size={24} />
-                    </button>
-                    <button
-                        onClick={() => handleNumberClick('0')}
-                        className="h-20 glass-card rounded-2xl flex items-center justify-center text-2xl font-black text-white hover:bg-white/10 active:scale-90 transition-all"
-                    >
-                        0
-                    </button>
-                    <button
-                        onClick={handleBackspace}
-                        className="h-20 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
-                        aria-label="Cancella cifra"
-                    >
-                        <Delete size={24} />
-                    </button>
-                </div>
-
-                <button
-                    onClick={handleLogin}
-                    disabled={loading || pin.length < 4}
-                    className={clsx(
-                        "w-full py-6 rounded-[2rem] text-xl font-black transition-all flex items-center justify-center gap-3 shadow-3xl label-caps",
-                        loading || pin.length < 4 
-                            ? "bg-surface-800 text-slate-600 border border-white/5 opacity-50 cursor-not-allowed" 
-                            : "bg-primary text-surface-950 hover:scale-105 active:scale-95 shadow-primary/20"
-                    )}
-                >
-                    {loading ? (
-                        <div className="w-6 h-6 border-4 border-surface-950 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                        <>
-                            <LogIn size={20} />
-                            <span>Entra</span>
-                        </>
-                    )}
-                </button>
-            </div>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb relative overflow-y-auto digital-grid">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-violet-600/8 rounded-full blur-3xl animate-nebula" />
+          <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl animate-nebula" style={{ animationDelay: '-6s' }} />
         </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md space-y-10 relative z-10">
+          <div className="text-center space-y-3">
+            <motion.h1
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+              className="text-4xl md:text-5xl font-black tracking-tighter uppercase italic neon-text"
+            >
+              Puff Manager<span className="text-primary not-italic">Pro</span>
+            </motion.h1>
+            <p className="label-caps text-slate-500 text-[9px] tracking-[0.3em]">Seleziona il tuo profilo</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:gap-5">
+            {staffList.map((staff, i) => (
+              <motion.button
+                key={staff.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.07, duration: 0.5, ease: 'easeOut' }}
+                onClick={() => setSelectedStaff(staff)}
+                className="group relative flex flex-col items-center gap-4 p-5 rounded-[2rem] glass-key hover:border-primary/30 transition-all duration-500 active:scale-95"
+              >
+                <div className={clsx(
+                  "w-16 h-16 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl font-black text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary/20",
+                  getAvatarColor(staff.name)
+                )}>
+                  {staff.name.charAt(0)}
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-white text-base tracking-tight uppercase leading-none">{staff.name}</p>
+                  <p className="label-caps text-[8px] text-slate-500 mt-1.5 tracking-widest uppercase">{staff.role}</p>
+                </div>
+                {staff.has_pin && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute top-3 right-3 w-2.5 h-2.5 hex-dot bg-primary animate-hex-glow"
+                  />
+                )}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
     );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center py-6 px-4 bg-surface-950 safe-area-pt safe-area-pb relative overflow-y-auto digital-grid">
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-violet-600/8 rounded-full blur-3xl animate-nebula" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl animate-nebula" style={{ animationDelay: '-6s' }} />
+      </div>
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-1 h-1 bg-primary/30 rounded-full animate-particle pointer-events-none"
+          style={{ left: `${15 + i * 14}%`, top: `${60 + (i % 3) * 10}%`, animationDelay: `${i * 0.8}s`, animationDuration: `${5 + i * 0.5}s` }}
+        />
+      ))}
+      {[...Array(4)].map((_, i) => (
+        <div
+          key={i + 10}
+          className="absolute w-0.5 h-0.5 bg-violet-400/30 rounded-full animate-particle pointer-events-none"
+          style={{ left: `${30 + i * 20}%`, top: `${40 + (i % 2) * 20}%`, animationDelay: `${0.4 + i * 0.7}s`, animationDuration: `${4 + i * 0.8}s` }}
+        />
+      ))}
+
+      <div className="w-full max-w-xs space-y-3 relative z-10 my-auto">
+        <button
+          onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
+          className="flex items-center gap-2 text-slate-500 hover:text-white label-caps text-[9px] transition-colors mx-auto chrome-badge px-4 py-2 rounded-full"
+        >
+          <ArrowLeft size={12} /> cambia profilo
+        </button>
+
+        <div className="flex flex-col items-center text-center space-y-2">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', damping: 15, stiffness: 200 }}
+            className="relative"
+          >
+            <div className="w-16 h-16 rounded-2xl gem-avatar flex items-center justify-center text-2xl font-black text-white shadow-2xl">
+              {selectedStaff.name.charAt(0)}
+            </div>
+            <div className="neon-ring rounded-2xl" />
+          </motion.div>
+
+          <div>
+            <h2 className="text-2xl font-black tracking-tight leading-tight animate-shimmer-metallic">{selectedStaff.name}</h2>
+            <p className="label-caps text-[8px] tracking-widest chrome-badge inline-block px-2.5 py-0.5 rounded-full mt-1.5 text-white/80">{selectedStaff.role}</p>
+          </div>
+        </div>
+
+        <motion.div
+          key={shakeKey}
+          animate={error ? { x: [0, -5, 5, -5, 5, 0] } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex justify-center gap-2 py-1"
+        >
+          {[...Array(requiredPinLen)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ scale: 0, rotate: -30 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: i * 0.05, type: 'spring', stiffness: 300 }}
+              className={clsx(
+                "hex-dot w-[14px] h-[14px] transition-all duration-500",
+                pin.length > i
+                  ? "bg-gradient-to-br from-primary to-secondary shadow-[0_0_12px_rgba(0,229,255,0.6)] animate-hex-glow"
+                  : error
+                    ? "bg-danger/40"
+                    : "bg-white/8"
+              )}
+            />
+          ))}
+        </motion.div>
+
+        <input
+          ref={inputRef}
+          type={showPin ? "text" : "password"}
+          value={pin}
+          onKeyDown={handleKeyDown}
+          className="sr-only"
+          autoComplete="off"
+          inputMode="numeric"
+          readOnly
+        />
+
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="p-3 bg-danger/10 border border-danger/20 rounded-2xl flex items-center gap-2"
+            >
+              <Shield size={14} className="text-danger shrink-0 animate-neon-flicker" />
+              <span className="text-danger text-[9px] label-caps flex-1">{error}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="grid grid-cols-3 gap-1.5">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+            <motion.button
+              key={num}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleNumberClick(num.toString())}
+              className="glass-key h-14 rounded-xl flex items-center justify-center text-lg font-black text-white/90 hover:text-white hover:border-primary/30 active:border-primary/50 transition-all"
+            >
+              <span className="relative z-10">{num}</span>
+            </motion.button>
+          ))}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setPin('')}
+            className="glass-key h-14 rounded-xl flex items-center justify-center text-slate-500 hover:text-white/80 transition-all"
+          >
+            <Delete size={18} />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => handleNumberClick('0')}
+            className="glass-key h-14 rounded-xl flex items-center justify-center text-lg font-black text-white/90 hover:text-white hover:border-primary/30 active:border-primary/50 transition-all"
+          >
+            <span className="relative z-10">0</span>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={handleBackspace}
+            className="glass-key h-14 rounded-xl flex items-center justify-center text-slate-500 hover:text-white/80 transition-all"
+          >
+            <Delete size={18} />
+          </motion.button>
+        </div>
+
+        <div className="flex gap-2">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowPin(!showPin)}
+            className="glass-key p-3 rounded-xl shrink-0 text-slate-500 hover:text-white/80 transition-all"
+            title={showPin ? 'Nascondi PIN' : 'Mostra PIN'}
+          >
+            {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+          </motion.button>
+
+          <motion.button
+            whileTap={!(loading || pin.length < requiredPinLen) ? { scale: 0.95 } : {}}
+            onClick={handleLogin}
+            disabled={loading || pin.length < requiredPinLen}
+            className={clsx(
+              "flex-1 py-3.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 shadow-lg border relative overflow-hidden",
+              loading || pin.length < requiredPinLen
+                ? "bg-surface-800/50 text-slate-600 border-white/5 opacity-50 cursor-not-allowed"
+                : "bg-gradient-to-r from-primary via-cyan-400 to-primary-dark text-surface-950 border-primary/30 shadow-primary/20 hover:shadow-primary/30"
+            )}
+          >
+            {!(loading || pin.length < requiredPinLen) && (
+              <div className="absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/20 to-transparent" style={{ backgroundSize: '200% 100%', animationDuration: '2s' }} />
+            )}
+            {loading ? (
+              <div className="w-5 h-5 border-[3px] border-surface-950 border-t-white rounded-full animate-spin relative z-10" />
+            ) : (
+              <>
+                <LogIn size={16} className="relative z-10" />
+                <span className="relative z-10">Entra</span>
+              </>
+            )}
+          </motion.button>
+        </div>
+      </div>
+    </div>
+  );
 };

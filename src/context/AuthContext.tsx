@@ -139,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Check PIN for fallback (hardcoded for demo)
         if (staff.has_pin) {
-            const expectedPin = staff.name === 'Marco' ? '0509' : '2012';
+            const expectedPin = staff.name === 'Marco' ? '050905' : '201220';
             if (!pin) throw new Error('PIN richiesto');
             if (pin !== expectedPin) throw new Error('PIN errato');
         }
