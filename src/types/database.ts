@@ -149,6 +149,7 @@ export interface LoadSnapshotItem {
 export interface ArchivedLoad {
     id: string;
     closed_at: string;
+    created_at?: string;
     gross_total: number;
     unit_cost_calcolato?: number | null;
     soldi_spesi_carico?: number | null;

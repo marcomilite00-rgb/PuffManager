@@ -57,7 +57,7 @@ export const Storico: React.FC = () => {
                     pezzi_comprati: 0, is_legacy: true, items_sold_snapshot: []
                 })));
             }
-            setArchivedLoads(combinedLoads.sort((a, b) => new Date(b.closed_at || b.created_at).getTime() - new Date(a.closed_at || a.created_at).getTime()));
+            setArchivedLoads(combinedLoads.sort((a, b) => new Date(b.closed_at || b.created_at || 0).getTime() - new Date(a.closed_at || a.created_at || 0).getTime()));
         } catch (error) {
             console.error('Storico load error:', error);
         } finally {
@@ -393,7 +393,7 @@ export const Storico: React.FC = () => {
                                                 <div className="flex flex-wrap gap-2 text-[10px] font-bold">
                                                     <div className="px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
                                                         <span className="text-slate-500 mr-2 uppercase">COSTO U:</span>
-                                                        <span className="text-primary italic tabular-nums">€{Number(load.unit_cost_calcolato || (load.pezzi_comprati ? (load.soldi_spesi_carico / load.pezzi_comprati) : 0)).toFixed(2)}</span>
+                                                        <span className="text-primary italic tabular-nums">€{Number(load.unit_cost_calcolato || (load.pezzi_comprati ? ((load.soldi_spesi_carico ?? 0) / load.pezzi_comprati) : 0)).toFixed(2)}</span>
                                                     </div>
                                                     <div className="px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
                                                         <span className="text-slate-500 mr-2 uppercase">SPESA:</span>

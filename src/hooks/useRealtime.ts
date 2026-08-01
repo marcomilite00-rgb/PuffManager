@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-export function useRealtime<T extends Record<string, unknown>>(
+export function useRealtime<T extends object>(
     table: string,
     onEvent: (payload: RealtimePostgresChangesPayload<T>) => void
 ) {

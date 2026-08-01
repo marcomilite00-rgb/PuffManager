@@ -151,6 +151,7 @@ export const Admin: React.FC = () => {
 
     const handleUpdateStaffRole = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!editingStaffRole) return;
         const { error } = await supabase.from('staff').update({ role: editingStaffRole.role }).eq('id', editingStaffRole.id);
         if (error) showToast('Errore aggiornamento ruolo', 'error');
         else { setEditingStaffRole(null); fetchData(); showToast('Ruolo aggiornato'); }
@@ -167,6 +168,7 @@ export const Admin: React.FC = () => {
     const handleUpdateStaffPin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPin !== confirmPin) { setPinError('PIN non corrispondono'); return; }
+        if (!editingStaff) return;
         const { error } = await supabase.rpc('update_staff_pin', { p_staff_id: editingStaff.id, p_new_pin: newPin });
         if (error) showToast('Errore PIN: ' + error.message, 'error');
         else { setEditingStaff(null); setNewPin(''); setConfirmPin(''); setPinError(''); showToast('PIN aggiornato'); fetchData(); }
@@ -284,13 +286,13 @@ export const Admin: React.FC = () => {
                                 <div className="space-y-0.5">
                                     <label className="text-[7px] md:text-[8px] font-black uppercase text-danger/80 ml-1 tracking-widest">Spese Carico</label>
                                     <input type="number" value={settings?.money_spent_total ?? ''}
-                                        onChange={e => setSettings({ ...settings, money_spent_total: Number(e.target.value) })}
+                                        onChange={e => setSettings(prev => prev ? { ...prev, money_spent_total: Number(e.target.value) } : prev)}
                                         className="w-full bg-black/40 border border-danger/20 rounded-xl py-2.5 md:py-3 px-4 font-black text-xs md:text-sm text-white outline-none focus:border-danger/50 transition-all" />
                                 </div>
                                 <div className="space-y-0.5">
                                     <label className="text-[7px] md:text-[8px] font-black uppercase text-warning/80 ml-1 tracking-widest">Spese Durante Carico</label>
                                     <input type="number" value={settings?.money_spent_current_load ?? ''}
-                                        onChange={e => setSettings({ ...settings, money_spent_current_load: Number(e.target.value) })}
+                                        onChange={e => setSettings(prev => prev ? { ...prev, money_spent_current_load: Number(e.target.value) } : prev)}
                                         className="w-full bg-black/40 border border-warning/20 rounded-xl py-2.5 md:py-3 px-4 font-black text-xs md:text-sm text-white outline-none focus:border-warning/50 transition-all" />
                                 </div>
                                 <button type="submit" className="w-full py-2.5 md:py-3 bg-white/5 border border-white/5 rounded-xl text-white font-black text-[8px] md:text-[9px] uppercase tracking-widest hover:bg-white/10 transition-colors">SALVA DATI</button>
