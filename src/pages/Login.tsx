@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../lib/error';
 import { LogIn, Delete, ArrowLeft, Eye, EyeOff, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -71,14 +72,7 @@ export const Login: React.FC = () => {
     setPin(prev => prev.slice(0, -1));
   }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && pin.length === requiredPinLen) handleLogin();
-    if (e.key === 'Backspace') handleBackspace();
-    if (/^[0-9]$/.test(e.key)) handleNumberClick(e.key);
-    if (e.key === 'Escape') { setSelectedStaff(null); setPin(''); setError(''); }
-  }, [pin, requiredPinLen]);
-
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     if (!selectedStaff) return;
     if (selectedStaff.has_pin && pin.length !== requiredPinLen) return;
     setLoading(true);
@@ -86,18 +80,25 @@ export const Login: React.FC = () => {
     try {
       await login(selectedStaff.name, selectedStaff.has_pin ? pin : undefined);
       navigate('/inventario');
-    } catch (err: any) {
-      setError(err.message || 'PIN Errato');
+    } catch (err) {
+      setError(getErrorMessage(err, 'PIN Errato'));
       setPin('');
       setShakeKey(k => k + 1);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedStaff, pin, requiredPinLen, login, navigate]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && pin.length === requiredPinLen) handleLogin();
+    if (e.key === 'Backspace') handleBackspace();
+    if (/^[0-9]$/.test(e.key)) handleNumberClick(e.key);
+    if (e.key === 'Escape') { setSelectedStaff(null); setPin(''); setError(''); }
+  }, [pin, requiredPinLen, handleLogin, handleBackspace, handleNumberClick]);
 
   useEffect(() => {
     if (selectedStaff && !selectedStaff.has_pin) handleLogin();
-  }, [selectedStaff]);
+  }, [selectedStaff, handleLogin]);
 
   useEffect(() => {
     if (selectedStaff?.has_pin) inputRef.current?.focus();
@@ -313,7 +314,7 @@ export const Login: React.FC = () => {
             )}
           >
             {!(loading || pin.length < requiredPinLen) && (
-              <div className="absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/20 to-transparent" style={{ backgroundSize: '200% 100%', animationDuration: '2s' }} />
+              <div className="absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             )}
             {loading ? (
               <div className="w-5 h-5 border-[3px] border-surface-950 border-t-white rounded-full animate-spin relative z-10" />

@@ -28,9 +28,6 @@ function AnimatedRoutes() {
         animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] } }}
         exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
       >
-        <Suspense fallback={null}>
-          <ParticleBackground />
-        </Suspense>
         <Routes location={location}>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
@@ -60,11 +57,14 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <LayoutProvider>
-          <Layout>
-            <AnimatedRoutes />
-        </Layout>
+            <Layout>
+              <Suspense fallback={null}>
+                <ParticleBackground />
+              </Suspense>
+              <AnimatedRoutes />
+            </Layout>
           </LayoutProvider>
-      </ToastProvider>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Staff } from '../types/database';
 
@@ -16,54 +16,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<Staff | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        checkSession();
-    }, []);
-
-    const checkSession = async () => {
+    const logout = useCallback(async () => {
+        setLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-
             if (session) {
-                // Get staff session with pin_version validation
-                const { data: staffSession, error } = await supabase
+                await supabase
                     .from('staff_sessions')
-                    .select('staff_id, pin_version, staff:staff(id, name, role, pin_version)')
-                    .eq('auth_uid', session.user.id)
-                    .is('revoked_at', null)
-                    .single();
-
-                if (error || !staffSession?.staff) {
-                    // Session invalid or staff not found
-                    await logout();
-                    return;
-                }
-
-                const staff = staffSession.staff as any;
-
-                // Validate pin_version matches (session invalidation check)
-                if (staffSession.pin_version !== null &&
-                    staffSession.pin_version !== staff.pin_version) {
-                    // PIN was changed, session is invalid
-                    console.log('Session invalidated: PIN version mismatch');
-                    await logout();
-                    return;
-                }
-
-                setUser({
-                    id: staff.id,
-                    name: staff.name,
-                    role: staff.role,
-                    pin_version: staff.pin_version,
-                    created_at: ''
-                });
+                    .update({ revoked_at: new Date().toISOString() })
+                    .eq('auth_uid', session.user.id);
             }
+            await supabase.auth.signOut();
+            setUser(null);
         } catch (error) {
-            console.error('Error checking session:', error);
+            console.error('Logout error:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        let active = true;
+        void (async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    const { data: staffSession, error } = await supabase
+                        .from('staff_sessions')
+                        .select('staff_id, pin_version, staff:staff(id, name, role, pin_version)')
+                        .eq('auth_uid', session.user.id)
+                        .is('revoked_at', null)
+                        .single();
+
+                    if (error || !staffSession?.staff) {
+                        if (active) await logout();
+                        return;
+                    }
+
+                    const staff = staffSession.staff as unknown as Staff;
+
+                    if (staffSession.pin_version !== null &&
+                        staffSession.pin_version !== staff.pin_version) {
+                        if (active) await logout();
+                        return;
+                    }
+
+                    setUser({
+                        id: staff.id,
+                        name: staff.name,
+                        role: staff.role,
+                        pin_version: staff.pin_version,
+                        created_at: ''
+                    });
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
+            } finally {
+                if (active) setLoading(false);
+            }
+        })();
+        return () => { active = false; };
+    }, [logout]);
 
     const login = async (staffName: string, pin?: string) => {
         setLoading(true);
@@ -118,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 pin_version: result.staff_pin_version,
                 created_at: ''
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
             throw error;
         } finally {
@@ -174,25 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await login(staffName, pin);
     };
 
-    const logout = async () => {
-        setLoading(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                await supabase
-                    .from('staff_sessions')
-                    .update({ revoked_at: new Date().toISOString() })
-                    .eq('auth_uid', session.user.id);
-            }
-            await supabase.auth.signOut();
-            setUser(null);
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
         <AuthContext.Provider value={{ user, loading, login, logout, switchProfile }}>
             {children}
@@ -200,6 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../lib/cn';
+import type { ClassValue } from 'clsx';
 
 interface BadgeProps {
     children: React.ReactNode;
@@ -9,8 +9,6 @@ interface BadgeProps {
     className?: ClassValue;
     icon?: React.ReactNode;
 }
-
-const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'surface', size = 'md', className, icon }) => {
     const variants = {

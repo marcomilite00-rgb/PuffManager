@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
-import type { Staff, ProductVariant, StaffRole, Inventory } from '../types/database';
+import { safeNumber } from '../lib/money';
+import type { Staff, ProductVariant, StaffRole, ProductModel, ProductFlavor, Settings, VariantWithMeta } from '../types/database';
 import {
-    Plus, X, Package, Trash2, Check, TrendingUp, AlertCircle, DollarSign,
-    Users, Settings, LayoutGrid, Key, Shield, ArrowUpRight, Lock
+    Plus, X, Package, Trash2, Check, TrendingUp, DollarSign,
+    Users, Settings as SettingsIcon, LayoutGrid, Key, Shield, ArrowUpRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,18 +17,16 @@ export const Admin: React.FC = () => {
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<'settings' | 'staff' | 'inventory_management' | 'products'>('settings');
     const [staff, setStaff] = useState<Staff[]>([]);
-    const [variants, setVariants] = useState<ProductVariant[]>([]);
-    const [, setInventory] = useState<Inventory[]>([]);
-    const [models, setModels] = useState<any[]>([]);
-    const [flavors, setFlavors] = useState<any[]>([]);
-    const [settings, setSettings] = useState<any>(null);
-    const [, setLoading] = useState(true);
+    const [variants, setVariants] = useState<VariantWithMeta[]>([]);
+    const [models, setModels] = useState<ProductModel[]>([]);
+    const [flavors, setFlavors] = useState<ProductFlavor[]>([]);
+    const [settings, setSettings] = useState<Settings | null>(null);
     const [newModel, setNewModel] = useState('');
     const [newFlavor, setNewFlavor] = useState('');
     const [newVariant, setNewVariant] = useState({ model_id: '', flavor_id: '', default_price: 15, initial_qty: 0 });
-    const [editingVariant, setEditingVariant] = useState<any>(null);
-    const [editingStaff, setEditingStaff] = useState<any>(null);
-    const [editingStaffRole, setEditingStaffRole] = useState<any>(null);
+    const [editingVariant, setEditingVariant] = useState<VariantWithMeta | null>(null);
+    const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+    const [editingStaffRole, setEditingStaffRole] = useState<Staff | null>(null);
     const [showAddVariant, setShowAddVariant] = useState(false);
     const [newPin, setNewPin] = useState('');
     const [confirmPin, setConfirmPin] = useState('');
@@ -37,43 +36,47 @@ export const Admin: React.FC = () => {
     const [showClosingLoad, setShowClosingLoad] = useState(false);
     const [closingSoldiSpesi, setClosingSoldiSpesi] = useState('');
     const [closingPezziComprati, setClosingPezziComprati] = useState('');
-    const [, setClosingLoading] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [confirmDeleteType, setConfirmDeleteType] = useState<'variant' | 'model' | 'flavor' | 'staff'>('variant');
     const [confirmDeleteLabel, setConfirmDeleteLabel] = useState('');
 
     const isAdmin = user?.role === 'admin';
 
-    useEffect(() => { if (isAdmin) fetchData(); }, [isAdmin]);
-
     const fetchData = async () => {
-        setLoading(true);
-        const [staffRes, variantsRes, modelsRes, flavorsRes, settingsRes, inventoryRes] = await Promise.all([
-            supabase.from('staff').select('*').order('name'),
-            supabase.from('product_variants').select('*, model:product_models(name), flavor:product_flavors(name)'),
-            supabase.from('product_models').select('*').order('name'),
-            supabase.from('product_flavors').select('*').order('name'),
-            supabase.from('settings').select('*').single(),
-            supabase.from('inventory').select('*')
-        ]);
-        if (staffRes.data) setStaff(staffRes.data);
-        if (inventoryRes.data) setInventory(inventoryRes.data);
-        if (variantsRes.data) {
-            const merged = variantsRes.data.filter((v: any) => !v.deleted).map((v: any) => {
-                const inv = (inventoryRes.data || []).find((i: any) => i.variant_id === v.id);
-                return { ...v, model_name: v.model?.name ?? '', flavor_name: v.flavor?.name ?? '', qty: inv ? inv.qty : 0 };
-            });
-            merged.sort((a: any, b: any) => a.model_name.localeCompare(b.model_name) || a.flavor_name.localeCompare(b.flavor_name));
-            setVariants(merged);
+        try {
+            const [staffRes, variantsRes, modelsRes, flavorsRes, settingsRes, inventoryRes] = await Promise.all([
+                supabase.from('staff').select('*').order('name'),
+                supabase.from('product_variants').select('*, model:product_models(name), flavor:product_flavors(name)'),
+                supabase.from('product_models').select('*').order('name'),
+                supabase.from('product_flavors').select('*').order('name'),
+                supabase.from('settings').select('*').single(),
+                supabase.from('inventory').select('*')
+            ]);
+            if (staffRes.data) setStaff(staffRes.data);
+            if (variantsRes.data) {
+                const inventory = inventoryRes.data || [];
+                type VariantRow = ProductVariant & { model?: { name: string } | null; flavor?: { name: string } | null; deleted?: boolean };
+                const merged = (variantsRes.data as VariantRow[])
+                    .filter((v) => !v.deleted)
+                    .map((v) => ({
+                        ...v, model_name: v.model?.name ?? '', flavor_name: v.flavor?.name ?? '', qty: inventory.find((i) => i.variant_id === v.id)?.qty ?? 0
+                    }));
+                merged.sort((a, b) => a.model_name.localeCompare(b.model_name) || a.flavor_name.localeCompare(b.flavor_name));
+                setVariants(merged);
+            }
+            if (modelsRes.data) setModels(modelsRes.data);
+            if (flavorsRes.data) setFlavors(flavorsRes.data);
+            if (settingsRes.data) setSettings(settingsRes.data as Settings);
+        } catch (error) {
+            console.error('Admin load error:', error);
         }
-        if (modelsRes.data) setModels(modelsRes.data);
-        if (flavorsRes.data) setFlavors(flavorsRes.data);
-        if (settingsRes.data) setSettings(settingsRes.data);
-        setLoading(false);
     };
+
+    useEffect(() => { if (isAdmin) { const t = setTimeout(() => void fetchData(), 0); return () => clearTimeout(t); } }, [isAdmin]);
 
     const handleUpdateSettings = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!settings) return;
         const { error } = await supabase.from('settings').update({ money_spent_total: settings.money_spent_total, money_spent_current_load: settings.money_spent_current_load }).eq('id', 1);
         if (error) showToast('Errore salvataggio', 'error'); else showToast('Impostazioni salvate');
     };
@@ -82,7 +85,7 @@ export const Admin: React.FC = () => {
         e.preventDefault();
         if (!newModel.trim()) return;
         const nameUpper = newModel.trim().toUpperCase();
-        const { data, error } = await supabase.rpc('add_product_model', { p_name: nameUpper });
+        const { error } = await supabase.rpc('add_product_model', { p_name: nameUpper });
         if (error) {
             if (error.message?.includes('function') || error.code === '42883') {
                 const { error: insertErr } = await supabase.from('product_models').insert({ name: nameUpper }).select();
@@ -97,7 +100,7 @@ export const Admin: React.FC = () => {
         e.preventDefault();
         if (!newFlavor.trim()) return;
         const nameUpper = newFlavor.trim().toUpperCase();
-        const { data, error } = await supabase.rpc('add_product_flavor', { p_name: nameUpper });
+        const { error } = await supabase.rpc('add_product_flavor', { p_name: nameUpper });
         if (error) {
             if (error.message?.includes('function') || error.code === '42883') {
                 const { error: insertErr } = await supabase.from('product_flavors').insert({ name: nameUpper }).select();
@@ -114,7 +117,7 @@ export const Admin: React.FC = () => {
         if (error) showToast(error.message, 'error'); else { setShowAddVariant(false); fetchData(); showToast('Variante creata'); }
     };
 
-    const handleUpdateVariant = async (v: any) => {
+    const handleUpdateVariant = async (v: VariantWithMeta) => {
         const { error } = await supabase.from('product_variants').update({ default_price: v.default_price, active: v.active }).eq('id', v.id);
         if (error) showToast('Errore aggiornamento', 'error'); else { setEditingVariant(null); fetchData(); showToast('Variante aggiornata'); }
     };
@@ -129,7 +132,7 @@ export const Admin: React.FC = () => {
     };
 
     const handleUpdateQty = async (variantId: string, newQty: number) => {
-        const { error } = await supabase.from('inventory').update({ qty: newQty, initial_load_qty: newQty }).eq('variant_id', variantId);
+        const { error } = await supabase.from('inventory').update({ qty: newQty }).eq('variant_id', variantId);
         if (error) showToast('Errore aggiornamento quantità: ' + error.message, 'error');
         else { setVariants(prev => prev.map(v => v.id === variantId ? { ...v, qty: newQty } : v)); }
     };
@@ -180,14 +183,12 @@ export const Admin: React.FC = () => {
         if (!closingPezziComprati || Number(closingPezziComprati) <= 0) { showToast('Inserire i pezzi totali comprati (> 0)', 'error'); return; }
         const soldiSpesi = Number(closingSoldiSpesi);
         const pezziComprati = Number(closingPezziComprati);
-        setClosingLoading(true);
         await supabase.from('settings').update({ money_spent_total: soldiSpesi }).eq('id', 1);
         const { data, error } = await supabase.rpc('close_current_load', { p_soldi_spesi: soldiSpesi, p_pezzi_comprati: pezziComprati });
-        if (error) { showToast(error.message, 'error'); setClosingLoading(false); } else {
-            const unitCost = data?.unit_cost_calcolato ?? (soldiSpesi / pezziComprati);
+        if (error) { showToast(error.message, 'error'); } else {
+            const unitCost = safeNumber(data?.unit_cost_calcolato) || (soldiSpesi / pezziComprati);
             setShowClosingLoad(false); fetchData();
-            showToast(`Carico chiuso ✓ Prezzo unit.: €${Number(unitCost).toFixed(2)}`);
-            setClosingLoading(false);
+            showToast(`Carico chiuso ✓ Prezzo unit.: €${unitCost.toFixed(2)}`);
         }
     };
 
@@ -232,12 +233,12 @@ export const Admin: React.FC = () => {
                     </div>
                     <div className="flex p-0.5 bg-white/5 rounded-xl border border-white/5 gap-0.5 w-full md:w-auto overflow-x-auto">
                         {[
-                            { id: 'settings', label: 'Home', icon: Settings },
-                            { id: 'staff', label: 'Team', icon: Users },
-                            { id: 'products', label: 'Catalog', icon: LayoutGrid },
-                            { id: 'inventory_management', label: 'Inventory', icon: Package },
+                            { id: 'settings' as const, label: 'Home', icon: SettingsIcon },
+                            { id: 'staff' as const, label: 'Team', icon: Users },
+                            { id: 'products' as const, label: 'Catalog', icon: LayoutGrid },
+                            { id: 'inventory_management' as const, label: 'Inventory', icon: Package },
                         ].map((tab) => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                                 className={clsx("flex items-center gap-1 px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-black label-caps text-[7px] md:text-[9px] transition-all whitespace-nowrap uppercase tracking-widest shrink-0",
                                     activeTab === tab.id ? "bg-primary text-surface-950 shadow-lg shadow-primary/20" : "text-slate-500 hover:text-white")}>
                                 <tab.icon size={12} /> {tab.label}
@@ -248,7 +249,7 @@ export const Admin: React.FC = () => {
             </header>
 
             <div className="max-w-7xl mx-auto px-2 md:px-6 py-3 md:py-6">
-                {/* TAB: DASHBOARD */}
+                {/* TAB: HOME */}
                 {activeTab === 'settings' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
                         <div className="glass rounded-2xl md:rounded-3xl p-5 md:p-8 border-white/5 bg-surface-900/40 relative overflow-hidden group">

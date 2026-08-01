@@ -10,6 +10,7 @@ const LayoutContext = createContext<LayoutContextType>({
   setHideMobileHeader: () => {},
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLayout = () => useContext(LayoutContext);
 
 export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

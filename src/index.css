@@ -94,8 +94,6 @@ input, textarea, select {
   -webkit-appearance: none;
 }
 
-.h-18 { height: 4.5rem; }
-
 .safe-area-top { padding-top: var(--safe-top); }
 .safe-area-bottom { padding-bottom: var(--safe-bottom); }
 .safe-area-left { padding-left: var(--safe-left); }
@@ -147,46 +145,14 @@ input, textarea, select {
 
 main { overflow-y: auto; height: 100%; }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
 @keyframes slideUp {
   from { transform: translateY(12px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-@keyframes slideDown {
-  from { transform: translateY(-8px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 50%, 90% { transform: translateX(-5px); }
-  30%, 70% { transform: translateX(5px); }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); }
-  50% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(168, 85, 247, 0.15); }
-}
-
 @keyframes skeleton-loading {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
-}
-
-@keyframes border-rotate {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes grid-scroll {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(40px); }
 }
 
 @keyframes nebula-drift {
@@ -227,11 +193,6 @@ main { overflow-y: auto; height: 100%; }
   100% { filter: hue-rotate(360deg); }
 }
 
-@keyframes float-gentle {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-4px) rotate(1deg); }
-}
-
 @keyframes neon-flicker {
   0%, 100% { opacity: 1; }
   92% { opacity: 1; }
@@ -241,19 +202,8 @@ main { overflow-y: auto; height: 100%; }
   98% { opacity: 0.8; }
 }
 
-@keyframes scale-in {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.animate-fade { animation: fadeIn 0.35s ease-out forwards; }
 .animate-slide-up { animation: slideUp 0.45s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-.animate-slide-down { animation: slideDown 0.35s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-.animate-shake { animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
-.animate-glow-pulse { animation: glow-pulse 2.5s ease-in-out infinite; }
-.animate-grid-scroll { animation: grid-scroll 4s linear infinite; }
 .animate-nebula { animation: nebula-drift 12s ease-in-out infinite; }
-.animate-ring-pulse { animation: ring-pulse 3s ease-in-out infinite; }
 .animate-hex-glow { animation: hex-glow 2s ease-in-out infinite; }
 .animate-shimmer-metallic {
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 30%, #fde68a 50%, #f59e0b 70%, #b45309 100%);
@@ -264,30 +214,7 @@ main { overflow-y: auto; height: 100%; }
   animation: shimmer-metallic 3s linear infinite;
 }
 .animate-particle { animation: particle-drift 6s ease-out infinite; }
-.animate-float-gentle { animation: float-gentle 4s ease-in-out infinite; }
 .animate-neon-flicker { animation: neon-flicker 3s ease-in-out infinite; }
-.animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-
-.neon-border {
-  position: relative;
-}
-.neon-border::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  padding: 2px;
-  background: linear-gradient(135deg, #00E5FF, #A855F7, #00E5FF, #A855F7);
-  background-size: 300% 300%;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: border-rotate 4s ease-in-out infinite;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  pointer-events: none;
-}
-.neon-border:hover::before { opacity: 1; }
 
 .skeleton {
   background: linear-gradient(
@@ -388,12 +315,6 @@ input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-.fixed-ios {
-  position: fixed;
-  -webkit-transform: translate3d(0, 0, 0);
-  transform: translate3d(0, 0, 0);
 }
 
 input[type="text"],

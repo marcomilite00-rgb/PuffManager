@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { safeNumber, toCents, fromCents } from '../lib/money';
+import { getErrorMessage } from '../lib/error';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../components/ui/ToastProvider';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { EmptyState } from '../components/ui/EmptyState';
-import type { Reservation } from '../types/database';
+import type { Inventory, VariantJoined, ReservationItem, ReservationWithItems, StaffMinimal } from '../types/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, CheckCircle2, XCircle, Edit3, Clock, User,
@@ -16,29 +17,30 @@ import {
 import { clsx } from 'clsx';
 import { Badge } from '../components/ui/Badge';
 import { GlassCard } from '../components/ui/GlassCard';
+import { PaymentModal } from '../components/PaymentModal';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 
 export const Prenotazioni: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setReservations] = useState<ReservationWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<{ itemId: string; qty: number; price: number; modelName: string; flavorName: string; maxQty: number } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentData, setPaymentData] = useState<{ id: string, total: number } | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [addItemResId, setAddItemResId] = useState<string | null>(null);
-  const [variants, setVariants] = useState<any[]>([]);
-  const [inventory, setInventory] = useState<any[]>([]);
+  const [variants, setVariants] = useState<VariantJoined[]>([]);
+  const [inventory, setInventory] = useState<Inventory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<VariantJoined | null>(null);
   const [addQty, setAddQty] = useState(1);
   const [addPrice, setAddPrice] = useState(0);
   const [staffFilter, setStaffFilter] = useState('all');
   const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
-  const [staffList, setStaffList] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<StaffMinimal[]>([]);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
 
   useEffect(() => { fetchData(); fetchVariantsAndInventory(); fetchStaff(); }, []);
@@ -49,7 +51,7 @@ export const Prenotazioni: React.FC = () => {
       .select('*, items:reservation_items(*, variant:product_variants(id, model:product_models(name), flavor:product_flavors(name))), staff:created_by_staff_id(name)')
       .eq('status', 'RESERVED')
       .order('created_at', { ascending: false });
-    if (data) setReservations(data as any);
+    if (data) setReservations(data as ReservationWithItems[]);
     setLoading(false);
   };
 
@@ -67,17 +69,17 @@ export const Prenotazioni: React.FC = () => {
     if (inventoryRes.data) setInventory(inventoryRes.data);
   };
 
-  useRealtime<Reservation>('reservations', () => fetchData());
-  useRealtime<any>('reservation_items', () => fetchData());
-  useRealtime<any>('inventory', () => fetchVariantsAndInventory());
+  useRealtime<ReservationWithItems>('reservations', () => fetchData());
+  useRealtime<ReservationItem>('reservation_items', () => fetchData());
+  useRealtime<Inventory>('inventory', () => fetchVariantsAndInventory());
 
   const filteredReservations = useMemo(() => {
     let result = [...reservations];
-    if (staffFilter !== 'all') result = result.filter((r: any) => r.created_by_staff_id === staffFilter);
+    if (staffFilter !== 'all') result = result.filter((r) => r.created_by_staff_id === staffFilter);
     if (searchTerm) {
       const s = searchTerm.toLowerCase();
-      result = result.filter((r: any) =>
-        r.customer_name?.toLowerCase().includes(s) || (r as any).staff?.name?.toLowerCase().includes(s));
+      result = result.filter((r) =>
+        r.customer_name?.toLowerCase().includes(s) || r.staff?.name?.toLowerCase().includes(s));
     }
     result.sort((a, b) => {
       const cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -86,17 +88,15 @@ export const Prenotazioni: React.FC = () => {
     return result;
   }, [reservations, staffFilter, searchTerm, dateSort]);
 
-  const handleConfirmPayment = async () => {
+  const handleConfirmPayment = async (amount: number) => {
     if (!paymentData) return;
-    const amount = paymentAmount === '' ? paymentData.total : parseFloat(paymentAmount.replace(',', '.'));
-    if (isNaN(amount) || amount < 0) { showToast('Inserisci un importo valido', 'error'); return; }
     setActionLoading(paymentData.id);
     setShowPaymentModal(false);
     try {
       const { error } = await supabase.rpc('fulfill_reservation', { p_res_id: paymentData.id, p_staff_id: user?.id, p_payment_amount: amount });
       if (error) throw error;
       showToast('Vendita completata!', 'success');
-    } catch (err: any) { showToast(err.message || 'Errore', 'error'); } finally { setActionLoading(null); setPaymentData(null); }
+    } catch (err) { showToast(getErrorMessage(err), 'error'); } finally { setActionLoading(null); setPaymentData(null); }
   };
 
   const handleAnnulla = async (id: string) => {
@@ -105,7 +105,7 @@ export const Prenotazioni: React.FC = () => {
       const { error } = await supabase.rpc('cancel_reservation', { p_res_id: id });
       if (error) throw error;
       showToast('Prenotazione annullata', 'info');
-    } catch (err: any) { showToast(err.message || 'Errore', 'error'); } finally { setActionLoading(null); setCancelConfirmId(null); }
+    } catch (err) { showToast(getErrorMessage(err), 'error'); } finally { setActionLoading(null); setCancelConfirmId(null); }
   };
 
   const handleUpdateQty = async (itemId: string, newQty: number, newPrice: number) => {
@@ -114,7 +114,7 @@ export const Prenotazioni: React.FC = () => {
       const { error } = await supabase.rpc('update_reservation_item', { p_item_id: itemId, p_new_qty: newQty, p_new_price: newPrice });
       if (error) throw error;
       setEditItem(null); fetchData(); fetchVariantsAndInventory();
-    } catch (err: any) { showToast(err.message || 'Errore', 'error'); }
+    } catch (err) { showToast(getErrorMessage(err), 'error'); }
   };
 
   const handleDeleteItem = async (itemId: string) => {
@@ -122,7 +122,7 @@ export const Prenotazioni: React.FC = () => {
       const { error } = await supabase.rpc('delete_reservation_item', { p_item_id: itemId });
       if (error) throw error;
       fetchData();
-    } catch (err: any) { showToast(err.message || 'Errore', 'error'); }
+    } catch (err) { showToast(getErrorMessage(err), 'error'); }
   };
 
   const handleAddItem = async () => {
@@ -131,7 +131,7 @@ export const Prenotazioni: React.FC = () => {
       const { error } = await supabase.rpc('add_reservation_item', { p_reservation_id: addItemResId, p_variant_id: selectedVariant.id, p_qty: addQty, p_price_final: addPrice });
       if (error) throw error;
       setShowAddItemModal(false); fetchData(); fetchVariantsAndInventory();
-    } catch (err: any) { showToast(err.message || 'Errore', 'error'); }
+    } catch (err) { showToast(getErrorMessage(err), 'error'); }
   };
 
   const getAvailableQty = (variantId: string) => {
@@ -144,11 +144,7 @@ export const Prenotazioni: React.FC = () => {
   );
 
   if (loading) return (
-    <div className="p-6 space-y-8">
-      <div className="h-10 w-56 skeleton" />
-      <div className="h-12 w-full skeleton" />
-      <div className="space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="h-28 skeleton" />)}</div>
-    </div>
+    <PageSkeleton titleClass="w-56 h-10" blocks={[{ count: 1, className: 'h-12' }, { count: 5, className: 'h-28' }]} />
   );
 
   return (
@@ -190,9 +186,9 @@ export const Prenotazioni: React.FC = () => {
       <div className="space-y-3">
         {filteredReservations.length > 0 ? filteredReservations.map((res) => {
           const isExpanded = expandedId === res.id;
-          const items = (res as any).items || [];
-          const total = fromCents(items.reduce((acc: number, curr: any) => acc + safeNumber(curr.qty) * toCents(curr.unit_price_final), 0));
-          const staffName = (res as any).staff?.name || 'Sistema';
+          const items = res.items || [];
+          const total = fromCents(items.reduce((acc, curr) => acc + safeNumber(curr.qty) * toCents(curr.unit_price_final), 0));
+          const staffName = res.staff?.name || 'Sistema';
 
           return (
             <GlassCard key={res.id} glow="primary" className={clsx(isExpanded ? "border-primary/20" : "")}>
@@ -230,12 +226,12 @@ export const Prenotazioni: React.FC = () => {
                     className="bg-black/40 border-t border-white/5 overflow-hidden">
                     <div className="p-4 md:p-8 space-y-6 md:space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                        {items.map((item: any) => (
+                        {items.map((item) => (
                           <div key={item.id}
                             className="p-4 md:p-5 rounded-2xl md:rounded-[2rem] bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/5 flex items-center justify-between group/item">
                             <div className="min-w-0 pr-2">
-                              <p className="font-black text-white text-sm md:text-base leading-tight uppercase truncate italic">{item.variant.model.name}</p>
-                              <p className="text-[8px] md:text-[10px] label-caps text-slate-600 mt-0.5 md:mt-1 italic uppercase tracking-widest">{item.variant.flavor.name}</p>
+                              <p className="font-black text-white text-sm md:text-base leading-tight uppercase truncate italic">{item.variant?.model?.name ?? ''}</p>
+                              <p className="text-[8px] md:text-[10px] label-caps text-slate-600 mt-0.5 md:mt-1 italic uppercase tracking-widest">{item.variant?.flavor?.name ?? ''}</p>
                             </div>
                             <div className="flex items-center gap-3 md:gap-4 shrink-0">
                               <div className="text-right">
@@ -245,8 +241,8 @@ export const Prenotazioni: React.FC = () => {
                               <div className="flex items-center gap-1.5 md:gap-2">
                                 <button onClick={() => setEditItem({
                                   itemId: item.id, qty: item.qty, price: Number(item.unit_price_final),
-                                  modelName: item.variant.model.name, flavorName: item.variant.flavor.name,
-                                  maxQty: Number(item.qty) + Number(getAvailableQty(item.variant.id))
+                                  modelName: item.variant?.model?.name ?? '', flavorName: item.variant?.flavor?.name ?? '',
+                                  maxQty: Number(item.qty) + Number(getAvailableQty(item.variant?.id ?? ''))
                                 })}
                                   className="p-2 md:p-3 bg-white/5 text-slate-400 hover:text-white rounded-lg md:rounded-xl active:scale-90 transition-all border border-white/5"
                                   aria-label="Modifica"><Edit3 size={14} className="md:w-4 md:h-4" /></button>
@@ -264,7 +260,7 @@ export const Prenotazioni: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <motion.button whileTap={{ scale: 0.98 }}
-                          onClick={() => { setPaymentData({ id: res.id, total }); setPaymentAmount(''); setShowPaymentModal(true); }}
+                          onClick={() => { setPaymentData({ id: res.id, total }); setShowPaymentModal(true); }}
                           className="py-6 bg-gradient-to-r from-primary to-primary-dark text-surface-950 font-black rounded-3xl text-xl label-caps shadow-2xl shadow-primary/20 flex items-center justify-center gap-3">
                           <CheckCircle2 size={24} /> Concludi Vendita
                         </motion.button>
@@ -294,40 +290,11 @@ export const Prenotazioni: React.FC = () => {
         confirmLabel="Annulla" loading={actionLoading !== null} />
 
       {/* Payment Modal */}
-      <AnimatePresence>
-        {showPaymentModal && paymentData && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              className="w-full max-w-md rounded-[3rem] p-10 border border-white/10 shadow-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-3xl">
-              <div className="text-center mb-10">
-                <div className="w-20 h-20 bg-success/10 rounded-[2rem] flex items-center justify-center text-success mx-auto mb-6">
-                  <CheckCircle2 size={40} />
-                </div>
-                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase">Incasso Totale</h3>
-                <p className="label-caps text-xs text-slate-500 mt-2">Cassa di: <span className="text-success">€{safeNumber(paymentData.total).toFixed(2)}</span></p>
-              </div>
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="label-caps text-[10px] text-slate-500 block px-2">Importo Ricevuto</label>
-                  <div className="relative">
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 text-xl italic font-black">€</span>
-                    <input type="number" step="0.01" placeholder="Intero Importo" value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="w-full bg-surface-950 border border-white/10 rounded-[1.5rem] py-6 pl-14 pr-6 text-3xl font-black text-white focus:outline-none focus:border-primary/50 text-center italic tracking-widest placeholder:text-slate-800 transition-all" autoFocus />
-                  </div>
-                </div>
-                <div className="flex gap-4 pt-4">
-                  <button onClick={() => setShowPaymentModal(false)}
-                    className="flex-1 py-5 rounded-2xl bg-white/5 text-slate-500 font-black label-caps text-xs hover:text-white transition-colors">Annulla</button>
-                  <button onClick={handleConfirmPayment}
-                    className="flex-1 py-5 rounded-2xl bg-success text-surface-950 font-black label-caps text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-success/20">Conferma</button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PaymentModal isOpen={showPaymentModal && !!paymentData}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirm={handleConfirmPayment}
+        totalAmount={paymentData?.total ?? 0}
+        loading={actionLoading !== null} />
 
       {/* Add Item Modal */}
       <AnimatePresence>
@@ -335,7 +302,7 @@ export const Prenotazioni: React.FC = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4">
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              className="w-full max-w-2xl max-h-[85vh] rounded-[3rem] border border-white/10 shadow-3xl flex flex-col overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-3xl">
+              className="w-full max-w-2xl max-h-[85vh] rounded-[3rem] border border-white/10 shadow-2xl flex flex-col overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-3xl">
               <div className="p-8 border-b border-white/5 flex items-center justify-between">
                 <div><h3 className="text-2xl font-black text-white italic tracking-tighter uppercase">Catalogo Prodotti</h3>
                   <p className="label-caps text-[10px] text-slate-500 mt-1">Scegli la variante da aggiungere</p></div>
@@ -350,7 +317,7 @@ export const Prenotazioni: React.FC = () => {
                 </div>
               </div>
               <div className="flex-1 p-6 space-y-3 overflow-y-auto">
-                {filteredVariants.map((v: any) => {
+                {filteredVariants.map((v) => {
                   const avail = getAvailableQty(v.id);
                   const isSelected = selectedVariant?.id === v.id;
                   return (
@@ -409,7 +376,7 @@ export const Prenotazioni: React.FC = () => {
             className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80 backdrop-blur-sm" onClick={() => setEditItem(null)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="w-full max-w-lg rounded-t-[3rem] border-t border-white/10 p-10 space-y-8 safe-area-bottom shadow-3xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] backdrop-blur-3xl"
+              className="w-full max-w-lg rounded-t-[3rem] border-t border-white/10 p-10 space-y-8 safe-area-bottom shadow-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] backdrop-blur-3xl"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-2">
                 <div><h4 className="text-2xl font-black italic text-white uppercase tracking-tighter">{editItem.modelName}</h4>

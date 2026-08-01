@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { toCents, fromCents, safeNumber } from '../lib/money';
+import { getErrorMessage } from '../lib/error';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../hooks/useRealtime';
 import { useDebounce } from '../hooks/useDebounce';
@@ -17,6 +18,7 @@ import { PaymentModal } from '../components/PaymentModal';
 import { Badge } from '../components/ui/Badge';
 import { TiltCard } from '../components/ui/TiltCard';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 
 interface CartItem extends ProductVariant { qty: number; price_final: number; }
 
@@ -62,15 +64,15 @@ export const Vendita: React.FC = () => {
       supabase.from('inventory').select('*'),
     ]);
     if (variantsRes.data) {
-      setVariants(variantsRes.data.map((v: any) => ({
-        ...v, model_name: v.model.name, flavor_name: v.flavor.name
+      setVariants(variantsRes.data.map((v: ProductVariant & { model?: { name: string }; flavor?: { name: string } }) => ({
+        ...v, model_name: v.model?.name ?? '', flavor_name: v.flavor?.name ?? ''
       })));
     }
     if (inventoryRes.data) setInventory(inventoryRes.data);
     setLoading(false);
   };
 
-  useRealtime<Inventory>('inventory', (payload: any) => {
+  useRealtime<Inventory>('inventory', (payload) => {
     if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
       const newData = payload.new as Inventory;
       setInventory(prev => {
@@ -85,7 +87,7 @@ export const Vendita: React.FC = () => {
     return variants.filter(v =>
       v.model_name?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       v.flavor_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
-    ).sort((a, b) => a.model_name!.localeCompare(b.model_name!));
+    ).sort((a, b) => (a.model_name || '').localeCompare(b.model_name || ''));
   }, [variants, debouncedSearch]);
 
   const addToCart = useCallback((v: ProductVariant) => {
@@ -140,8 +142,8 @@ export const Vendita: React.FC = () => {
       setCart([]);
       setCustomerName('');
       showToast('Vendita completata con successo!', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Errore durante la vendita', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Errore durante la vendita'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -163,8 +165,8 @@ export const Vendita: React.FC = () => {
       setCart([]);
       setCustomerName('');
       showToast('Prenotazione creata!', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Errore durante la prenotazione', 'error');
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Errore durante la prenotazione'), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -181,13 +183,7 @@ export const Vendita: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="p-6 space-y-8 animate-pulse">
-      <div className="h-10 w-48 skeleton" />
-      <div className="h-14 w-full skeleton" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => <div key={i} className="h-44 skeleton" />)}
-      </div>
-    </div>
+    <PageSkeleton titleClass="w-48 h-10" blocks={[{ count: 1, className: 'h-14' }, { count: 6, className: 'h-44' }]} />
   );
 
   return (
@@ -297,7 +293,7 @@ export const Vendita: React.FC = () => {
 
         {/* Desktop Cart Panel */}
         <div className="hidden lg:flex lg:col-span-4 flex-col gap-6">
-          <div className="glass rounded-3xl md:rounded-[4rem] p-5 md:p-10 border-white/5 flex flex-col h-fit md:sticky md:top-10 shadow-3xl bg-surface-950/60 backdrop-blur-3xl">
+          <div className="glass rounded-3xl md:rounded-[4rem] p-5 md:p-10 border-white/5 flex flex-col h-fit md:sticky md:top-10 shadow-2xl bg-surface-950/60 backdrop-blur-3xl">
             <div className="flex items-center gap-4 mb-6 md:mb-10">
               <div className="w-10 h-10 md:w-16 md:h-16 bg-primary/15 rounded-xl md:rounded-2xl flex items-center justify-center text-primary shadow-lg shadow-primary/10">
                 <ShoppingCart size={20} className="md:w-8 md:h-8" />
@@ -396,7 +392,7 @@ export const Vendita: React.FC = () => {
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-surface-950/95 backdrop-blur-3xl border-l border-white/5 p-6 flex flex-col safe-area-pt safe-area-pb shadow-3xl">
+              className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-surface-950/95 backdrop-blur-3xl border-l border-white/5 p-6 flex flex-col safe-area-pt safe-area-pb shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <ShoppingCart size={20} className="text-primary" />

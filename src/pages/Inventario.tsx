@@ -3,8 +3,9 @@ import { supabase } from '../lib/supabase';
 import { useRealtime } from '../hooks/useRealtime';
 import { useToast } from '../components/ui/ToastProvider';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 import type { ProductVariant, Inventory } from '../types/database';
-import { Package, Search, Copy, AlertCircle, Box, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Package, Search, Copy, AlertCircle, Box } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import { TiltCard } from '../components/ui/TiltCard';
@@ -14,7 +15,6 @@ interface GroupedInventory {
   items: { flavorName: string; qty: number; variantId: string }[];
 }
 
-type SortOption = 'name' | 'stock-asc' | 'stock-desc';
 type FilterStatus = 'all' | 'out_of_stock' | 'low_stock' | 'in_stock';
 
 export const Inventario: React.FC = () => {
@@ -23,29 +23,31 @@ export const Inventario: React.FC = () => {
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [sortBy] = useState<SortOption>('name');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [showOnlyInStock] = useState(false);
   const STOCK_THRESHOLD = 3;
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
-    setLoading(true);
-    const [variantsRes, inventoryRes] = await Promise.all([
-      supabase.from('product_variants').select('*, model:product_models(name), flavor:product_flavors(name)').eq('active', true),
-      supabase.from('inventory').select('*')
-    ]);
-    if (variantsRes.data) {
-      setVariants(variantsRes.data.map((v: any) => ({
-        ...v, model_name: v.model.name, flavor_name: v.flavor.name
-      })));
+    try {
+      const [variantsRes, inventoryRes] = await Promise.all([
+        supabase.from('product_variants').select('*, model:product_models(name), flavor:product_flavors(name)').eq('active', true),
+        supabase.from('inventory').select('*')
+      ]);
+      if (variantsRes.data) {
+        setVariants(variantsRes.data.map((v: ProductVariant & { model?: { name: string }; flavor?: { name: string } }) => ({
+          ...v, model_name: v.model?.name ?? '', flavor_name: v.flavor?.name ?? ''
+        })));
+      }
+      if (inventoryRes.data) setInventory(inventoryRes.data);
+    } catch (error) {
+      console.error('Inventario load error:', error);
+    } finally {
+      setLoading(false);
     }
-    if (inventoryRes.data) setInventory(inventoryRes.data);
-    setLoading(false);
   };
 
-  useRealtime<Inventory>('inventory', (payload: any) => {
+  useRealtime<Inventory>('inventory', (payload) => {
     if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
       const newData = payload.new as Inventory;
       setInventory(prev => {
@@ -64,31 +66,20 @@ export const Inventario: React.FC = () => {
       if (filterStatus === 'out_of_stock' && qty > 0) return;
       if (filterStatus === 'low_stock' && (qty === 0 || qty > STOCK_THRESHOLD)) return;
       if (filterStatus === 'in_stock' && qty <= STOCK_THRESHOLD) return;
-      if (showOnlyInStock && qty === 0) return;
       if (!groups[v.model_name!]) groups[v.model_name!] = { modelName: v.model_name!, items: [] };
       groups[v.model_name!].items.push({ flavorName: v.flavor_name!, qty, variantId: v.id });
     });
-    let results = Object.values(groups).map(group => ({
-      ...group,
-      items: group.items.filter(item =>
-        group.modelName.toLowerCase().includes(search.toLowerCase()) ||
-        item.flavorName.toLowerCase().includes(search.toLowerCase())
-      )
-    })).filter(group => group.items.length > 0);
-    if (sortBy === 'name') results.sort((a, b) => a.modelName.localeCompare(b.modelName));
-    else {
-      results = results.map(g => ({
-        ...g,
-        items: g.items.sort((a, b) => sortBy === 'stock-asc' ? a.qty - b.qty : b.qty - a.qty)
-      }));
-      results.sort((a, b) => {
-        const valA = sortBy === 'stock-asc' ? Math.min(...a.items.map(i => i.qty)) : Math.max(...a.items.map(i => i.qty));
-        const valB = sortBy === 'stock-asc' ? Math.min(...b.items.map(i => i.qty)) : Math.max(...b.items.map(i => i.qty));
-        return sortBy === 'stock-asc' ? valA - valB : valB - valA;
-      });
-    }
-    return results;
-  }, [variants, inventory, search, sortBy, filterStatus, showOnlyInStock]);
+    return Object.values(groups)
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item =>
+          group.modelName.toLowerCase().includes(search.toLowerCase()) ||
+          item.flavorName.toLowerCase().includes(search.toLowerCase())
+        )
+      }))
+      .filter(group => group.items.length > 0)
+      .sort((a, b) => a.modelName.localeCompare(b.modelName));
+  }, [variants, inventory, search, filterStatus]);
 
   const stats = useMemo(() => {
     const total = inventory.reduce((acc, curr) => acc + curr.qty, 0);
@@ -122,15 +113,7 @@ export const Inventario: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="p-6 space-y-8">
-      <div className="h-10 w-48 skeleton" />
-      <div className="grid grid-cols-3 gap-3">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-24 skeleton" />)}
-      </div>
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => <div key={i} className="h-20 skeleton" />)}
-      </div>
-    </div>
+    <PageSkeleton titleClass="w-48 h-10" blocks={[{ count: 3, className: 'h-24' }, { count: 5, className: 'h-20' }]} />
   );
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -19,14 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [hasReminders, setHasReminders] = useState(false);
 
-    useEffect(() => {
-        if (!user) return;
-        checkReminders();
-        const interval = setInterval(checkReminders, 30000);
-        return () => clearInterval(interval);
-    }, [user]);
-
-    const checkReminders = async () => {
+    const checkReminders = useCallback(async () => {
         if (!user) return;
         let query = supabase.from('reminders').select('id', { count: 'exact', head: true }).eq('status', 'active');
         if (user.role === 'helper') {
@@ -35,7 +28,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         }
         const { count } = await query;
         setHasReminders(count ? count > 0 : false);
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+        const timer = setTimeout(checkReminders, 0);
+        const interval = setInterval(checkReminders, 30000);
+        return () => { clearTimeout(timer); clearInterval(interval); };
+    }, [user, checkReminders]);
 
     if (!user || location.pathname === '/login') return <>{children}</>;
 
@@ -150,7 +150,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed top-0 right-0 bottom-0 w-72 bg-surface-900 z-[70] p-5 flex flex-col shadow-3xl md:hidden safe-area-pt safe-area-pb"
+                            className="fixed top-0 right-0 bottom-0 w-72 bg-surface-900 z-[70] p-5 flex flex-col shadow-2xl md:hidden safe-area-pt safe-area-pb"
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <span className="label-caps text-[10px] text-slate-500">Menu Navigazione</span>

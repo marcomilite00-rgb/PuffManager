@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { safeNumber, formatEur } from '../lib/money';
+import { getErrorMessage } from '../lib/error';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -11,6 +12,7 @@ import {
 import { motion } from 'framer-motion';
 import { PaymentModal } from '../components/PaymentModal';
 import { Badge } from '../components/ui/Badge';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 
 interface Reminder {
     id: string; created_at: string; customer_name: string; description: string;
@@ -57,7 +59,7 @@ export const Promemoria: React.FC = () => {
             if (error) throw error;
             setShowPaymentModal(false); setSelectedReminder(null); fetchReminders();
             showToast('Pagamento registrato!', 'success');
-        } catch (err: any) { showToast(err.message || 'Errore nel pagamento', 'error'); }
+        } catch (err) { showToast(getErrorMessage(err, 'Errore nel pagamento'), 'error'); }
     };
 
     const handlePaymentConfirm = async (amount: number) => {
@@ -71,7 +73,7 @@ export const Promemoria: React.FC = () => {
             if (error) throw error;
             fetchReminders();
             showToast('Promemoria eliminato', 'success');
-        } catch (error) { showToast('Errore eliminazione', 'error'); } finally { setDeleteConfirmId(null); }
+        } catch { showToast('Errore eliminazione', 'error'); } finally { setDeleteConfirmId(null); }
     };
 
     const handleCancelToReservation = async (id: string) => {
@@ -81,16 +83,11 @@ export const Promemoria: React.FC = () => {
             if (error) throw error;
             fetchReminders();
             showToast('Promemoria annullato, tornato a Prenotazioni', 'info');
-        } catch (err: any) { showToast(err.message || 'Errore durante l\'annullamento', 'error'); } finally { setActionLoading(null); setCancelConfirmId(null); }
+        } catch (err) { showToast(getErrorMessage(err, 'Errore durante l\'annullamento'), 'error'); } finally { setActionLoading(null); setCancelConfirmId(null); }
     };
 
     if (loading) return (
-        <div className="p-6 space-y-6">
-            <div className="h-10 w-56 skeleton" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-52 skeleton" />)}
-            </div>
-        </div>
+        <PageSkeleton titleClass="w-56 h-10" blocks={[{ count: 3, className: 'h-52' }]} />
     );
 
     return (
@@ -103,9 +100,9 @@ export const Promemoria: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {reminders.length > 0 ? reminders.map((reminder) => (
                     <motion.div key={reminder.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className="glass-card p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-red-500/20 relative group overflow-hidden hover:border-red-500/40 transition-all">
+                        className="glass-card p-4 md:p-6 rounded-2xl md:rounded-[2rem] border-danger/20 relative group overflow-hidden hover:border-danger/40 transition-all">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 pointer-events-none">
-                            <AlertCircle size={80} className="text-red-500" />
+                            <AlertCircle size={80} className="text-danger" />
                         </div>
                         <div className="relative z-10 space-y-3 md:space-y-4">
                             <div className="flex flex-col gap-3">
@@ -162,7 +159,7 @@ export const Promemoria: React.FC = () => {
                                     </div>
                                     <div className="flex justify-between items-center p-2 bg-primary/5 rounded-xl border border-primary/10 mt-2">
                                         <span className="text-[8px] font-black text-primary uppercase tracking-widest px-1">TOTALE TRANSAZIONE</span>
-                                        <span className="text-base font-black text-primary italic tabular-nums">€{((reminder.order?.gross_total || 0) + reminder.amount_due).toFixed(2)}</span>
+                                        <span className="text-base font-black text-primary italic tabular-nums">€{formatEur(safeNumber(reminder.order?.gross_total) + safeNumber(reminder.amount_due))}</span>
                                     </div>
                                 </div>
                             </div>

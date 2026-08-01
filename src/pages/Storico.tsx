@@ -11,53 +11,58 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Badge } from '../components/ui/Badge';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
+import type { OrderWithItems, StaffMinimal, ArchivedLoad } from '../types/database';
 
 export const Storico: React.FC = () => {
     const { showToast } = useToast();
-    const [orders, setOrders] = useState<any[]>([]);
+    const [orders, setOrders] = useState<OrderWithItems[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [showAllArchivedOrders, setShowAllArchivedOrders] = useState(false);
-    const [staffList, setStaffList] = useState<any[]>([]);
+    const [staffList, setStaffList] = useState<StaffMinimal[]>([]);
     const [viewMode, setViewMode] = useState<'orders' | 'sessions'>('orders');
-    const [archivedLoads, setArchivedLoads] = useState<any[]>([]);
+    const [archivedLoads, setArchivedLoads] = useState<ArchivedLoad[]>([]);
     const [filterStaff, setFilterStaff] = useState<string>('all');
     const [filterDateStart, setFilterDateStart] = useState<string>('');
     const [filterDateEnd, setFilterDateEnd] = useState<string>('');
     const [filterMinAmount, setFilterMinAmount] = useState<string>('');
     const [filterMaxAmount, setFilterMaxAmount] = useState<string>('');
     const [showFilters, setShowFilters] = useState(false);
-    const [selectedLoad, setSelectedLoad] = useState<any>(null);
+    const [selectedLoad, setSelectedLoad] = useState<ArchivedLoad | null>(null);
     const [lastResetDate, setLastResetDate] = useState<string | null>(null);
-    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-    const [deleteConfirmLoad, setDeleteConfirmLoad] = useState<any>(null);
+    const [deleteConfirmLoad, setDeleteConfirmLoad] = useState<ArchivedLoad | null>(null);
 
     useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
-        setLoading(true);
-        const [ordersRes, staffRes, loadsRes, legacyLoadsRes, settingsRes] = await Promise.all([
-            supabase.from('orders').select('*, items:order_items(*, variant:product_variants(model:product_models(name), flavor:product_flavors(name), unit_cost)), staff:staff(name)').order('created_at', { ascending: false }),
-            supabase.from('staff').select('id, name').order('name'),
-            supabase.from('archived_loads').select('*').order('closed_at', { ascending: false }),
-            supabase.from('load_history').select('*').order('created_at', { ascending: false }),
-            supabase.from('settings').select('last_reset_date').limit(1).single()
-        ]);
-        if (ordersRes.data) setOrders(ordersRes.data);
-        if (staffRes.data) setStaffList(staffRes.data);
-        if (settingsRes.data) setLastResetDate(settingsRes.data.last_reset_date);
-        const combinedLoads: any[] = [];
-        if (loadsRes.data) combinedLoads.push(...loadsRes.data);
-        if (legacyLoadsRes.data) {
-            combinedLoads.push(...legacyLoadsRes.data.map((l: any) => ({
-                id: l.id, closed_at: l.created_at, gross_total: l.gross_total,
-                soldi_spesi_carico: l.money_spent_moved || l.reinvest_amount,
-                pezzi_comprati: 0, is_legacy: true, items_sold_snapshot: []
-            })));
+        try {
+            const [ordersRes, staffRes, loadsRes, legacyLoadsRes, settingsRes] = await Promise.all([
+                supabase.from('orders').select('*, items:order_items(*, variant:product_variants(model:product_models(name), flavor:product_flavors(name), unit_cost)), staff:staff(name)').order('created_at', { ascending: false }),
+                supabase.from('staff').select('id, name').order('name'),
+                supabase.from('archived_loads').select('*').order('closed_at', { ascending: false }),
+                supabase.from('load_history').select('*').order('created_at', { ascending: false }),
+                supabase.from('settings').select('last_reset_date').limit(1).single()
+            ]);
+            if (ordersRes.data) setOrders(ordersRes.data);
+            if (staffRes.data) setStaffList(staffRes.data);
+            if (settingsRes.data) setLastResetDate(settingsRes.data.last_reset_date);
+            const combinedLoads: ArchivedLoad[] = [];
+            if (loadsRes.data) combinedLoads.push(...loadsRes.data);
+            if (legacyLoadsRes.data) {
+                combinedLoads.push(...legacyLoadsRes.data.map((l: { id: string; created_at: string; gross_total: number; money_spent_moved?: number | null; reinvest_amount?: number | null }) => ({
+                    id: l.id, closed_at: l.created_at, gross_total: l.gross_total,
+                    soldi_spesi_carico: l.money_spent_moved || l.reinvest_amount,
+                    pezzi_comprati: 0, is_legacy: true, items_sold_snapshot: []
+                })));
+            }
+            setArchivedLoads(combinedLoads.sort((a, b) => new Date(b.closed_at || b.created_at).getTime() - new Date(a.closed_at || a.created_at).getTime()));
+        } catch (error) {
+            console.error('Storico load error:', error);
+        } finally {
+            setLoading(false);
         }
-        setArchivedLoads(combinedLoads.sort((a, b) => new Date(b.closed_at || b.created_at).getTime() - new Date(a.closed_at || a.created_at).getTime()));
-        setLoading(false);
     };
 
     const handleDeleteSession = async () => {
@@ -89,23 +94,29 @@ export const Storico: React.FC = () => {
             const matchesSearch = (order.customer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (order.staff?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
             const matchesStaff = filterStaff === 'all' || order.sold_by_staff_id === filterStaff;
-            const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+            const orderDate = new Date(order.created_at).toLocaleDateString('en-CA');
             const matchesDateStart = !filterDateStart || orderDate >= filterDateStart;
             const matchesDateEnd = !filterDateEnd || orderDate <= filterDateEnd;
-            const amount = Number(order.gross_total);
-            const matchesMin = !filterMinAmount || amount >= Number(filterMinAmount);
-            const matchesMax = !filterMaxAmount || amount <= Number(filterMaxAmount);
+            const amount = safeNumber(order.gross_total);
+            const matchesMin = !filterMinAmount || amount >= safeNumber(filterMinAmount);
+            const matchesMax = !filterMaxAmount || amount <= safeNumber(filterMaxAmount);
             return matchesSearch && matchesStaff && matchesDateStart && matchesDateEnd && matchesMin && matchesMax;
         });
     }, [orders, searchTerm, filterStaff, filterDateStart, filterDateEnd, filterMinAmount, filterMaxAmount]);
 
     const exportToCSV = () => {
+        const esc = (v: unknown) => {
+            const s = String(v ?? '');
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
         const headers = ['Data', 'Cliente', 'Staff', 'Lordo (€)', 'Articoli'];
         const rows = filteredOrders.map(o => [
-            new Date(o.created_at).toLocaleString('it-IT').replace(',', ''),
-            o.customer_name || 'Generic', o.staff?.name || 'Unknown', o.gross_total, (o.items || []).length
+            new Date(o.created_at).toLocaleString('it-IT'),
+            o.customer_name || 'Generic', o.staff?.name || 'Unknown', safeNumber(o.gross_total).toFixed(2), (o.items || []).length
         ]);
-        const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\n" + rows.map(r => r.join(',')).join("\n");
+        const csvContent = "data:text/csv;charset=utf-8," +
+            headers.join(',') + "\n" +
+            rows.map(r => r.map(esc).join(',')).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -115,13 +126,7 @@ export const Storico: React.FC = () => {
     };
 
     if (loading) return (
-        <div className="p-6 space-y-8">
-            <div className="h-10 w-48 skeleton" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-32 skeleton" />)}
-            </div>
-            <div className="space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="h-24 skeleton" />)}</div>
-        </div>
+        <PageSkeleton titleClass="w-48 h-10" blocks={[{ count: 3, className: 'h-32' }, { count: 5, className: 'h-24' }]} />
     );
 
     return (
@@ -261,7 +266,7 @@ export const Storico: React.FC = () => {
                                                 <div className="p-4 md:p-8 space-y-4 md:space-y-6">
                                                     <div className="label-caps text-[10px] text-slate-500 flex items-center gap-2 px-1"><Package size={14} /> Composizione Ordine</div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                                        {items.map((item: any) => (
+                                                        {items.map((item) => (
                                                             <div key={item.id} className="p-3 md:p-5 glass-card rounded-xl md:rounded-[1.5rem] border-white/5 flex items-center justify-between">
                                                                 <div className="min-w-0">
                                                                     <p className="font-black text-white text-xs md:text-base leading-tight uppercase truncate">{item.variant?.model?.name}</p>
@@ -333,7 +338,7 @@ export const Storico: React.FC = () => {
                                                         {isExpanded && (
                                                             <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
                                                                 className="bg-black/40 border-t border-white/5 p-4 space-y-3">
-                                                                {(order.items || []).map((item: any) => (
+                                                                {(order.items || []).map((item) => (
                                                                     <div key={item.id} className="flex justify-between items-center text-[10px]">
                                                                         <span className="text-slate-300 uppercase font-bold">{item.variant?.model?.name} {item.variant?.flavor?.name}</span>
                                                                         <span className="text-primary italic">{item.qty}pz × €{item.unit_price_final}</span>
@@ -414,7 +419,7 @@ export const Storico: React.FC = () => {
                                                         <div className="p-4 md:p-8 space-y-4">
                                                             <h4 className="label-caps text-[10px] text-slate-500 flex items-center gap-2 px-1"><Package size={14} /> Venduto in questa sessione</h4>
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                                {load.items_sold_snapshot?.map((item: any, idx: number) => (
+                                                                {load.items_sold_snapshot?.map((item, idx) => (
                                                                     <div key={idx} className="p-3 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center">
                                                                         <div className="min-w-0">
                                                                             <p className="text-[10px] font-black text-white uppercase truncate">{item.model_name}</p>

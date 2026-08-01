@@ -9,13 +9,6 @@ export interface ToastMessage {
   type: 'success' | 'error' | 'info';
 }
 
-let toastListeners: ((toast: ToastMessage) => void)[] = [];
-
-export const showToast = (message: string, type: ToastMessage['type'] = 'success') => {
-  const id = Date.now().toString();
-  toastListeners.forEach(fn => fn({ id, message, type }));
-};
-
 interface ToastContainerProps {
   toasts: ToastMessage[];
   onRemove: (id: string) => void;
@@ -51,9 +44,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
         toast.type === 'info' && 'bg-primary/10 border-primary/20 text-primary shadow-primary/10',
       )}
     >
-      {toast.type === 'success' && <CheckCircle size={18} />}
-      {toast.type === 'error' && <AlertCircle size={18} />}
-      {toast.type === 'info' && <AlertCircle size={18} />}
+      {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
       <span className="flex-1 font-black uppercase tracking-wider text-[9px]">{toast.message}</span>
       <button onClick={() => onRemove(toast.id)} className="opacity-50 hover:opacity-100 transition-opacity" aria-label="Chiudi notifica">
         <X size={14} />
@@ -61,5 +52,3 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
     </motion.div>
   );
 };
-
-export { toastListeners };

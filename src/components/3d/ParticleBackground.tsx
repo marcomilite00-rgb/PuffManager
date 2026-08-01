@@ -1,18 +1,23 @@
-import React, { Suspense, useRef, useMemo } from 'react';
+import React, { Suspense, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const Particles: React.FC<{ count?: number }> = ({ count = 80 }) => {
+const PARTICLE_COUNT = 80;
+
+const generatePositions = (count: number) => {
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 20;
+    pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 20;
+  }
+  return pos;
+};
+
+const positions = generatePositions(PARTICLE_COUNT);
+
+const Particles: React.FC = () => {
   const mesh = useRef<THREE.Points>(null!);
-  const positions = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 20;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 20;
-    }
-    return pos;
-  }, [count]);
 
   useFrame(({ clock }) => {
     if (mesh.current) {

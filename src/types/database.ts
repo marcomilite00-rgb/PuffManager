@@ -67,3 +67,100 @@ export interface ProductFlavor {
     deleted?: boolean;
 }
 
+export interface Settings {
+    id: number;
+    money_spent_total: number;
+    money_spent_current_load: number;
+    total_net_earned?: number;
+    last_reset_date?: string | null;
+}
+
+export interface VariantWithMeta extends ProductVariant {
+    model_name: string;
+    flavor_name: string;
+    qty: number;
+}
+
+export interface VariantJoined extends ProductVariant {
+    model?: { name: string } | null;
+    flavor?: { name: string } | null;
+}
+
+export interface OrderPayment {
+    id: string;
+    order_id: string;
+    amount: number;
+    created_at: string;
+    payment_type?: string | null;
+}
+
+export interface OrderItem {
+    id: string;
+    order_id: string;
+    variant_id: string;
+    qty: number;
+    unit_price_final: number;
+    unit_price_default?: number | null;
+    variant?: {
+        unit_cost?: number | null;
+        model?: { name: string } | null;
+        flavor?: { name: string } | null;
+    } | null;
+}
+
+export interface OrderWithItems extends Order {
+    items?: OrderItem[] | null;
+    payments?: OrderPayment[] | null;
+    staff?: { name: string } | null;
+}
+
+export interface ReservationItem {
+    id: string;
+    reservation_id: string;
+    variant_id: string;
+    qty: number;
+    unit_price_final: number;
+    unit_price_default?: number | null;
+    variant?: {
+        id: string;
+        model?: { name: string } | null;
+        flavor?: { name: string } | null;
+    } | null;
+}
+
+export interface ReservationWithItems extends Reservation {
+    items?: ReservationItem[] | null;
+    staff?: { name: string } | null;
+}
+
+export interface StaffMinimal {
+    id: string;
+    name: string;
+}
+
+export interface LoadSnapshotItem {
+    model_name: string;
+    flavor_name: string;
+    qty: number;
+    price: number;
+    customer_name?: string | null;
+}
+
+export interface ArchivedLoad {
+    id: string;
+    closed_at: string;
+    gross_total: number;
+    unit_cost_calcolato?: number | null;
+    soldi_spesi_carico?: number | null;
+    pezzi_comprati?: number | null;
+    items_sold_snapshot?: LoadSnapshotItem[] | null;
+    is_legacy?: boolean;
+}
+
+export interface ReminderSummary {
+    id: string;
+    customer_name: string | null;
+    created_at: string;
+    amount_due: number;
+}
+

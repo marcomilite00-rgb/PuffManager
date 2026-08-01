@@ -1,8 +1,5 @@
 import React from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
+import { cn } from '../../lib/cn';
 
 interface GlassCardProps {
   children: React.ReactNode;

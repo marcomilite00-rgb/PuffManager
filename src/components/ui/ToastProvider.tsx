@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { ToastContainer, type ToastMessage, toastListeners } from './Toast';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { ToastContainer, type ToastMessage } from './Toast';
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastMessage['type']) => void;
@@ -7,6 +7,7 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType>({ showToast: () => {} });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = () => useContext(ToastContext);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -20,15 +21,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
-
-  useEffect(() => {
-    const listener = (msg: ToastMessage) => showToast(msg.message, msg.type);
-    toastListeners.push(listener);
-    return () => {
-      const idx = toastListeners.indexOf(listener);
-      if (idx >= 0) toastListeners.splice(idx, 1);
-    };
-  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>

@@ -8,6 +8,8 @@ import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import { Badge } from '../components/ui/Badge';
 import { TiltCard } from '../components/ui/TiltCard';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
+import type { Settings, Staff, OrderWithItems, ReminderSummary } from '../types/database';
 
 const CountUp: React.FC<{ value: number; decimals?: number; duration?: number }> = ({ value, decimals = 2, duration = 1.5 }) => {
   const [display, setDisplay] = useState(0);
@@ -30,10 +32,10 @@ const CountUp: React.FC<{ value: number; decimals?: number; duration?: number }>
 };
 
 export const Cassa: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [staff, setStaff] = useState<any[]>([]);
-  const [reminders, setReminders] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>(null);
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [reminders, setReminders] = useState<ReminderSummary[]>([]);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export const Cassa: React.FC = () => {
     let grossTotal = 0;
     orders.forEach(o => {
       const pays = o.payments || [];
-      pays.forEach((p: any) => {
+      pays.forEach((p) => {
         const payDate = p.created_at ? new Date(p.created_at) : null;
         if (!lastReset || (payDate && payDate >= lastReset)) grossTotal += safeNumber(p.amount);
       });
@@ -80,14 +82,15 @@ export const Cassa: React.FC = () => {
       if (!staffId || !earnings[staffId]) return;
       let orderSessionGross = 0;
       const payments = order.payments || [];
-      payments.forEach((p: any) => {
-        if (!lastReset || new Date(p.created_at) >= lastReset) orderSessionGross += safeNumber(p.amount);
+      payments.forEach((p) => {
+        const payDate = p.created_at ? new Date(p.created_at) : null;
+        if (!lastReset || (payDate && payDate >= lastReset)) orderSessionGross += safeNumber(p.amount);
       });
       if (orderSessionGross > 0) {
         earnings[staffId].gross += orderSessionGross;
         const items = order.items || [];
         let orderRealValue = 0;
-        const orderCost = items.reduce((acc: number, item: any) => {
+        const orderCost = items.reduce((acc, item) => {
           const qty = safeNumber(item.qty);
           const cost = safeNumber(item.variant?.unit_cost);
           const priceFinal = safeNumber(item.unit_price_final);
@@ -107,16 +110,7 @@ export const Cassa: React.FC = () => {
   }, [orders, staff, settings]);
 
   if (loading) return (
-    <div className="p-6 space-y-8">
-      <div className="h-10 w-48 skeleton" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-32 skeleton" />)}
-      </div>
-      <div className="h-48 skeleton" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[...Array(2)].map((_, i) => <div key={i} className="h-24 skeleton" />)}
-      </div>
-    </div>
+    <PageSkeleton titleClass="w-48 h-10" blocks={[{ count: 3, className: 'h-32' }, { count: 1, className: 'h-48' }, { count: 2, className: 'h-24' }]} />
   );
 
   return (
