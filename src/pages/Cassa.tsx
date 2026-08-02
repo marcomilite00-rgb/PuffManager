@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { safeNumber } from '../lib/money';
+import { useRealtime } from '../hooks/useRealtime';
 import {
   TrendingUp, AlertCircle, DollarSign, Clock, Scale, Users, UserCircle as UserIcon
 } from 'lucide-react';
@@ -9,7 +10,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '../components/ui/Badge';
 import { TiltCard } from '../components/ui/TiltCard';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
-import type { Settings, Staff, OrderWithItems, ReminderSummary } from '../types/database';
+import type { Settings, Staff, OrderWithItems, ReminderSummary, Order, OrderPayment } from '../types/database';
 
 const CountUp: React.FC<{ value: number; decimals?: number; duration?: number }> = ({ value, decimals = 2, duration = 1.5 }) => {
   const [display, setDisplay] = useState(0);
@@ -38,24 +39,33 @@ export const Cassa: React.FC = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadInit = async () => {
-      setLoading(true);
-      try {
-        const [oRes, sRes, setRes, rRes] = await Promise.all([
-          supabase.from('orders').select('*, payments(*), items:order_items(*, variant:product_variants(unit_cost))'),
-          supabase.from('staff').select('*'),
-          supabase.from('settings').select('*').limit(1),
-          supabase.from('reminders').select('*').gt('amount_due', 0)
-        ]);
-        if (oRes.data) setOrders(oRes.data);
-        if (sRes.data) setStaff(sRes.data);
-        if (setRes.data?.[0]) setSettings(setRes.data[0]);
-        if (rRes.data) setReminders(rRes.data);
-      } catch (e) { console.error("Cassa load error", e); } finally { setLoading(false); }
-    };
-    loadInit();
+  const loadInit = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [oRes, sRes, setRes, rRes] = await Promise.all([
+        supabase.from('orders').select('*, payments(*), items:order_items(*, variant:product_variants(unit_cost))'),
+        supabase.from('staff').select('*'),
+        supabase.from('settings').select('*').limit(1),
+        supabase.from('reminders').select('*').gt('amount_due', 0)
+      ]);
+      if (oRes.data) setOrders(oRes.data);
+      if (sRes.data) setStaff(sRes.data);
+      if (setRes.data?.[0]) setSettings(setRes.data[0]);
+      if (rRes.data) setReminders(rRes.data);
+    } catch (e) { console.error("Cassa load error", e); } finally { setLoading(false); }
   }, []);
+
+  useEffect(() => { loadInit(); }, [loadInit]);
+
+  // Aggiorna i totali in tempo reale e periodicamente quando vendite/incassi cambiano
+  useRealtime<Order>('orders', () => loadInit());
+  useRealtime<OrderPayment>('payments', () => loadInit());
+  useRealtime<Settings>('settings', () => loadInit());
+  useRealtime<Staff>('staff', () => loadInit());
+  useEffect(() => {
+    const timer = setInterval(loadInit, 15000);
+    return () => clearInterval(timer);
+  }, [loadInit]);
 
   const totals = useMemo(() => {
     const lastReset = settings?.last_reset_date ? new Date(settings.last_reset_date) : null;
@@ -74,40 +84,32 @@ export const Cassa: React.FC = () => {
 
   const staffEarningsList = useMemo(() => {
     if (!staff.length) return [];
-    const earnings: { [key: string]: { gross: number, cost: number } } = {};
-    staff.forEach(s => earnings[s.id] = { gross: 0, cost: 0 });
+    const earnings: { [key: string]: number } = {};
+    staff.forEach(s => earnings[s.id] = 0);
     const lastReset = settings?.last_reset_date ? new Date(settings.last_reset_date) : null;
     orders.forEach(order => {
       const staffId = order.sold_by_staff_id;
-      if (!staffId || !earnings[staffId]) return;
-      let orderSessionGross = 0;
+      if (!staffId || !(staffId in earnings)) return;
       const payments = order.payments || [];
       payments.forEach((p) => {
         const payDate = p.created_at ? new Date(p.created_at) : null;
-        if (!lastReset || (payDate && payDate >= lastReset)) orderSessionGross += safeNumber(p.amount);
+        if (!lastReset || (payDate && payDate >= lastReset)) earnings[staffId] += safeNumber(p.amount);
       });
-      if (orderSessionGross > 0) {
-        earnings[staffId].gross += orderSessionGross;
-        const items = order.items || [];
-        let orderRealValue = 0;
-        const orderCost = items.reduce((acc, item) => {
-          const qty = safeNumber(item.qty);
-          const cost = safeNumber(item.variant?.unit_cost);
-          const priceFinal = safeNumber(item.unit_price_final);
-          orderRealValue += (priceFinal * qty);
-          return acc + (qty * cost);
-        }, 0);
-        const costProportion = orderRealValue > 0 ? orderSessionGross / orderRealValue : 1;
-        earnings[staffId].cost += (orderCost * costProportion);
-      }
     });
-    const totalNetSession = Object.values(earnings).reduce((acc, curr) => acc + (curr.gross - curr.cost), 0);
+    const totalGross = Object.values(earnings).reduce((acc, val) => acc + val, 0);
+    const totalNet = totals.net;
     return staff.map(s => {
-      const e = earnings[s.id] || { gross: 0, cost: 0 };
-      const net = e.gross - e.cost;
-      return { ...s, gross: e.gross, net, percent: Math.abs(totalNetSession) > 0 ? (net / Math.abs(totalNetSession)) * 100 : 0 };
+      const gross = earnings[s.id] || 0;
+      const share = totalGross > 0 ? gross / totalGross : 0;
+      return {
+        ...s,
+        gross,
+        netto: totalGross * share,
+        utile: totalNet * share,
+        percent: share * 100
+      };
     }).sort((a, b) => b.gross - a.gross);
-  }, [orders, staff, settings]);
+  }, [orders, staff, settings, totals.net]);
 
   if (loading) return (
     <PageSkeleton titleClass="w-48 h-10" blocks={[{ count: 3, className: 'h-32' }, { count: 1, className: 'h-48' }, { count: 2, className: 'h-24' }]} />
@@ -184,8 +186,8 @@ export const Cassa: React.FC = () => {
               <tr className="bg-white/5 border-b border-white/10">
                 <th className="px-8 py-6 label-caps text-[10px] text-slate-500">Membro</th>
                 <th className="px-8 py-6 label-caps text-[10px] text-center text-success">Lordo</th>
-                <th className="px-8 py-6 label-caps text-[10px] text-center text-primary">Utile</th>
-                <th className="px-8 py-6 label-caps text-[10px] text-right text-slate-500">Quota</th>
+                <th className="px-8 py-6 label-caps text-[10px] text-center text-primary">Netto</th>
+                <th className="px-8 py-6 label-caps text-[10px] text-right text-slate-500">Quota Vendite</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -203,14 +205,14 @@ export const Cassa: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">
-                    <span className="text-xl font-black italic text-success tracking-tighter tabular-nums">€{s.gross.toFixed(2)}</span>
+                    <span className="text-xl font-black italic text-success tracking-tighter tabular-nums">€{s.netto.toFixed(2)}</span>
                   </td>
                   <td className="px-8 py-6 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <span className={clsx("text-2xl font-black italic tracking-tighter tabular-nums", s.net >= 0 ? "text-primary" : "text-danger")}>€{s.net.toFixed(2)}</span>
+                      <span className={clsx("text-2xl font-black italic tracking-tighter tabular-nums", s.utile >= 0 ? "text-primary" : "text-danger")}>€{s.utile.toFixed(2)}</span>
                       <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className={clsx("h-full", s.net >= 0 ? "bg-primary" : "bg-danger")}
-                          style={{ width: `${s.gross > 0 ? Math.min(Math.abs(s.net / s.gross) * 100, 100) : 0}%` }} />
+                        <div className={clsx("h-full", s.utile >= 0 ? "bg-primary" : "bg-danger")}
+                          style={{ width: `${Math.max(0, Math.min(s.percent, 100))}%` }} />
                       </div>
                     </div>
                   </td>
@@ -236,18 +238,18 @@ export const Cassa: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="label-caps text-[7px] text-slate-500 mb-0.5">Quota Sessione</p>
+                    <p className="label-caps text-[7px] text-slate-500 mb-0.5">Quota Vendite</p>
                     <p className="text-lg font-black text-white italic leading-none tabular-nums">{s.percent.toFixed(0)}%</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                   <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="label-caps text-[7px] text-success mb-1">Cassa Lorda</p>
-                    <p className="text-xl font-black text-success italic tracking-tighter leading-none tabular-nums">€{s.gross.toFixed(2)}</p>
+                    <p className="label-caps text-[7px] text-success mb-1">Netto</p>
+                    <p className="text-xl font-black text-success italic tracking-tighter leading-none tabular-nums">€{s.netto.toFixed(2)}</p>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="label-caps text-[7px] text-primary mb-1">Tuo Guadagno</p>
-                    <p className={clsx("text-xl font-black italic tracking-tighter leading-none tabular-nums", s.net >= 0 ? "text-primary" : "text-danger")}>€{s.net.toFixed(2)}</p>
+                    <p className="label-caps text-[7px] text-primary mb-1">Utile</p>
+                    <p className={clsx("text-xl font-black italic tracking-tighter leading-none tabular-nums", s.utile >= 0 ? "text-primary" : "text-danger")}>€{s.utile.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -255,8 +257,8 @@ export const Cassa: React.FC = () => {
           ))}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 mt-4 flex items-center justify-between shadow-lg">
-            <span className="label-caps text-[10px] text-primary font-black uppercase tracking-tighter">Totale Netto Staff</span>
-            <span className="text-2xl font-black text-white italic tracking-tighter tabular-nums">€{staffEarningsList.reduce((acc, s) => acc + s.net, 0).toFixed(2)}</span>
+            <span className="label-caps text-[10px] text-primary font-black uppercase tracking-tighter">Totale Utile Staff</span>
+            <span className="text-2xl font-black text-white italic tracking-tighter tabular-nums">€{staffEarningsList.reduce((acc, s) => acc + s.utile, 0).toFixed(2)}</span>
           </motion.div>
         </div>
       </div>
