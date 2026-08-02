@@ -130,7 +130,7 @@ export const Storico: React.FC = () => {
     );
 
     return (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 md:space-y-6">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 md:space-y-6 relative z-10">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
                 <div className="space-y-1">
                     <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter text-white uppercase leading-none">

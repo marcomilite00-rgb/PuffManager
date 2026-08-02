@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../lib/error';
-import { LogIn, Delete, ArrowLeft, Eye, EyeOff, Shield } from 'lucide-react';
+import { LogIn, Delete, ArrowLeft, Eye, EyeOff, Shield, RefreshCw, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -35,29 +35,41 @@ export const Login: React.FC = () => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (user) navigate('/inventario');
-    fetchStaff();
-  }, [user, navigate]);
-
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
+    setFetching(true);
+    setFetchError('');
     try {
-      const { data } = await supabase.from('staff').select('id, name, role, pin_hash, pin_length').order('name');
-      if (data) {
+      const { data, error } = await supabase.rpc('get_staff_list_for_login');
+      if (error) throw error;
+      if (Array.isArray(data)) {
         setStaffList(data.map(s => ({
           id: s.id,
           name: s.name,
           role: s.role,
-          has_pin: s.pin_hash !== null,
+          has_pin: s.has_pin,
           pin_length: s.pin_length ?? 6,
         })));
+      } else {
+        setStaffList([]);
       }
-    } catch { console.error('Fetch failed'); }
-  };
+    } catch (err) {
+      setFetchError(getErrorMessage(err, 'Impossibile caricare lo staff'));
+      setStaffList([]);
+    } finally {
+      setFetching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) navigate('/inventario');
+    fetchStaff();
+  }, [user, navigate, fetchStaff]);
 
   const requiredPinLen = selectedStaff?.has_pin ? (selectedStaff.pin_length || 6) : 0;
 
@@ -71,6 +83,8 @@ export const Login: React.FC = () => {
   const handleBackspace = useCallback(() => {
     setPin(prev => prev.slice(0, -1));
   }, []);
+
+  const canSubmit = !!selectedStaff && (!selectedStaff.has_pin || pin.length === requiredPinLen);
 
   const handleLogin = useCallback(async () => {
     if (!selectedStaff) return;
@@ -90,11 +104,11 @@ export const Login: React.FC = () => {
   }, [selectedStaff, pin, requiredPinLen, login, navigate]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && pin.length === requiredPinLen) handleLogin();
+    if (e.key === 'Enter' && canSubmit) handleLogin();
     if (e.key === 'Backspace') handleBackspace();
     if (/^[0-9]$/.test(e.key)) handleNumberClick(e.key);
     if (e.key === 'Escape') { setSelectedStaff(null); setPin(''); setError(''); }
-  }, [pin, requiredPinLen, handleLogin, handleBackspace, handleNumberClick]);
+  }, [canSubmit, handleLogin, handleBackspace, handleNumberClick]);
 
   useEffect(() => {
     if (selectedStaff && !selectedStaff.has_pin) handleLogin();
@@ -103,6 +117,8 @@ export const Login: React.FC = () => {
   useEffect(() => {
     if (selectedStaff?.has_pin) inputRef.current?.focus();
   }, [selectedStaff]);
+
+  const goBack = () => { setSelectedStaff(null); setPin(''); setError(''); };
 
   if (!selectedStaff) {
     return (
@@ -125,36 +141,63 @@ export const Login: React.FC = () => {
             <p className="label-caps text-slate-500 text-[9px] tracking-[0.3em]">Seleziona il tuo profilo</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:gap-5">
-            {staffList.map((staff, i) => (
-              <motion.button
-                key={staff.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.07, duration: 0.5, ease: 'easeOut' }}
-                onClick={() => setSelectedStaff(staff)}
-                className="group relative flex flex-col items-center gap-4 p-5 rounded-[2rem] glass-key hover:border-primary/30 transition-all duration-500 active:scale-95"
+          {fetching ? (
+            <div className="grid grid-cols-2 gap-4 sm:gap-5">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-40 rounded-[2rem] skeleton" />
+              ))}
+            </div>
+          ) : fetchError ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl flex items-start gap-3">
+                <Shield size={16} className="text-danger shrink-0 mt-0.5" />
+                <p className="text-danger text-[11px] font-semibold leading-relaxed">{fetchError}</p>
+              </div>
+              <button
+                onClick={fetchStaff}
+                className="mx-auto flex items-center gap-2 px-5 py-2.5 rounded-full glass-key text-slate-300 hover:text-white text-xs font-bold transition-all active:scale-95"
               >
-                <div className={clsx(
-                  "w-16 h-16 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl font-black text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary/20",
-                  getAvatarColor(staff.name)
-                )}>
-                  {staff.name.charAt(0)}
-                </div>
-                <div className="text-center">
-                  <p className="font-black text-white text-base tracking-tight uppercase leading-none">{staff.name}</p>
-                  <p className="label-caps text-[8px] text-slate-500 mt-1.5 tracking-widest uppercase">{staff.role}</p>
-                </div>
-                {staff.has_pin && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute top-3 right-3 w-2.5 h-2.5 hex-dot bg-primary animate-hex-glow"
-                  />
-                )}
-              </motion.button>
-            ))}
-          </div>
+                <RefreshCw size={14} /> Riprova
+              </button>
+            </div>
+          ) : staffList.length === 0 ? (
+            <div className="p-6 rounded-[2rem] glass-card text-center space-y-3">
+              <Users size={28} className="mx-auto text-slate-500" />
+              <p className="text-slate-400 text-sm font-semibold">Nessun profilo disponibile</p>
+              <p className="text-slate-600 text-xs">Contatta un amministratore per creare lo staff</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:gap-5">
+              {staffList.map((staff, i) => (
+                <motion.button
+                  key={staff.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.07, duration: 0.5, ease: 'easeOut' }}
+                  onClick={() => setSelectedStaff(staff)}
+                  className="group relative flex flex-col items-center gap-4 p-5 rounded-[2rem] glass-key hover:border-primary/30 transition-all duration-500 active:scale-95"
+                >
+                  <div className={clsx(
+                    "w-16 h-16 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl font-black text-white shadow-lg transition-all duration-500 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary/20",
+                    getAvatarColor(staff.name)
+                  )}>
+                    {staff.name.charAt(0)}
+                  </div>
+                  <div className="text-center">
+                    <p className="font-black text-white text-base tracking-tight uppercase leading-none">{staff.name}</p>
+                    <p className="label-caps text-[8px] text-slate-500 mt-1.5 tracking-widest uppercase">{staff.role}</p>
+                  </div>
+                  {staff.has_pin && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute top-3 right-3 w-2.5 h-2.5 hex-dot bg-primary animate-hex-glow"
+                    />
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     );
@@ -167,24 +210,10 @@ export const Login: React.FC = () => {
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-violet-600/8 rounded-full blur-3xl animate-nebula" />
         <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-cyan-500/8 rounded-full blur-3xl animate-nebula" style={{ animationDelay: '-6s' }} />
       </div>
-      {[...Array(6)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-1 h-1 bg-primary/30 rounded-full animate-particle pointer-events-none"
-          style={{ left: `${15 + i * 14}%`, top: `${60 + (i % 3) * 10}%`, animationDelay: `${i * 0.8}s`, animationDuration: `${5 + i * 0.5}s` }}
-        />
-      ))}
-      {[...Array(4)].map((_, i) => (
-        <div
-          key={i + 10}
-          className="absolute w-0.5 h-0.5 bg-violet-400/30 rounded-full animate-particle pointer-events-none"
-          style={{ left: `${30 + i * 20}%`, top: `${40 + (i % 2) * 20}%`, animationDelay: `${0.4 + i * 0.7}s`, animationDuration: `${4 + i * 0.8}s` }}
-        />
-      ))}
 
       <div className="w-full max-w-xs space-y-3 relative z-10 my-auto">
         <button
-          onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
+          onClick={goBack}
           className="flex items-center gap-2 text-slate-500 hover:text-white label-caps text-[9px] transition-colors mx-auto chrome-badge px-4 py-2 rounded-full"
         >
           <ArrowLeft size={12} /> cambia profilo
@@ -303,17 +332,17 @@ export const Login: React.FC = () => {
           </motion.button>
 
           <motion.button
-            whileTap={!(loading || pin.length < requiredPinLen) ? { scale: 0.95 } : {}}
+            whileTap={!(loading || !canSubmit) ? { scale: 0.95 } : {}}
             onClick={handleLogin}
-            disabled={loading || pin.length < requiredPinLen}
+            disabled={loading || !canSubmit}
             className={clsx(
               "flex-1 py-3.5 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 shadow-lg border relative overflow-hidden",
-              loading || pin.length < requiredPinLen
+              loading || !canSubmit
                 ? "bg-surface-800/50 text-slate-600 border-white/5 opacity-50 cursor-not-allowed"
                 : "bg-gradient-to-r from-primary via-cyan-400 to-primary-dark text-surface-950 border-primary/30 shadow-primary/20 hover:shadow-primary/30"
             )}
           >
-            {!(loading || pin.length < requiredPinLen) && (
+            {!(loading || !canSubmit) && (
               <div className="absolute inset-0 bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             )}
             {loading ? (

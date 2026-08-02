@@ -462,9 +462,9 @@ export const Admin: React.FC = () => {
                                             <option value="staff">Staff</option><option value="helper">Helper</option><option value="admin">Admin</option>
                                         </select>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <input type="password" required maxLength={6} value={newStaff.pin} onChange={e => setNewStaff({ ...newStaff, pin: e.target.value })}
+                                            <input type="password" required maxLength={8} value={newStaff.pin} onChange={e => setNewStaff({ ...newStaff, pin: e.target.value })}
                                                 className="bg-surface-950 border border-white/5 rounded-xl py-3 px-2 text-white font-black text-center outline-none" placeholder="PIN" inputMode="numeric" />
-                                            <input type="password" required maxLength={6} value={newStaff.confirmPin} onChange={e => setNewStaff({ ...newStaff, confirmPin: e.target.value })}
+                                            <input type="password" required maxLength={8} value={newStaff.confirmPin} onChange={e => setNewStaff({ ...newStaff, confirmPin: e.target.value })}
                                                 className="bg-surface-950 border border-white/5 rounded-xl py-3 px-2 text-white font-black text-center outline-none" placeholder="RE-PIN" inputMode="numeric" />
                                         </div>
                                         {pinError && <p className="text-danger text-[9px] font-black text-center">{pinError}</p>}
@@ -552,9 +552,9 @@ export const Admin: React.FC = () => {
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Modifica PIN: {editingStaff.name}</h2><button onClick={() => setEditingStaff(null)} aria-label="Chiudi"><X size={20} /></button></div>
                                     <form onSubmit={handleUpdateStaffPin} className="space-y-4">
-                                        <input type="password" required maxLength={6} value={newPin} onChange={e => setNewPin(e.target.value)}
+                                        <input type="password" required maxLength={8} value={newPin} onChange={e => setNewPin(e.target.value)}
                                             className="w-full bg-surface-950 border border-white/10 rounded-xl py-4 text-white font-black text-center text-lg outline-none" placeholder="NUOVO PIN" inputMode="numeric" />
-                                        <input type="password" required maxLength={6} value={confirmPin} onChange={e => setConfirmPin(e.target.value)}
+                                        <input type="password" required maxLength={8} value={confirmPin} onChange={e => setConfirmPin(e.target.value)}
                                             className="w-full bg-surface-950 border border-white/10 rounded-xl py-4 text-white font-black text-center text-lg outline-none" placeholder="RIPETI PIN" inputMode="numeric" />
                                         {pinError && <p className="text-danger text-[9px] font-black text-center">{pinError}</p>}
                                         <button type="submit" className="w-full py-4 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg">AGGIORNA PIN</button>

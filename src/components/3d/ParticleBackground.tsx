@@ -44,7 +44,7 @@ const Particles: React.FC = () => {
 };
 
 const Scene: React.FC = () => (
-  <Canvas camera={{ position: [0, 0, 8], fov: 60 }} dpr={[1, 1.5]} gl={{ alpha: true, antialias: false }}>
+  <Canvas camera={{ position: [0, 0, 8], fov: 60 }} dpr={[1, 1.5]} gl={{ alpha: true, antialias: false }} style={{ pointerEvents: 'none' }}>
     <Particles />
   </Canvas>
 );
