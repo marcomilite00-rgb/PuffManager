@@ -529,8 +529,9 @@ export const Admin: React.FC = () => {
                                     </div>
                                     <form onSubmit={handleUpdateStaffRole} className="space-y-4">
                                         {(['admin', 'staff', 'helper'] as StaffRole[]).map(role => (
-                                            <label key={role} className={clsx("flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all",
-                                                editingStaffRole.role === role ? 'border-primary/40 bg-primary/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/5')}>
+                                            <label key={role} onClick={() => setEditingStaffRole({ ...editingStaffRole, role })}
+                                                className={clsx("flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all",
+                                                    editingStaffRole.role === role ? 'border-primary/40 bg-primary/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/5')}>
                                                 <div className={clsx("w-5 h-5 rounded-full flex items-center justify-center transition-all", editingStaffRole.role === role ? "bg-primary" : "bg-white/10")}>
                                                     {editingStaffRole.role === role && <div className="w-2 h-2 rounded-full bg-surface-950" />}
                                                 </div>

@@ -244,11 +244,11 @@ export const Cassa: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
                   <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="label-caps text-[7px] text-success mb-1">Netto</p>
+                    <p className="label-caps text-[7px] text-success mb-1">Lordo</p>
                     <p className="text-xl font-black text-success italic tracking-tighter leading-none tabular-nums">€{s.netto.toFixed(2)}</p>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="label-caps text-[7px] text-primary mb-1">Utile</p>
+                    <p className="label-caps text-[7px] text-primary mb-1">Netto</p>
                     <p className={clsx("text-xl font-black italic tracking-tighter leading-none tabular-nums", s.utile >= 0 ? "text-primary" : "text-danger")}>€{s.utile.toFixed(2)}</p>
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export const Cassa: React.FC = () => {
           ))}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 mt-4 flex items-center justify-between shadow-lg">
-            <span className="label-caps text-[10px] text-primary font-black uppercase tracking-tighter">Totale Utile Staff</span>
+            <span className="label-caps text-[10px] text-primary font-black uppercase tracking-tighter">Totale Netto Staff</span>
             <span className="text-2xl font-black text-white italic tracking-tighter tabular-nums">€{staffEarningsList.reduce((acc, s) => acc + s.utile, 0).toFixed(2)}</span>
           </motion.div>
         </div>
