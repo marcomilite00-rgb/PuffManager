@@ -376,7 +376,7 @@ export const Prenotazioni: React.FC = () => {
             className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80 backdrop-blur-sm" onClick={() => setEditItem(null)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="w-full max-w-lg rounded-t-[3rem] border-t border-white/10 p-10 space-y-8 safe-area-bottom shadow-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] backdrop-blur-3xl"
+              className="w-full max-w-lg rounded-t-[3rem] border-t border-white/10 p-10 pb-8 space-y-8 shadow-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.01] backdrop-blur-3xl"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-2">
                 <div><h4 className="text-2xl font-black italic text-white uppercase tracking-tighter">{editItem.modelName}</h4>

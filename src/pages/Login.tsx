@@ -122,7 +122,7 @@ export const Login: React.FC = () => {
 
   if (!selectedStaff) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 safe-area-pt safe-area-pb relative overflow-y-auto digital-grid">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-950 relative overflow-y-auto digital-grid">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-violet-600/8 rounded-full blur-3xl animate-nebula" />
@@ -204,7 +204,7 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-6 px-4 bg-surface-950 safe-area-pt safe-area-pb relative overflow-y-auto digital-grid">
+    <div className="min-h-screen flex flex-col items-center py-6 px-4 bg-surface-950 relative overflow-y-auto digital-grid">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-violet-600/8 rounded-full blur-3xl animate-nebula" />

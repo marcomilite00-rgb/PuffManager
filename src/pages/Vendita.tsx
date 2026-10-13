@@ -392,7 +392,7 @@ export const Vendita: React.FC = () => {
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-surface-950/95 backdrop-blur-3xl border-l border-white/5 p-6 flex flex-col safe-area-pt safe-area-pb shadow-2xl">
+              className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-surface-950/95 backdrop-blur-3xl border-l border-white/5 p-6 flex flex-col py-6 shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <ShoppingCart size={20} className="text-primary" />

@@ -10,9 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
-    "@capacitor/ios": "^8.4.1",
     "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.90.1",
     "clsx": "^2.1.1",

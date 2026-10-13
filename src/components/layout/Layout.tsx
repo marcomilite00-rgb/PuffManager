@@ -54,7 +54,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const mainNavItems = navItems.filter(item => item.to !== '/storico');
 
     return (
-        <div className="h-full bg-surface-950 text-white flex flex-col md:flex-row font-body overflow-hidden">
+        <div className="min-h-screen bg-surface-950 text-white flex flex-col md:flex-row font-body">
             {/* Desktop Sidebar */}
             <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-surface-900 border-r border-white/5 z-50">
                 <div className="p-5">
@@ -122,7 +122,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {/* Mobile Header */}
             {!hideMobileHeader && (
-                <header className="md:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5 safe-area-top">
+                <header className="md:hidden fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5">
                     <div className="flex items-center justify-between px-5 h-14">
                         <h1 className="text-lg font-black italic tracking-tighter text-white uppercase pt-1">
                             Puff<span className="text-primary not-italic">Pro</span>
@@ -150,7 +150,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed top-0 right-0 bottom-0 w-72 bg-surface-900 z-[70] p-5 flex flex-col shadow-2xl md:hidden safe-area-pt safe-area-pb"
+                            className="fixed top-0 right-0 bottom-0 w-72 bg-surface-900 z-[70] p-5 flex flex-col shadow-2xl md:hidden"
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <span className="label-caps text-[10px] text-slate-500">Menu Navigazione</span>
@@ -199,7 +199,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </AnimatePresence>
 
             {/* Mobile Bottom Nav — Web3 Floating Dock */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pb-2 safe-area-bottom pointer-events-none">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pb-2 pointer-events-none">
                 <div className="pointer-events-auto flex items-center justify-around h-[60px] rounded-2xl bg-black/60 backdrop-blur-2xl border border-white/5 shadow-[0_-4px_30px_rgba(0,0,0,0.5)] px-2">
                     {mainNavItems.map((item) => (
                         <NavLink key={item.to} to={item.to} className="flex-1 h-full">
@@ -234,7 +234,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </nav>
 
-            <main className="flex-1 md:ml-64 md:pt-0 md:pb-0 bg-surface-950 overflow-hidden main-mobile-inset">
+            <main className="flex-1 md:ml-64 pt-14 pb-24 md:pt-0 md:pb-0 bg-surface-950">
                 <div className="w-full max-w-[1920px] mx-auto px-3 py-2 md:p-8 lg:p-10">
                     {children}
                 </div>

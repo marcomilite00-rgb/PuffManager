@@ -1,6 +1,6 @@
 # Puff Manager Pro 🌿
 
-App gestionale per negozi, costruita con **React + Capacitor** e distribuita come **app nativa iOS**.
+Sito gestionale per negozi, costruito con **React + Vite** e pubblicato come **sito web** (Vercel / Netlify).
 
 ---
 
@@ -11,8 +11,7 @@ App gestionale per negozi, costruita con **React + Capacitor** e distribuita com
 | UI | React 19 + TypeScript + Vite |
 | Styling | Tailwind CSS v4 |
 | Backend | Supabase (PostgreSQL + Auth + Realtime) |
-| iOS wrapper | Capacitor v8 (SPM, senza CocoaPods) |
-| CI/CD | GitHub Actions → macOS 15 runner |
+| Deploy | Vercel / Netlify (build statica `dist/`) |
 
 ---
 
@@ -67,46 +66,14 @@ npm run dev
 
 ---
 
-## Build iOS
-
-### Build web + sync Capacitor
+## Build e deploy web
 
 ```bash
 npm run build
-npx cap sync ios
+npm run preview
 ```
 
-### Aprire in Xcode
-
-```bash
-npx cap open ios
-```
-
-Poi seleziona un simulatore e premi **⌘R**.
-
----
-
-## GitHub Actions CI/CD
-
-Il workflow `.github/workflows/build-ios.yml` si attiva ad ogni push su `main`:
-
-1. **Installa** dipendenze npm
-2. **Build** Vite → `dist/`
-3. **Sync** Capacitor → `ios/App/`
-4. **Cache** SPM packages (risparmia ~8 min)
-5. **Compila** con `xcodebuild` (unsigned, Debug)
-6. **Archivia** il `.app.zip` come artifact (30 giorni)
-
-### Secrets richiesti
-
-Aggiungi questi secrets in **Settings → Secrets → Actions** del repository:
-
-| Secret | Valore |
-|--------|--------|
-| `VITE_SUPABASE_URL` | URL del progetto Supabase |
-| `VITE_SUPABASE_ANON_KEY` | Anon key pubblica di Supabase |
-
-> **⚠️ Nota**: La build CI produce un `.app` **non firmato**. Per installarlo su dispositivi fisici o pubblicarlo su TestFlight è necessaria la firma con certificato Apple Developer.
+Pubblica la cartella `dist/` su **Vercel** o **Netlify**. Imposta le stesse variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` nelle impostazioni del progetto (Environment Variables).
 
 ---
 
@@ -114,14 +81,6 @@ Aggiungi questi secrets in **Settings → Secrets → Actions** del repository:
 
 ```
 PuffManager/
-├── .github/workflows/
-│   └── build-ios.yml          # CI/CD GitHub Actions
-├── ios/
-│   └── App/                   # Progetto Xcode nativo (Capacitor)
-│       ├── App/
-│       │   ├── AppDelegate.swift
-│       │   └── Info.plist     # Configurazione iOS (dark mode, ATS, etc.)
-│       └── CapApp-SPM/        # Swift Package Manager dependencies
 ├── src/
 │   ├── components/
 │   │   ├── layout/Layout.tsx  # Sidebar desktop + bottom nav mobile
@@ -129,7 +88,6 @@ PuffManager/
 │   ├── context/AuthContext.tsx
 │   ├── pages/                 # Vendita, Prenotazioni, Inventario, ...
 │   ├── lib/supabase.ts
-│   └── index.css              # Design system + safe area iOS
-├── capacitor.config.ts        # Configurazione Capacitor/iOS
-└── index.html                 # viewport-fit=cover per safe area
+│   └── index.css              # Design system
+└── index.html
 ```
