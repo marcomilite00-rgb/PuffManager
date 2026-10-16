@@ -301,7 +301,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </AnimatePresence>
 
         {/* Page Content: padding bottom for mobile dock */}
-        <main className="flex-1 min-w-0 px-3 sm:px-6 lg:px-8 py-3 pb-[max(110px,calc(env(safe-area-inset-bottom,0px)+104px))] lg:pb-8">
+        <main className="flex-1 min-w-0 px-3 sm:px-6 lg:px-8 py-2 sm:py-3 pb-[max(180px,calc(env(safe-area-inset-bottom,0px)+140px))] lg:pb-8">
           {children}
         </main>
 

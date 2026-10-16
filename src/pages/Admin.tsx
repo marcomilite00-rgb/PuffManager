@@ -27,6 +27,7 @@ import {
   UserCheck,
   Check,
   AlertOctagon,
+  TrendingUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Badge } from '../components/ui/Badge';
@@ -134,12 +135,17 @@ export const Admin: React.FC = () => {
     const { error } = await supabase
       .from('settings')
       .update({
-        money_spent_total: settings.money_spent_total,
-        money_spent_current_load: settings.money_spent_current_load,
+        money_spent_total: Number(settings.money_spent_total) || 0,
+        money_spent_current_load: Number(settings.money_spent_current_load) || 0,
+        total_net_earned: Number(settings.total_net_earned) || 0,
       })
       .eq('id', 1);
-    if (error) showToast('Errore salvataggio impostazioni', 'error');
-    else showToast('Impostazioni bilancio salvate', 'success');
+    if (error) {
+      showToast('Errore salvataggio impostazioni', 'error');
+    } else {
+      showToast('Impostazioni bilancio salvate', 'success');
+      fetchData();
+    }
   };
 
   const handleAddModel = async (e: React.FormEvent) => {
@@ -504,96 +510,163 @@ export const Admin: React.FC = () => {
 
       {/* ── TAB 1: Home & Bilancio ── */}
       {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Panel Chiudi Carico */}
-          <div className="spatial-panel-strong p-6 border-[#FF453A]/30 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <AlertOctagon size={18} className="text-[#FF453A]" />
-                <h3 className="spatial-headline text-lg font-semibold text-white">
-                  Chiusura Carico
-                </h3>
+        <div className="space-y-4">
+          {/* KPI Banner: total_net_earned */}
+          <div className="spatial-panel p-5 sm:p-6 bg-gradient-to-br from-[#30D158]/10 via-transparent to-transparent border-[#30D158]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#30D158]/15 border border-[#30D158]/30 flex items-center justify-center text-[#30D158] shrink-0 shadow-lg shadow-[#30D158]/10">
+                <TrendingUp size={24} />
               </div>
-              <p className="spatial-subhead text-xs text-white/60 mb-6">
-                Archivia in modo definitivo la sessione corrente di vendita, calcola il costo
-                unitario medio e azzera il conteggio carichi.
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="spatial-caption text-xs uppercase tracking-wider text-white/60 font-semibold">
+                    Total Net Earned
+                  </span>
+                  <span className="spatial-chip spatial-chip-green text-[10px] py-0.5">
+                    settings.total_net_earned
+                  </span>
+                </div>
+                <p className="spatial-amount text-3xl sm:text-4xl font-extrabold text-[#30D158] tracking-tight mt-0.5">
+                  €{safeNumber(settings?.total_net_earned).toLocaleString('it-IT', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="spatial-caption text-xs text-white/50 mt-0.5">
+                  Guadagno netto totale accumulato attraverso tutte le sessioni e carichi chiusi
+                </p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setClosingSoldiSpesi('');
-                setClosingPezziComprati('');
-                setShowClosingLoad(true);
-              }}
-              className="h-12 rounded-full font-semibold text-sm bg-[#FF453A] hover:bg-[#E03A30] text-white flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,69,58,0.4)] transition-all active:scale-98"
-            >
-              <AlertOctagon size={16} /> Avvia Chiusura Carico
-            </button>
+            {settings?.last_reset_date && (
+              <div className="text-left sm:text-right shrink-0 border-t sm:border-t-0 border-white/10 pt-2 sm:pt-0">
+                <span className="spatial-caption text-[11px] text-white/40 block">
+                  Ultimo Reset Sessione
+                </span>
+                <span className="spatial-headline text-xs font-semibold text-white/80">
+                  {new Date(settings.last_reset_date).toLocaleString('it-IT')}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Panel Bilancio Spese */}
-          <div className="spatial-panel p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="spatial-headline text-lg font-semibold text-white mb-1">
-                Bilancio & Spese
-              </h3>
-              <p className="spatial-caption text-white/50 mb-3">
-                Utile netto complessivo registrato
-              </p>
-              <p className="spatial-amount text-3xl font-extrabold text-[#30D158] tracking-tight mb-4">
-                €{(settings?.total_net_earned ?? 0).toLocaleString('it-IT', {
-                  minimumFractionDigits: 2,
-                })}
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Panel Chiudi Carico */}
+            <div className="spatial-panel-strong p-6 border-[#FF453A]/30 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertOctagon size={18} className="text-[#FF453A]" />
+                  <h3 className="spatial-headline text-lg font-semibold text-white">
+                    Chiusura Carico
+                  </h3>
+                </div>
+                <p className="spatial-subhead text-xs text-white/60 mb-6">
+                  Archivia in modo definitivo la sessione corrente di vendita, calcola il costo
+                  unitario medio, aggiunge l'utile al <code className="text-[#30D158] font-bold">total_net_earned</code> e azzera il conteggio carichi.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setClosingSoldiSpesi('');
+                  setClosingPezziComprati('');
+                  setShowClosingLoad(true);
+                }}
+                className="h-12 rounded-full font-semibold text-sm bg-[#FF453A] hover:bg-[#E03A30] text-white flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,69,58,0.4)] transition-all active:scale-98"
+              >
+                <AlertOctagon size={16} /> Avvia Chiusura Carico
+              </button>
+            </div>
 
-              <form onSubmit={handleUpdateSettings} className="space-y-3">
-                <div>
-                  <label className="spatial-caption block mb-1 text-white/60">
-                    Spese Totali Carico (€)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={settings?.money_spent_total ?? ''}
-                    onChange={(e) =>
-                      setSettings((prev) =>
-                        prev
-                          ? { ...prev, money_spent_total: Number(e.target.value) }
-                          : prev
-                      )
-                    }
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white font-bold spatial-amount focus:outline-none focus:border-[#0A84FF]"
-                  />
-                </div>
-                <div>
-                  <label className="spatial-caption block mb-1 text-white/60">
-                    Spese Extra Durante il Carico (€)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={settings?.money_spent_current_load ?? ''}
-                    onChange={(e) =>
-                      setSettings((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              money_spent_current_load: Number(e.target.value),
-                            }
-                          : prev
-                      )
-                    }
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white font-bold spatial-amount focus:outline-none focus:border-[#0A84FF]"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="spatial-btn-primary w-full h-11 text-xs font-semibold mt-2"
-                >
-                  Salva Modifiche Bilancio
-                </button>
-              </form>
+            {/* Panel Bilancio Spese & Modifica Parametri */}
+            <div className="spatial-panel p-6 flex flex-col justify-between">
+              <div>
+                <h3 className="spatial-headline text-lg font-semibold text-white mb-1">
+                  Parametri Cassa & Bilancio
+                </h3>
+                <p className="spatial-caption text-white/50 mb-4">
+                  Visualizza o modifica i parametri contabili salvati nel database
+                </p>
+
+                <form onSubmit={handleUpdateSettings} className="space-y-3.5">
+                  {/* total_net_earned input */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="spatial-caption text-white/70 font-medium">
+                        Total Net Earned (€)
+                      </label>
+                      <span className="text-[10px] text-[#30D158] font-semibold">
+                        Utile Netto Storico
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={settings?.total_net_earned ?? ''}
+                      onChange={(e) =>
+                        setSettings((prev) =>
+                          prev
+                            ? { ...prev, total_net_earned: Number(e.target.value) }
+                            : prev
+                        )
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-[#30D158]/30 text-[#30D158] font-bold spatial-amount focus:outline-none focus:border-[#30D158]"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  {/* Spese Totali Carico */}
+                  <div>
+                    <label className="spatial-caption block mb-1 text-white/60">
+                      Spese Totali Carico (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={settings?.money_spent_total ?? ''}
+                      onChange={(e) =>
+                        setSettings((prev) =>
+                          prev
+                            ? { ...prev, money_spent_total: Number(e.target.value) }
+                            : prev
+                        )
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white font-bold spatial-amount focus:outline-none focus:border-[#0A84FF]"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  {/* Spese Extra */}
+                  <div>
+                    <label className="spatial-caption block mb-1 text-white/60">
+                      Spese Extra Durante il Carico (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={settings?.money_spent_current_load ?? ''}
+                      onChange={(e) =>
+                        setSettings((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                money_spent_current_load: Number(e.target.value),
+                              }
+                            : prev
+                        )
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white font-bold spatial-amount focus:outline-none focus:border-[#0A84FF]"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="spatial-btn-primary w-full h-11 text-xs font-semibold mt-2"
+                  >
+                    Salva Modifiche Bilancio
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         </div>

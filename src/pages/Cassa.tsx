@@ -13,7 +13,15 @@ import type {
   Order,
   OrderPayment,
 } from '../types/database';
-import { CreditCard, TrendingUp, TrendingDown, Receipt, Users, AlertCircle } from 'lucide-react';
+import { CreditCard, TrendingUp, TrendingDown, Receipt, Users, AlertCircle, X, Info } from 'lucide-react';
+
+interface StaffProfitItem extends Staff {
+  qtySold: number;
+  gross: number;
+  cogs: number;
+  unitProfit: number;
+  percent: number;
+}
 
 export const Cassa: React.FC = () => {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -21,6 +29,28 @@ export const Cassa: React.FC = () => {
   const [reminders, setReminders] = useState<ReminderSummary[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedStaff, setSelectedStaff] = useState<StaffProfitItem | null>(null);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedStaff) {
+        setSelectedStaff(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStaff]);
 
   const loadInit = useCallback(async () => {
     try {
@@ -122,28 +152,26 @@ export const Cassa: React.FC = () => {
       });
     });
 
-    const totalUnitProfit = Object.values(staffMetricsMap).reduce(
-      (acc, val) => acc + val.unitProfit,
+    const totalQtySold = Object.values(staffMetricsMap).reduce(
+      (acc, val) => acc + val.qtySold,
       0
     );
-    const totalNet = totals.net;
 
     return staff
       .map((s) => {
         const metrics = staffMetricsMap[s.id] || { qtySold: 0, grossSold: 0, cogs: 0, unitProfit: 0 };
-        const share = totalUnitProfit > 0 ? metrics.unitProfit / totalUnitProfit : 0;
+        const percent = totalQtySold > 0 ? (metrics.qtySold / totalQtySold) * 100 : 0;
         return {
           ...s,
           qtySold: metrics.qtySold,
           gross: metrics.grossSold,
           cogs: metrics.cogs,
           unitProfit: metrics.unitProfit,
-          utile: totalNet * share,
-          percent: share * 100,
+          percent,
         };
       })
       .sort((a, b) => b.unitProfit - a.unitProfit);
-  }, [orders, staff, settings, totals.net]);
+  }, [orders, staff, settings]);
 
   // Gauge calculation: percentage of gross converted to net, or relative to positive target
   const gaugePercent = useMemo(() => {
@@ -168,48 +196,48 @@ export const Cassa: React.FC = () => {
   const gaugeColor = isNetPositive ? '#30D158' : '#FF453A';
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-5xl mx-auto space-y-3.5 sm:space-y-6">
       {/* ── Top Header ── */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-between pt-1 sm:pt-2">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="spatial-chip spatial-chip-blue text-[11px] py-0.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+            <span className="spatial-chip spatial-chip-blue text-[10px] sm:text-[11px] py-0.5 px-2">
               <CreditCard size={11} /> Cassa & Bilancio
             </span>
-            <span className="spatial-caption text-white/50">
+            <span className="spatial-caption text-[10px] sm:text-[11px] text-white/50">
               Aggiornamento live
             </span>
           </div>
-          <h1 className="spatial-title text-2xl sm:text-3xl font-semibold text-white">
+          <h1 className="spatial-title text-xl sm:text-3xl font-semibold text-white">
             Pannello Cassa
           </h1>
         </div>
       </div>
 
       {/* ── Hero Widget with Center Gauge Dial (Air Conditioner / Thermostat Style) ── */}
-      <div className="spatial-panel-strong p-6 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      <div className="spatial-panel-strong p-3.5 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
         {/* Subtle Ambient Radial behind Gauge */}
         <div
-          className="absolute w-72 h-72 rounded-full pointer-events-none -z-10 blur-3xl opacity-20"
+          className="absolute w-48 sm:w-72 h-48 sm:h-72 rounded-full pointer-events-none -z-10 blur-3xl opacity-20"
           style={{ background: gaugeColor }}
         />
 
         {/* Circular Thermostat Gauge */}
         <Gauge
           value={gaugePercent}
-          size={230}
-          strokeWidth={14}
+          size={isMobile ? 165 : 230}
+          strokeWidth={isMobile ? 11 : 14}
           color={gaugeColor}
-          className="my-2"
+          className="my-1 sm:my-2"
         >
           <div className="flex flex-col items-center justify-center">
-            <span className="spatial-caption text-white/50 text-[10px] uppercase tracking-wider mb-1">
+            <span className="spatial-caption text-white/50 text-[9.5px] sm:text-[10px] uppercase tracking-wider mb-0.5 sm:mb-1">
               Bilancio Netto
             </span>
-            <span className="spatial-amount text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-none mb-1">
+            <span className="spatial-amount text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-none mb-0.5 sm:mb-1">
               €{totals.net.toFixed(2)}
             </span>
-            <span className="spatial-caption text-[10px] text-white/40">
+            <span className="spatial-caption text-[9.5px] sm:text-[10px] text-white/40">
               {settings?.last_reset_date
                 ? `Dal ${new Date(settings.last_reset_date).toLocaleDateString('it-IT')}`
                 : 'Sessione corrente'}
@@ -218,14 +246,14 @@ export const Cassa: React.FC = () => {
         </Gauge>
 
         {/* Status Chip */}
-        <div className="mt-3 flex items-center justify-center gap-2">
+        <div className="mt-2 sm:mt-3 flex items-center justify-center gap-2">
           {isNetPositive ? (
-            <span className="spatial-chip spatial-chip-green text-xs font-semibold py-1 px-3">
-              <TrendingUp size={13} /> In Attivo ({gaugePercent.toFixed(0)}% del lordo)
+            <span className="spatial-chip spatial-chip-green text-[11px] sm:text-xs font-semibold py-0.5 sm:py-1 px-2.5 sm:px-3">
+              <TrendingUp size={12} /> In Attivo ({gaugePercent.toFixed(0)}% del lordo)
             </span>
           ) : (
-            <span className="spatial-chip spatial-chip-red text-xs font-semibold py-1 px-3">
-              <TrendingDown size={13} /> In Deficit
+            <span className="spatial-chip spatial-chip-red text-[11px] sm:text-xs font-semibold py-0.5 sm:py-1 px-2.5 sm:px-3">
+              <TrendingDown size={12} /> In Deficit
             </span>
           )}
         </div>
@@ -234,15 +262,15 @@ export const Cassa: React.FC = () => {
       {/* ── 3 Smart-Home KPI Tiles: Lordo, Spese, Extra ── */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3.5">
         {/* Lordo */}
-        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px]">
+        <div className="spatial-tile p-2 sm:p-4 min-h-[72px] sm:min-h-[96px]">
           <div className="flex items-center justify-between gap-1">
             <span className="spatial-caption text-[9.5px] sm:text-[11px] truncate">Lordo</span>
-            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
-              <TrendingUp size={15} />
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
+              <TrendingUp size={13} className="sm:w-[15px] sm:h-[15px]" />
             </div>
           </div>
           <div className="mt-1 sm:mt-2">
-            <p className="spatial-amount text-base sm:text-2xl font-bold tracking-tight">
+            <p className="spatial-amount text-[15px] sm:text-2xl font-bold tracking-tight">
               €{totals.gross.toFixed(2)}
             </p>
             <p className="spatial-footnote text-[11px] opacity-60 hidden sm:block mt-0.5">
@@ -252,15 +280,15 @@ export const Cassa: React.FC = () => {
         </div>
 
         {/* Spese Carico */}
-        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px] border-[#FF453A]/20">
+        <div className="spatial-tile p-2 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF453A]/20">
           <div className="flex items-center justify-between gap-1">
             <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF453A] truncate">Spese</span>
-            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FF453A]/15 border border-[#FF453A]/30 flex items-center justify-center text-[#FF453A] shrink-0">
-              <Receipt size={15} />
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#FF453A]/15 border border-[#FF453A]/30 flex items-center justify-center text-[#FF453A] shrink-0">
+              <Receipt size={13} className="sm:w-[15px] sm:h-[15px]" />
             </div>
           </div>
           <div className="mt-1 sm:mt-2">
-            <p className="spatial-amount text-base sm:text-2xl font-bold text-[#FF453A] tracking-tight">
+            <p className="spatial-amount text-[15px] sm:text-2xl font-bold text-[#FF453A] tracking-tight">
               €{totals.spent.toFixed(2)}
             </p>
             <p className="spatial-footnote text-[11px] text-[#FF453A]/70 hidden sm:block mt-0.5">
@@ -270,15 +298,15 @@ export const Cassa: React.FC = () => {
         </div>
 
         {/* Extra Correnti */}
-        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px] border-[#FF9F0A]/20">
+        <div className="spatial-tile p-2 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF9F0A]/20">
           <div className="flex items-center justify-between gap-1">
             <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF9F0A] truncate">Extra</span>
-            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FF9F0A]/15 border border-[#FF9F0A]/30 flex items-center justify-center text-[#FF9F0A] shrink-0">
-              <AlertCircle size={15} />
+            <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#FF9F0A]/15 border border-[#FF9F0A]/30 flex items-center justify-center text-[#FF9F0A] shrink-0">
+              <AlertCircle size={13} className="sm:w-[15px] sm:h-[15px]" />
             </div>
           </div>
           <div className="mt-1 sm:mt-2">
-            <p className="spatial-amount text-base sm:text-2xl font-bold text-[#FF9F0A] tracking-tight">
+            <p className="spatial-amount text-[15px] sm:text-2xl font-bold text-[#FF9F0A] tracking-tight">
               €{totals.currentLoadExpenses.toFixed(2)}
             </p>
             <p className="spatial-footnote text-[11px] text-[#FF9F0A]/70 hidden sm:block mt-0.5">
@@ -289,10 +317,10 @@ export const Cassa: React.FC = () => {
       </div>
 
       {/* ── Ripartizione Staff con Barre di Avanzamento ── */}
-      <section className="space-y-2">
+      <section className="space-y-1.5 sm:space-y-2">
         <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2.5">
-            <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-1.5">
               <Users size={13} /> RIPARTIZIONE STAFF
             </h2>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#30D158]/15 border border-[#30D158]/30 text-[#30D158]">
@@ -308,37 +336,39 @@ export const Cassa: React.FC = () => {
           {/* Desktop Column Header Bar */}
           <div className="hidden md:flex items-center justify-between px-6 py-2.5 text-[11px] font-semibold text-white/40 uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
             <span className="w-56">Operatore</span>
-            <div className="grid grid-cols-3 gap-6 text-right flex-1 max-w-md mx-4">
-              <span>Venduto (Pz)</span>
+            <div className="grid grid-cols-3 gap-6 text-right flex-1 max-w-sm mx-4">
+              <span>Pezzi (Quota)</span>
+              <span>Venduto</span>
               <span>Costo Merce</span>
-              <span className="text-[#30D158] font-bold">Margine Diretto</span>
             </div>
-            <span className="text-right w-36">Utile Attribuito</span>
+            <span className="text-right w-24 sm:w-28 text-[#30D158] font-bold">Margine Netto</span>
           </div>
 
           {staffEarningsList.map((s) => (
             <div
               key={s.id}
-              className="spatial-row px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 min-h-[62px]"
+              onClick={() => setSelectedStaff(s)}
+              className="spatial-row px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-3 min-h-[50px] sm:min-h-[62px] cursor-pointer hover:bg-white/[0.04] active:scale-[0.99] transition-all group"
+              title={`Clicca per vedere i dettagli contabili di ${s.name}`}
             >
-              {/* 1. Operatore: Avatar, Nome, Ruolo, Barra */}
-              <div className="flex items-center gap-3.5 w-auto md:w-56 shrink-0 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white text-sm shrink-0">
+              {/* 1. Operatore: Avatar, Nome, Ruolo, Linea tutta lunga */}
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white text-neutral-900 flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                   {s.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="spatial-headline text-[15px] font-semibold text-white truncate">
+                  <div className="flex items-center gap-1.5">
+                    <p className="spatial-headline text-sm sm:text-[15px] font-semibold text-white truncate leading-tight">
                       {s.name}
                     </p>
                     <span className="spatial-caption text-[10px] text-white/40 uppercase hidden lg:inline">
                       {s.role}
                     </span>
                   </div>
-                  {/* Progress Bar under name */}
-                  <div className="h-1.5 w-20 sm:w-28 rounded-full bg-white/10 overflow-hidden mt-1.5">
+                  {/* Linea tutta lunga da mobile e desktop */}
+                  <div className="h-1.5 w-full rounded-full bg-white/15 overflow-hidden mt-1.5">
                     <div
-                      className="h-full rounded-full bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.6)]"
+                      className="h-full rounded-full bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.6)] transition-all duration-300"
                       style={{ width: `${Math.max(0, Math.min(s.percent, 100))}%` }}
                     />
                   </div>
@@ -346,14 +376,24 @@ export const Cassa: React.FC = () => {
               </div>
 
               {/* 2. Dettagli Contabili Unit Profit (Desktop / Tablet) */}
-              <div className="hidden md:grid grid-cols-3 gap-6 text-right items-center flex-1 max-w-md mx-4">
-                {/* Venduto & Pezzi */}
+              <div className="hidden md:grid grid-cols-3 gap-6 text-right items-center flex-1 max-w-sm mx-4">
+                {/* Pezzi & Quota */}
+                <div>
+                  <span className="spatial-amount text-sm font-semibold text-white block">
+                    {s.qtySold} pz
+                  </span>
+                  <span className="text-[11px] text-white/40 block">
+                    {s.percent.toFixed(0)}% quota
+                  </span>
+                </div>
+
+                {/* Venduto Lordo */}
                 <div>
                   <span className="spatial-amount text-sm font-semibold text-white block">
                     €{s.gross.toFixed(2)}
                   </span>
                   <span className="text-[11px] text-white/40 block">
-                    {s.qtySold} pz
+                    lordo
                   </span>
                 </div>
 
@@ -366,26 +406,15 @@ export const Cassa: React.FC = () => {
                     fornitura
                   </span>
                 </div>
-
-                {/* Margine Diretto (Unit Profit) */}
-                <div>
-                  <span className="spatial-amount text-sm font-bold text-[#30D158] block">
-                    +€{s.unitProfit.toFixed(2)}
-                  </span>
-                  <span className="text-[11px] text-[#30D158]/70 block font-medium">
-                    unit profit
-                  </span>
-                </div>
               </div>
 
-              {/* 3. Utile Netto Attribuito & Quota */}
-              <div className="text-right shrink-0 md:w-36">
-                <span className="spatial-amount text-[15px] sm:text-lg font-bold text-white block tracking-tight">
-                  €{s.utile.toFixed(2)}
+              {/* 3. Margine Netto e Percentuale e basta */}
+              <div className="text-right shrink-0 w-24 sm:w-28">
+                <span className="spatial-amount text-[15px] sm:text-lg font-bold text-[#30D158] block tracking-tight">
+                  +€{s.unitProfit.toFixed(2)}
                 </span>
-                <p className="spatial-caption text-xs text-white/50 mt-0.5">
-                  <span className="font-semibold text-white/80">{s.percent.toFixed(0)}%</span> quota
-                  <span className="md:hidden"> · <span className="text-[#30D158] font-medium">+€{s.unitProfit.toFixed(2)}</span></span>
+                <p className="text-[11px] sm:text-xs text-white/50 mt-0.5 tracking-normal font-medium">
+                  {s.percent.toFixed(0)}%
                 </p>
               </div>
             </div>
@@ -400,9 +429,9 @@ export const Cassa: React.FC = () => {
 
       {/* ── Sospesi / Debiti da Incassare ── */}
       {reminders.length > 0 && (
-        <section className="space-y-2">
+        <section className="space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between px-1">
-            <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-2">
+            <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-1.5">
               <AlertCircle size={13} className="text-[#FF453A]" /> SOSPESI · {reminders.length}
             </h2>
             <span className="spatial-caption text-white/40">
@@ -414,18 +443,18 @@ export const Cassa: React.FC = () => {
             {reminders.map((d) => (
               <div
                 key={d.id}
-                className="spatial-row px-4 sm:px-6 py-3 flex items-center justify-between gap-3"
+                className="spatial-row px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 min-h-[48px] sm:min-h-[54px]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="spatial-headline text-[15px] font-semibold text-white truncate">
+                  <p className="spatial-headline text-sm sm:text-[15px] font-semibold text-white truncate leading-tight">
                     {d.customer_name || 'Cliente'}
                   </p>
-                  <p className="spatial-caption text-xs text-white/40 mt-0.5">
+                  <p className="text-[11px] sm:text-xs text-white/40 mt-0.5">
                     {new Date(d.created_at).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <div className="shrink-0">
-                  <Badge variant="danger" size="sm">
+                  <Badge variant="danger" size="sm" className="font-semibold text-xs py-0.5 px-2.5">
                     €{safeNumber(d.amount_due).toFixed(2)}
                   </Badge>
                 </div>
@@ -433,6 +462,147 @@ export const Cassa: React.FC = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Spazio finale extra su mobile per garantire stacco netto sopra la dock flottante */}
+      <div className="h-6 sm:h-0" aria-hidden="true" />
+
+      {/* ── Pop-up Dettagli Operatore (VisionOS Modal) ── */}
+      {selectedStaff && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setSelectedStaff(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="staff-detail-title"
+        >
+          <div
+            className="spatial-panel-strong w-full max-w-md p-5 sm:p-6 rounded-3xl border border-white/20 shadow-2xl relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Ambient Radial behind Modal */}
+            <div
+              className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none -z-10 blur-3xl opacity-20"
+              style={{ background: '#30D158' }}
+            />
+
+            {/* Header: Avatar, Nome, Ruolo, X Close */}
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-white text-neutral-900 font-bold text-lg flex items-center justify-center shadow-md shrink-0">
+                  {selectedStaff.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <h3 id="staff-detail-title" className="spatial-headline text-lg font-bold text-white truncate">
+                    {selectedStaff.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="spatial-chip spatial-chip-blue text-[10px] py-0.5 px-2 uppercase font-semibold">
+                      {selectedStaff.role}
+                    </span>
+                    <span className="text-[11px] text-white/50">
+                      {selectedStaff.percent.toFixed(1)}% pezzi venduti
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedStaff(null)}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white/70 hover:text-white transition-all shrink-0"
+                aria-label="Chiudi dettaglio operatore"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Main Highlight: Margine Netto Diretto */}
+            <div className="my-4 p-4 rounded-2xl bg-gradient-to-br from-white/10 to-white/[0.03] border border-white/10 text-center">
+              <span className="spatial-caption text-white/50 text-[10px] uppercase tracking-wider block mb-1">
+                Margine Netto Diretto
+              </span>
+              <span className="spatial-amount text-3xl sm:text-4xl font-extrabold text-[#30D158] tracking-tight block">
+                +€{selectedStaff.unitProfit.toFixed(2)}
+              </span>
+              <p className="text-[11px] text-white/40 mt-1">
+                {settings?.last_reset_date
+                  ? `Calcolato dal ${new Date(settings.last_reset_date).toLocaleDateString('it-IT')}`
+                  : 'Sessione corrente'}
+              </p>
+            </div>
+
+            {/* 4 Dettagli Contabili */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* Pezzi Venduti */}
+              <div className="spatial-tile p-3">
+                <span className="spatial-caption text-[10px] text-white/50 block">Pezzi Venduti</span>
+                <p className="spatial-amount text-lg font-bold text-white mt-1">
+                  {selectedStaff.qtySold} <span className="text-xs font-normal text-white/50">pz</span>
+                </p>
+                <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden mt-2">
+                  <div
+                    className="h-full rounded-full bg-[#0A84FF]"
+                    style={{ width: `${Math.max(0, Math.min(selectedStaff.percent, 100))}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-white/40 mt-1 block">
+                  {selectedStaff.percent.toFixed(1)}% del totale pezzi
+                </span>
+              </div>
+
+              {/* Lordo Incassato */}
+              <div className="spatial-tile p-3">
+                <span className="spatial-caption text-[10px] text-white/50 block">Lordo Venduto</span>
+                <p className="spatial-amount text-lg font-bold text-white mt-1">
+                  €{selectedStaff.gross.toFixed(2)}
+                </p>
+                <span className="text-[10px] text-white/40 mt-2 block">
+                  Totale prezzi vendite
+                </span>
+              </div>
+
+              {/* Costo Merce (COGS) */}
+              <div className="spatial-tile p-3 border-[#FF453A]/20">
+                <span className="spatial-caption text-[10px] text-[#FF453A] block">Costo Merce</span>
+                <p className="spatial-amount text-lg font-bold text-[#FF453A] mt-1">
+                  €{selectedStaff.cogs.toFixed(2)}
+                </p>
+                <span className="text-[10px] text-[#FF453A]/60 mt-1 block">
+                  Fornitura sostenuta
+                </span>
+              </div>
+
+              {/* Margine Medio per Pezzo */}
+              <div className="spatial-tile p-3 border-[#30D158]/20">
+                <span className="spatial-caption text-[10px] text-[#30D158] block">Margine Medio</span>
+                <p className="spatial-amount text-lg font-bold text-[#30D158] mt-1">
+                  +€{(selectedStaff.qtySold > 0 ? selectedStaff.unitProfit / selectedStaff.qtySold : 0).toFixed(2)}
+                </p>
+                <span className="text-[10px] text-[#30D158]/60 mt-1 block">
+                  Per singolo pezzo
+                </span>
+              </div>
+            </div>
+
+            {/* Nota contabile esplicativa */}
+            <div className="mt-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/5 flex items-start gap-2">
+              <Info size={14} className="text-white/40 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-white/50 leading-relaxed">
+                Margine attribuito riga per riga a <strong className="text-white font-medium">{selectedStaff.name}</strong>:{' '}
+                (Prezzo finale − Costo fornitura) × Quantità.
+              </p>
+            </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setSelectedStaff(null)}
+              className="mt-4 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-98 text-white font-semibold text-sm transition-all"
+            >
+              Chiudi
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
