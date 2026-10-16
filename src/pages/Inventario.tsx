@@ -316,17 +316,17 @@ export const Inventario: React.FC = () => {
                       <div
                         key={item.variantId}
                         className={cn(
-                          'spatial-row px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 transition-colors',
+                          'spatial-row px-4 sm:px-5 py-3 flex items-center justify-between gap-3 transition-colors',
                           isZero ? 'opacity-40 bg-white/[0.02]' : 'hover:bg-white/5'
                         )}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="spatial-headline text-[15px] sm:text-[16px] text-white font-medium truncate">
+                          <p className="spatial-headline text-[14px] sm:text-[15px] text-white font-medium break-words line-clamp-2 leading-snug">
                             {item.flavorName}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
                           {isZero ? (
                             <Badge variant="danger" size="xs">
                               Esaurito
@@ -336,14 +336,22 @@ export const Inventario: React.FC = () => {
                               Pochi
                             </Badge>
                           ) : (
-                            <Badge variant="success" size="xs">
-                              Disponibile
-                            </Badge>
+                            <>
+                              <span className="hidden sm:inline-flex">
+                                <Badge variant="success" size="xs">
+                                  Disponibile
+                                </Badge>
+                              </span>
+                              <span
+                                className="sm:hidden w-2 h-2 rounded-full bg-[#30D158] shadow-[0_0_6px_rgba(48,209,88,0.7)]"
+                                title="Disponibile"
+                              />
+                            </>
                           )}
 
                           <span
                             className={cn(
-                              'spatial-amount text-lg sm:text-xl font-bold w-12 text-right',
+                              'spatial-amount text-base sm:text-xl font-bold w-9 sm:w-12 text-right',
                               isZero
                                 ? 'text-white/30'
                                 : isLow

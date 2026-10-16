@@ -176,9 +176,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* ── Main Content Area ── */}
       <div className="flex-1 min-w-0 flex flex-col lg:pl-[104px]">
-        {/* Mobile Header in Floating Glass Pill (<1024px) */}
-        <header className="lg:hidden sticky top-0 z-40 px-3 pt-[max(10px,calc(env(safe-area-inset-top,0px)+6px))] pb-2 pointer-events-none">
-          <div className="pointer-events-auto flex items-center justify-between px-3.5 py-2 rounded-full spatial-panel-strong shadow-xl border border-white/20">
+        {/* Mobile Header (<1024px) */}
+        <header className="lg:hidden sticky top-0 z-40 spatial-header-mobile px-4 pt-[max(10px,calc(env(safe-area-inset-top,0px)+6px))] pb-2.5 transition-colors">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white/25 to-white/10 border border-white/20 flex items-center justify-center p-1 shadow-sm overflow-hidden">
                 <img
@@ -205,7 +205,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+              className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/10"
               aria-label="Profilo operatore e opzioni"
             >
               <span className="text-xs font-semibold">{user.name}</span>

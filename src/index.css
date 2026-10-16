@@ -463,6 +463,21 @@ body::after {
   box-shadow: 0 4px 16px rgba(10, 132, 255, 0.4);
 }
 
+/* ── Spatial Mobile Header (<1024px) ── */
+.spatial-header-mobile {
+  background: rgba(14, 15, 19, 0.88);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border-bottom: 1px solid var(--separator);
+}
+
+@media (prefers-color-scheme: light) {
+  .spatial-header-mobile {
+    background: rgba(245, 247, 250, 0.9);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+}
+
 /* ── Spatial Dock (Mobile bottom nav ONLY: <1024px) ── */
 .spatial-dock {
   position: fixed;

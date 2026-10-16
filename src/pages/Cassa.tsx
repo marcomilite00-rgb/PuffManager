@@ -251,11 +251,11 @@ export const Cassa: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Ripartizione Staff con Barre di Avanzamento Blu ── */}
+      {/* ── Ripartizione Staff con Barre di Avanzamento ── */}
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
           <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-2">
-            <Users size={13} /> RIPARTIZIONE UTILI STAFF
+            <Users size={13} /> RIPARTIZIONE STAFF
           </h2>
           <span className="spatial-caption text-white/40">
             {staffEarningsList.length} Membri attivi
@@ -266,32 +266,32 @@ export const Cassa: React.FC = () => {
           {staffEarningsList.map((s) => (
             <div
               key={s.id}
-              className="spatial-row px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              className="spatial-row px-4 sm:px-6 py-3 flex items-center justify-between gap-3 min-h-[58px]"
             >
-              <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white text-base shrink-0">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white text-sm shrink-0">
                   {s.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="spatial-headline text-[15px] font-semibold text-white truncate">
                     {s.name}
                   </p>
-                  {/* Blue Progress Bar */}
-                  <div className="spatial-progress-track mt-2 max-w-xs">
+                  {/* Progress Bar under name */}
+                  <div className="h-1.5 w-20 sm:w-28 rounded-full bg-white/10 overflow-hidden mt-1.5">
                     <div
-                      className="spatial-progress-fill bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.6)]"
+                      className="h-full rounded-full bg-[#0A84FF] shadow-[0_0_8px_rgba(10,132,255,0.6)]"
                       style={{ width: `${Math.max(0, Math.min(s.percent, 100))}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="text-left sm:text-right shrink-0 pl-14 sm:pl-0">
-                <span className="spatial-amount text-lg font-bold text-white block">
+              <div className="text-right shrink-0">
+                <span className="spatial-amount text-[15px] sm:text-lg font-bold text-white block tracking-tight">
                   €{s.utile.toFixed(2)}
                 </span>
-                <p className="spatial-caption text-white/50 mt-0.5">
-                  {s.percent.toFixed(0)}% quota · Lordo €{s.netto.toFixed(2)}
+                <p className="spatial-caption text-xs text-white/50 mt-0.5">
+                  {s.percent.toFixed(0)}% · lordo €{s.netto.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -308,8 +308,8 @@ export const Cassa: React.FC = () => {
       {reminders.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <h2 className="spatial-caption text-[#FF453A] tracking-wider font-semibold flex items-center gap-2">
-              <AlertCircle size={13} /> CREDITI SOSPESI ({reminders.length})
+            <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-2">
+              <AlertCircle size={13} className="text-[#FF453A]" /> SOSPESI · {reminders.length}
             </h2>
             <span className="spatial-caption text-white/40">
               In attesa di saldo
@@ -320,19 +320,19 @@ export const Cassa: React.FC = () => {
             {reminders.map((d) => (
               <div
                 key={d.id}
-                className="spatial-row px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3"
+                className="spatial-row px-4 sm:px-6 py-3 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0 flex-1">
                   <p className="spatial-headline text-[15px] font-semibold text-white truncate">
                     {d.customer_name || 'Cliente'}
                   </p>
-                  <p className="spatial-caption text-white/40 mt-0.5">
-                    Registrato il {new Date(d.created_at).toLocaleDateString('it-IT')}
+                  <p className="spatial-caption text-xs text-white/40 mt-0.5">
+                    {new Date(d.created_at).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <div className="shrink-0">
                   <Badge variant="danger" size="sm">
-                    €{safeNumber(d.amount_due).toFixed(2)} da incassare
+                    €{safeNumber(d.amount_due).toFixed(2)}
                   </Badge>
                 </div>
               </div>
