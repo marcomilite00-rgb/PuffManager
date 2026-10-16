@@ -14,15 +14,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   subtitle,
   action,
 }) => (
-  <div className="ios-card flex flex-col items-center justify-center py-12 px-6 text-center">
-    <div
-      className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
-      style={{ background: 'var(--surface-tertiary)', color: 'var(--label-secondary)' }}
-    >
-      <Icon size={26} />
+  <div className="spatial-panel flex flex-col items-center justify-center py-12 px-6 text-center my-4">
+    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-white/10 border border-white/15 text-white/70 shadow-inner">
+      <Icon size={28} />
     </div>
-    <h3 className="ios-headline">{title}</h3>
-    {subtitle && <p className="ios-footnote mt-1 max-w-xs">{subtitle}</p>}
-    {action && <div className="mt-4">{action}</div>}
+    <h3 className="spatial-headline text-white font-semibold">{title}</h3>
+    {subtitle && (
+      <p className="spatial-footnote text-white/50 mt-1 max-w-sm">
+        {subtitle}
+      </p>
+    )}
+    {action && <div className="mt-5">{action}</div>}
   </div>
 );

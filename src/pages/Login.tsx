@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../lib/error';
-import { Delete, ChevronLeft, Shield, RefreshCw, ChevronRight } from 'lucide-react';
+import { Delete, ChevronLeft, Shield, RefreshCw, ChevronRight, KeyRound, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -35,13 +35,15 @@ export const Login: React.FC = () => {
       const { data, error } = await supabase.rpc('get_staff_list_for_login');
       if (error) throw error;
       if (Array.isArray(data)) {
-        setStaffList(data.map(s => ({
-          id: s.id,
-          name: s.name,
-          role: s.role,
-          has_pin: s.has_pin,
-          pin_length: s.pin_length ?? 6,
-        })));
+        setStaffList(
+          data.map((s) => ({
+            id: s.id,
+            name: s.name,
+            role: s.role,
+            has_pin: s.has_pin,
+            pin_length: s.pin_length ?? 6,
+          }))
+        );
       } else {
         setStaffList([]);
       }
@@ -58,17 +60,20 @@ export const Login: React.FC = () => {
     fetchStaff();
   }, [user, navigate, fetchStaff]);
 
-  const requiredPinLen = selectedStaff?.has_pin ? (selectedStaff.pin_length || 6) : 0;
+  const requiredPinLen = selectedStaff?.has_pin ? selectedStaff.pin_length || 6 : 0;
 
-  const handleNumberClick = useCallback((num: string) => {
-    if (pin.length < requiredPinLen) {
-      setPin(prev => prev + num);
-      if (error) setError('');
-    }
-  }, [pin.length, requiredPinLen, error]);
+  const handleNumberClick = useCallback(
+    (num: string) => {
+      if (pin.length < requiredPinLen) {
+        setPin((prev) => prev + num);
+        if (error) setError('');
+      }
+    },
+    [pin.length, requiredPinLen, error]
+  );
 
   const handleBackspace = useCallback(() => {
-    setPin(prev => prev.slice(0, -1));
+    setPin((prev) => prev.slice(0, -1));
   }, []);
 
   const canSubmit = !!selectedStaff && (!selectedStaff.has_pin || pin.length === requiredPinLen);
@@ -84,18 +89,25 @@ export const Login: React.FC = () => {
     } catch (err) {
       setError(getErrorMessage(err, 'PIN errato, riprova'));
       setPin('');
-      setShakeKey(k => k + 1);
+      setShakeKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
   }, [selectedStaff, pin, requiredPinLen, login, navigate]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && canSubmit) handleLogin();
-    if (e.key === 'Backspace') handleBackspace();
-    if (/^[0-9]$/.test(e.key)) handleNumberClick(e.key);
-    if (e.key === 'Escape') { setSelectedStaff(null); setPin(''); setError(''); }
-  }, [canSubmit, handleLogin, handleBackspace, handleNumberClick]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && canSubmit) handleLogin();
+      if (e.key === 'Backspace') handleBackspace();
+      if (/^[0-9]$/.test(e.key)) handleNumberClick(e.key);
+      if (e.key === 'Escape') {
+        setSelectedStaff(null);
+        setPin('');
+        setError('');
+      }
+    },
+    [canSubmit, handleLogin, handleBackspace, handleNumberClick]
+  );
 
   useEffect(() => {
     if (selectedStaff && !selectedStaff.has_pin) handleLogin();
@@ -105,92 +117,147 @@ export const Login: React.FC = () => {
     if (selectedStaff?.has_pin) inputRef.current?.focus();
   }, [selectedStaff]);
 
-  const goBack = () => { setSelectedStaff(null); setPin(''); setError(''); };
+  const goBack = () => {
+    setSelectedStaff(null);
+    setPin('');
+    setError('');
+  };
 
   if (!selectedStaff) {
     return (
-      <div className="min-h-screen flex flex-col items-center" style={{ background: 'var(--surface)' }}>
-        <div className="w-full max-w-md px-4 pt-16 pb-8 flex-1 flex flex-col">
-          <h1 className="ios-title-large text-center">Puff Manager</h1>
-          <p className="ios-footnote text-center mt-1 mb-6">Chi sta usando il gestionale?</p>
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md flex flex-col items-center">
+          {/* Logo Brand Pill */}
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-white/20 to-white/5 border border-white/25 flex items-center justify-center font-bold text-2xl text-white mb-4 shadow-2xl">
+            P
+          </div>
+          <h1 className="spatial-title text-center text-white mb-1">
+            Puff Manager Pro
+          </h1>
+          <p className="spatial-subhead text-center mb-8">
+            Chi sta accedendo al terminale?
+          </p>
 
           {fetching ? (
-            <div className="ios-grouped">
+            <div className="spatial-panel w-full space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="ios-row"><div className="w-10 h-10 rounded-full ios-skeleton" /><div className="flex-1 h-4 ios-skeleton" /></div>
+                <div key={i} className="flex items-center gap-3 p-3">
+                  <div className="w-12 h-12 rounded-full spatial-skeleton shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="w-32 h-4 spatial-skeleton rounded" />
+                    <div className="w-20 h-3 spatial-skeleton rounded" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : fetchError ? (
-            <div className="ios-card p-5 text-center">
-              <Shield size={22} className="mx-auto mb-2" style={{ color: '#C0392B' }} />
-              <p className="ios-subhead">{fetchError}</p>
-              <button onClick={fetchStaff} className="ios-btn ios-btn-tinted mt-4 w-full">
+            <div className="spatial-panel-strong w-full p-6 text-center">
+              <Shield size={28} className="mx-auto mb-3 text-[#FF453A]" />
+              <p className="spatial-headline text-white mb-1">{fetchError}</p>
+              <button
+                type="button"
+                onClick={fetchStaff}
+                className="spatial-btn-ghost mt-4 w-full h-11 text-sm font-semibold"
+              >
                 <RefreshCw size={16} /> Riprova
               </button>
             </div>
           ) : staffList.length === 0 ? (
-            <div className="ios-card p-6 text-center">
-              <p className="ios-headline">Nessun profilo</p>
-              <p className="ios-footnote mt-1">Contatta un amministratore per creare lo staff</p>
+            <div className="spatial-panel w-full p-8 text-center">
+              <p className="spatial-headline text-white">Nessun operatore configurato</p>
+              <p className="spatial-footnote text-white/50 mt-1">
+                Contatta un amministratore per abilitare gli account staff
+              </p>
             </div>
           ) : (
-            <div className="ios-grouped">
+            <div className="spatial-panel w-full p-2 divide-y divide-white/10 overflow-hidden">
               {staffList.map((staff) => (
                 <button
                   key={staff.id}
+                  type="button"
                   onClick={() => setSelectedStaff(staff)}
-                  className="ios-row ios-press w-full text-left"
+                  className="spatial-row spatial-row-clickable w-full text-left px-4 py-3.5 flex items-center gap-3.5 group rounded-2xl transition-colors hover:bg-white/10"
                 >
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold" style={{ background: 'var(--label)', color: 'var(--surface-secondary)' }}>
+                  <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center font-bold text-white text-base shadow-sm shrink-0">
                     {staff.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="ios-headline text-[16px] truncate">{staff.name}</p>
-                    <p className="ios-caption capitalize">{staff.role}{staff.has_pin ? ' · PIN' : ''}</p>
+                    <p className="spatial-headline text-[16px] text-white font-medium truncate">
+                      {staff.name}
+                    </p>
+                    <p className="spatial-caption text-[11px] text-white/50 capitalize mt-0.5">
+                      {staff.role}
+                    </p>
                   </div>
-                  <ChevronRight size={18} style={{ color: 'var(--label-tertiary)' }} />
+                  {staff.has_pin && (
+                    <span className="spatial-chip spatial-chip-blue text-[11px] py-0.5 px-2">
+                      <KeyRound size={12} /> PIN
+                    </span>
+                  )}
+                  <ChevronRight
+                    size={18}
+                    className="text-white/40 group-hover:text-white transition-colors shrink-0 ml-1"
+                  />
                 </button>
               ))}
             </div>
           )}
-          <p className="ios-caption text-center mt-6">Seleziona il tuo nome per continuare</p>
+          <p className="spatial-caption text-center text-white/40 mt-6">
+            Tocca il tuo profilo per accedere
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center" style={{ background: 'var(--surface)' }} onKeyDown={handleKeyDown}>
-      <div className="w-full max-w-xs px-4 pt-10 pb-8 flex flex-col items-center">
-        <button onClick={goBack} className="ios-press self-start flex items-center gap-1 mb-6" style={{ color: 'var(--accent)' }}>
-          <ChevronLeft size={20} /> <span className="text-[17px]">Profili</span>
+    <div
+      className="min-h-[100dvh] flex flex-col items-center justify-center p-4 focus:outline-none"
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
+      <div className="w-full max-w-xs flex flex-col items-center">
+        {/* Back pill button */}
+        <button
+          type="button"
+          onClick={goBack}
+          className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/18 text-white/80 hover:text-white text-sm font-medium mb-6 transition-colors border border-white/15"
+        >
+          <ChevronLeft size={16} /> Profili
         </button>
 
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3" style={{ background: 'var(--label)', color: 'var(--surface-secondary)', fontSize: 26, fontWeight: 600 }}>
+        {/* Profile Avatar */}
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-white/25 to-white/10 border border-white/30 flex items-center justify-center mb-3 text-white text-3xl font-bold shadow-2xl">
           {selectedStaff.name.charAt(0).toUpperCase()}
         </div>
-        <h2 className="ios-title-3">{selectedStaff.name}</h2>
-        <p className="ios-footnote capitalize mt-0.5 mb-5">{selectedStaff.role}</p>
+        <h2 className="spatial-headline text-xl text-white font-semibold">
+          {selectedStaff.name}
+        </h2>
+        <p className="spatial-subhead text-sm text-white/50 capitalize mt-0.5 mb-6">
+          {selectedStaff.role}
+        </p>
 
+        {/* PIN Dots with Shake on error */}
         <motion.div
           key={shakeKey}
-          animate={error ? { x: [0, -8, 8, -6, 6, 0] } : {}}
-          transition={{ duration: 0.35 }}
-          className="flex justify-center gap-2.5 py-2"
+          animate={error ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex justify-center items-center gap-3.5 py-3 mb-2"
         >
           {[...Array(requiredPinLen)].map((_, i) => (
             <div
               key={i}
-              className="rounded-full transition-all"
-              style={{
-                width: 13, height: 13,
-                background: pin.length > i ? 'var(--accent)' : 'var(--surface-tertiary)',
-                border: pin.length > i ? 'none' : '1px solid var(--separator)',
-              }}
+              className={clsx(
+                'rounded-full transition-all duration-200',
+                pin.length > i
+                  ? 'w-3.5 h-3.5 bg-[#0A84FF] shadow-[0_0_12px_rgba(10,132,255,0.8)] scale-110'
+                  : 'w-3 h-3 bg-white/15 border border-white/25'
+              )}
             />
           ))}
         </motion.div>
 
+        {/* Hidden Input for Keyboard Typing */}
         <input
           ref={inputRef}
           type="password"
@@ -203,61 +270,76 @@ export const Login: React.FC = () => {
           aria-label="PIN"
         />
 
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="ios-footnote mt-1"
-              style={{ color: '#C0392B' }}
-            >
-              {error}
-            </motion.p>
-          )}
-        </AnimatePresence>
+        {/* Error message */}
+        <div className="h-6 flex items-center justify-center">
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="spatial-footnote text-[#FF453A] font-medium text-xs"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
 
-        <div className="grid grid-cols-3 gap-3 mt-5 w-full">
+        {/* Spatial Keypad Tiles */}
+        <div className="grid grid-cols-3 gap-3.5 mt-4 w-full">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <button
               key={num}
+              type="button"
               onClick={() => handleNumberClick(num.toString())}
-              className="ios-press rounded-full flex items-center justify-center"
-              style={{ height: 72, background: 'var(--surface-secondary)', border: '1px solid var(--separator)', fontSize: 26, fontWeight: 400 }}
+              className="h-[72px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 border border-white/15 flex items-center justify-center text-white text-2xl font-semibold transition-all shadow-md"
             >
               {num}
             </button>
           ))}
           <button
+            type="button"
             onClick={() => setPin('')}
-            className="ios-press rounded-full flex items-center justify-center ios-footnote"
-            style={{ height: 72 }}
-            aria-label="Cancella"
+            className="h-[72px] rounded-full hover:bg-white/10 active:scale-95 flex items-center justify-center spatial-footnote text-white/60 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider"
+            aria-label="Cancella tutto"
           >
             Cancella
           </button>
           <button
+            type="button"
             onClick={() => handleNumberClick('0')}
-            className="ios-press rounded-full flex items-center justify-center"
-            style={{ height: 72, background: 'var(--surface-secondary)', border: '1px solid var(--separator)', fontSize: 26 }}
+            className="h-[72px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 border border-white/15 flex items-center justify-center text-white text-2xl font-semibold transition-all shadow-md"
           >
             0
           </button>
           <button
+            type="button"
             onClick={handleBackspace}
-            className="ios-press rounded-full flex items-center justify-center"
-            style={{ height: 72, color: 'var(--label)' }}
-            aria-label="Indietro"
+            className="h-[72px] rounded-full hover:bg-white/10 active:scale-95 flex items-center justify-center text-white/70 hover:text-white transition-all"
+            aria-label="Cancella ultima cifra"
           >
             <Delete size={22} />
           </button>
         </div>
 
+        {/* Submit Pill Button */}
         <button
+          type="button"
           onClick={handleLogin}
           disabled={loading || !canSubmit}
-          className={clsx('ios-btn ios-press w-full mt-5', canSubmit ? 'ios-btn-filled' : '')}
-          style={canSubmit ? undefined : { background: 'var(--surface-tertiary)', color: 'var(--label-secondary)' }}
+          className={clsx(
+            'w-full mt-6 h-12 rounded-full font-semibold text-sm transition-all flex items-center justify-center shadow-lg',
+            canSubmit
+              ? 'spatial-btn-primary'
+              : 'bg-white/10 text-white/30 border border-white/10 cursor-not-allowed'
+          )}
         >
-          {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Accedi'}
+          {loading ? (
+            <Loader2 size={18} className="animate-spin text-black" />
+          ) : (
+            'Accedi'
+          )}
         </button>
       </div>
     </div>

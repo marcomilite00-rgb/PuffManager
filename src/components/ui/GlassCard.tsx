@@ -13,11 +13,21 @@ interface GlassCardProps {
 export const GlassCard: React.FC<GlassCardProps> = ({
   children,
   className,
+  hover = false,
   as: Tag = 'div',
   onClick,
 }) => {
+  const isInteractive = hover || !!onClick || Tag === 'button';
+
   return (
-    <Tag onClick={onClick} className={cn('ios-card p-4', className)}>
+    <Tag
+      onClick={onClick}
+      className={cn(
+        'spatial-panel',
+        isInteractive && 'spatial-panel-interactive cursor-pointer',
+        className
+      )}
+    >
       {children}
     </Tag>
   );

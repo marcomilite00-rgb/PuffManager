@@ -14,14 +14,19 @@ interface ToastContainerProps {
 }
 
 const icons = {
-  success: <CheckCircle2 size={18} style={{ color: '#2F7D4F' }} />,
-  error: <AlertCircle size={18} style={{ color: '#C0392B' }} />,
-  info: <Info size={18} style={{ color: 'var(--accent)' }} />,
+  success: <CheckCircle2 size={19} className="text-[#30D158] shrink-0" />,
+  error: <AlertCircle size={19} className="text-[#FF453A] shrink-0" />,
+  info: <Info size={19} className="text-[#0A84FF] shrink-0" />,
 };
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-[calc(100%-32px)] max-w-sm pointer-events-none">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 w-[calc(100%-32px)] max-w-sm pointer-events-none"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+    >
       <AnimatePresence>
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onRemove={onRemove} />
@@ -31,7 +36,10 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove
   );
 };
 
-const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> = ({ toast, onRemove }) => {
+const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> = ({
+  toast,
+  onRemove,
+}) => {
   useEffect(() => {
     const timer = setTimeout(() => onRemove(toast.id), 3000);
     return () => clearTimeout(timer);
@@ -39,16 +47,24 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12, transition: { duration: 0.18 } }}
+      initial={{ opacity: 0, y: -20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -16, scale: 0.95, transition: { duration: 0.18 } }}
       transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-      className="ios-banner pointer-events-auto flex items-center gap-3 px-4 py-3"
+      className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-full spatial-panel-strong border border-white/20 shadow-2xl backdrop-blur-2xl"
+      style={{ maxWidth: '100%' }}
     >
       {icons[toast.type]}
-      <span className="flex-1 ios-subhead">{toast.message}</span>
-      <button onClick={() => onRemove(toast.id)} className="ios-press p-1" style={{ color: 'var(--label-tertiary)' }} aria-label="Chiudi notifica">
-        <X size={16} />
+      <span className="flex-1 spatial-subhead text-white text-[14px] leading-tight font-medium truncate">
+        {toast.message}
+      </span>
+      <button
+        type="button"
+        onClick={() => onRemove(toast.id)}
+        className="p-1 rounded-full text-white/40 hover:text-white transition-colors focus-visible:outline-none"
+        aria-label="Chiudi notifica"
+      >
+        <X size={15} />
       </button>
     </motion.div>
   );
