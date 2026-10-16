@@ -128,8 +128,16 @@ export const Login: React.FC = () => {
       <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md flex flex-col items-center">
           {/* Logo Brand Pill */}
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-white/20 to-white/5 border border-white/25 flex items-center justify-center font-bold text-2xl text-white mb-4 shadow-2xl">
-            P
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-white/20 to-white/5 border border-white/25 flex items-center justify-center p-3 mb-4 shadow-2xl overflow-hidden">
+            <img
+              src="/logo.png"
+              alt="HiFancy Puff Manager Pro"
+              className="w-full h-full object-contain filter drop-shadow-md"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  'https://hifancypuff.com/wp-content/uploads/2024/08/cropped-logo.png';
+              }}
+            />
           </div>
           <h1 className="spatial-title text-center text-white mb-1">
             Puff Manager Pro

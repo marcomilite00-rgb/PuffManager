@@ -84,8 +84,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* ── Desktop Floating Rail (≥1024px / lg) ── */}
       <aside className="hidden lg:flex spatial-rail">
         {/* App Logo Pill */}
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/20 to-white/5 border border-white/20 flex items-center justify-center font-bold text-lg text-white mb-6 shadow-lg shadow-black/40">
-          P
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/20 to-white/5 border border-white/20 flex items-center justify-center p-2 mb-6 shadow-lg shadow-black/40 overflow-hidden">
+          <img
+            src="/logo.png"
+            alt="HiFancy Puff Manager"
+            className="w-full h-full object-contain filter drop-shadow-md"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                'https://hifancypuff.com/wp-content/uploads/2024/08/cropped-logo.png';
+            }}
+          />
         </div>
 
         {/* Navigation Items */}
@@ -172,8 +180,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <header className="lg:hidden sticky top-0 z-40 px-3 pt-[max(10px,calc(env(safe-area-inset-top,0px)+6px))] pb-2 pointer-events-none">
           <div className="pointer-events-auto flex items-center justify-between px-3.5 py-2 rounded-full spatial-panel-strong shadow-xl border border-white/20">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white/25 to-white/10 border border-white/20 flex items-center justify-center font-bold text-xs shadow-sm">
-                P
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white/25 to-white/10 border border-white/20 flex items-center justify-center p-1 shadow-sm overflow-hidden">
+                <img
+                  src="/logo.png"
+                  alt="HiFancy Puff Manager"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      'https://hifancypuff.com/wp-content/uploads/2024/08/cropped-logo.png';
+                  }}
+                />
               </div>
               <div>
                 <h1 className="spatial-headline text-[15px] font-semibold tracking-tight leading-tight">
