@@ -81,7 +81,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row relative text-[#F4F2EC]">
+    <div className="min-h-[100dvh] flex flex-col md:flex-row relative">
       {/* ── Desktop Floating Rail (≥768px / md) ── */}
       <aside className="hidden md:flex spatial-rail">
         {/* App Logo Pill */}
@@ -170,20 +170,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* ── Main Content Area ── */}
       <div className="flex-1 min-w-0 flex flex-col md:pl-[104px]">
         {/* Mobile Header in Floating Glass Pill */}
-        <header className="md:hidden sticky top-0 z-40 px-3 pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2 pointer-events-none">
-          <div className="pointer-events-auto flex items-center justify-between px-4 py-2.5 rounded-full spatial-panel-strong shadow-xl border border-white/20">
+        <header className="md:hidden sticky top-0 z-40 px-3 pt-[max(10px,calc(env(safe-area-inset-top,0px)+6px))] pb-2 pointer-events-none">
+          <div className="pointer-events-auto flex items-center justify-between px-4 py-2 rounded-full spatial-panel-strong shadow-xl border border-white/20">
             <div>
-              <h1 className="spatial-headline text-[16px] font-semibold tracking-tight text-white">
+              <h1 className="spatial-headline text-[15px] sm:text-[16px] font-semibold tracking-tight">
                 Puff Manager
               </h1>
-              <p className="spatial-caption text-[10px] text-white/50 capitalize">
+              <p className="spatial-caption text-[10px] opacity-60 capitalize">
                 {user.role} · {user.name}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+              className="min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all shrink-0"
               aria-label="Apri menu"
             >
               <Menu size={18} />
@@ -209,24 +209,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-                className="fixed top-3 right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] w-72 z-[70] p-4 flex flex-col md:hidden spatial-panel-strong border border-white/25 rounded-3xl shadow-2xl"
+                className="fixed top-3 right-3 bottom-[max(16px,calc(env(safe-area-inset-bottom,0px)+80px))] w-72 z-[70] p-4 flex flex-col md:hidden spatial-panel-strong border border-white/25 rounded-3xl shadow-2xl"
               >
                 <div className="flex justify-between items-center mb-4 px-1 pb-3 border-b border-white/10">
                   <div>
-                    <p className="spatial-headline text-[15px] font-semibold text-white">
+                    <p className="spatial-headline text-[15px] font-semibold">
                       {user.name}
                     </p>
-                    <p className="spatial-caption text-[10px] text-white/50 capitalize">
+                    <p className="spatial-caption text-[10px] opacity-60 capitalize">
                       {user.role}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                    className="min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all shrink-0"
                     aria-label="Chiudi menu"
                   >
-                    <X size={16} />
+                    <X size={18} />
                   </button>
                 </div>
 
@@ -243,7 +243,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) =>
                         cn(
-                          'flex items-center gap-3 px-3.5 py-3 rounded-2xl text-[14px] transition-all',
+                          'flex items-center gap-3 px-3.5 py-3 min-h-[44px] rounded-2xl text-[14px] transition-all active:scale-98',
                           isActive
                             ? 'bg-[#0A84FF] text-white font-semibold shadow-[0_0_16px_rgba(10,132,255,0.4)]'
                             : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -263,14 +263,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Link
                     to="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors active:scale-95"
                   >
                     <ArrowLeftRight size={14} /> Profilo
                   </Link>
                   <button
                     type="button"
                     onClick={logout}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-colors"
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-colors active:scale-95"
                   >
                     <LogOut size={14} /> Esci
                   </button>
@@ -281,7 +281,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </AnimatePresence>
 
         {/* Page Content: padding bottom for mobile dock */}
-        <main className="flex-1 min-w-0 px-3 md:px-8 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+96px)] md:pb-8">
+        <main className="flex-1 min-w-0 px-3 sm:px-6 md:px-8 py-3 pb-[max(110px,calc(env(safe-area-inset-bottom,0px)+104px))] md:pb-8">
           {children}
         </main>
 
@@ -301,10 +301,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               {({ isActive }) => (
                 <div
                   className={cn(
-                    'flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-2xl transition-all duration-200',
+                    'flex flex-col items-center justify-center gap-0.5 min-h-[46px] py-1 px-1 rounded-2xl transition-all duration-200 active:scale-95',
                     isActive
                       ? 'bg-[#0A84FF] text-white shadow-[0_0_14px_rgba(10,132,255,0.5)]'
-                      : 'text-white/50 hover:text-white'
+                      : 'opacity-60 hover:opacity-100'
                   )}
                 >
                   <span className="relative inline-flex">

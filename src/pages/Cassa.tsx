@@ -195,57 +195,57 @@ export const Cassa: React.FC = () => {
       </div>
 
       {/* ── 3 Smart-Home KPI Tiles: Lordo, Spese, Extra ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3.5">
         {/* Lordo */}
-        <div className="spatial-tile">
-          <div className="flex items-center justify-between">
-            <span className="spatial-caption text-white/50">Incasso Lordo</span>
-            <div className="w-9 h-9 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF]">
-              <TrendingUp size={17} />
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px]">
+          <div className="flex items-center justify-between gap-1">
+            <span className="spatial-caption text-[9.5px] sm:text-[11px] truncate">Lordo</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
+              <TrendingUp size={15} />
             </div>
           </div>
-          <div className="mt-2">
-            <p className="spatial-amount text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <div className="mt-1 sm:mt-2">
+            <p className="spatial-amount text-base sm:text-2xl font-bold tracking-tight">
               €{totals.gross.toFixed(2)}
             </p>
-            <p className="spatial-footnote text-xs text-white/50 mt-0.5">
-              Pagamenti totali registrati
+            <p className="spatial-footnote text-[11px] opacity-60 hidden sm:block mt-0.5">
+              Pagamenti totali
             </p>
           </div>
         </div>
 
         {/* Spese Carico */}
-        <div className="spatial-tile border-[#FF453A]/20">
-          <div className="flex items-center justify-between">
-            <span className="spatial-caption text-[#FF453A]">Spese Totali</span>
-            <div className="w-9 h-9 rounded-full bg-[#FF453A]/15 border border-[#FF453A]/30 flex items-center justify-center text-[#FF453A]">
-              <Receipt size={17} />
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px] border-[#FF453A]/20">
+          <div className="flex items-center justify-between gap-1">
+            <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF453A] truncate">Spese</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FF453A]/15 border border-[#FF453A]/30 flex items-center justify-center text-[#FF453A] shrink-0">
+              <Receipt size={15} />
             </div>
           </div>
-          <div className="mt-2">
-            <p className="spatial-amount text-2xl sm:text-3xl font-bold text-[#FF453A] tracking-tight">
+          <div className="mt-1 sm:mt-2">
+            <p className="spatial-amount text-base sm:text-2xl font-bold text-[#FF453A] tracking-tight">
               €{totals.spent.toFixed(2)}
             </p>
-            <p className="spatial-footnote text-xs text-white/50 mt-0.5">
-              Spese fisse e fornitura
+            <p className="spatial-footnote text-[11px] text-[#FF453A]/70 hidden sm:block mt-0.5">
+              Fisse e fornitura
             </p>
           </div>
         </div>
 
         {/* Extra Correnti */}
-        <div className="spatial-tile border-[#FF9F0A]/20">
-          <div className="flex items-center justify-between">
-            <span className="spatial-caption text-[#FF9F0A]">Spese Extra</span>
-            <div className="w-9 h-9 rounded-full bg-[#FF9F0A]/15 border border-[#FF9F0A]/30 flex items-center justify-center text-[#FF9F0A]">
-              <AlertCircle size={17} />
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px] border-[#FF9F0A]/20">
+          <div className="flex items-center justify-between gap-1">
+            <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF9F0A] truncate">Extra</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FF9F0A]/15 border border-[#FF9F0A]/30 flex items-center justify-center text-[#FF9F0A] shrink-0">
+              <AlertCircle size={15} />
             </div>
           </div>
-          <div className="mt-2">
-            <p className="spatial-amount text-2xl sm:text-3xl font-bold text-[#FF9F0A] tracking-tight">
+          <div className="mt-1 sm:mt-2">
+            <p className="spatial-amount text-base sm:text-2xl font-bold text-[#FF9F0A] tracking-tight">
               €{totals.currentLoadExpenses.toFixed(2)}
             </p>
-            <p className="spatial-footnote text-xs text-white/50 mt-0.5">
-              Uscite del carico corrente
+            <p className="spatial-footnote text-[11px] text-[#FF9F0A]/70 hidden sm:block mt-0.5">
+              Carico corrente
             </p>
           </div>
         </div>

@@ -492,7 +492,7 @@ export const Admin: React.FC = () => {
             aria-selected={activeTab === t.id}
             onClick={() => setActiveTab(t.id)}
             className={cn(
-              'spatial-segmented-item flex-1 text-center justify-center gap-2',
+              'spatial-segmented-item shrink-0 sm:flex-1 text-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm',
               activeTab === t.id && 'spatial-segmented-item-active'
             )}
           >

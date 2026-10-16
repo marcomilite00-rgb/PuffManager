@@ -322,17 +322,17 @@ export const Vendita: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-white/10">
-                  <span className="spatial-amount text-base sm:text-lg font-bold text-white">
+                  <span className="spatial-amount text-base sm:text-lg font-bold">
                     €{Number(v.default_price).toFixed(2)}
                   </span>
                   <button
                     type="button"
                     onClick={() => !isOutOfStock && addToCart(v)}
                     disabled={isOutOfStock}
-                    className="w-9 h-9 rounded-full bg-[#0A84FF] hover:bg-[#0070E0] active:scale-95 text-white flex items-center justify-center shadow-[0_0_12px_rgba(10,132,255,0.45)] transition-all shrink-0 focus-visible:outline-none"
+                    className="min-w-[44px] min-h-[44px] rounded-full bg-[#0A84FF] hover:bg-[#0070E0] active:scale-95 text-white flex items-center justify-center shadow-[0_0_12px_rgba(10,132,255,0.45)] transition-all shrink-0 focus-visible:outline-none"
                     aria-label={`Aggiungi ${v.model_name} ${v.flavor_name} al carrello`}
                   >
-                    <Plus size={18} strokeWidth={2.5} />
+                    <Plus size={20} strokeWidth={2.5} />
                   </button>
                 </div>
               </div>
@@ -419,10 +419,10 @@ export const Vendita: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCartOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  className="min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all"
                   aria-label="Chiudi carrello"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               </div>
 
@@ -482,25 +482,25 @@ export const Vendita: React.FC = () => {
 
                       {/* Stepper + Price Input */}
                       <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
-                        <div className="flex items-center gap-2 bg-white/10 rounded-full p-1 border border-white/10">
+                        <div className="flex items-center gap-1.5 bg-white/10 rounded-full p-1 border border-white/10">
                           <button
                             type="button"
                             onClick={() => changeQty(item.id, -1)}
-                            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white transition-all"
+                            className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center transition-all"
                             aria-label="Diminuisci quantità"
                           >
-                            <Minus size={13} />
+                            <Minus size={15} />
                           </button>
-                          <span className="spatial-amount text-sm font-semibold w-6 text-center text-white">
+                          <span className="spatial-amount text-sm font-semibold w-7 text-center">
                             {item.qty}
                           </span>
                           <button
                             type="button"
                             onClick={() => addToCart(item)}
-                            className="w-7 h-7 rounded-full bg-[#0A84FF] active:scale-95 flex items-center justify-center text-white shadow-[0_0_8px_rgba(10,132,255,0.5)] transition-all"
+                            className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-full bg-[#0A84FF] active:scale-90 flex items-center justify-center text-white shadow-[0_0_8px_rgba(10,132,255,0.5)] transition-all"
                             aria-label="Aumenta quantità"
                           >
-                            <Plus size={13} />
+                            <Plus size={15} />
                           </button>
                         </div>
 
@@ -547,7 +547,7 @@ export const Vendita: React.FC = () => {
                     className="spatial-btn-primary h-12 text-sm font-semibold flex items-center justify-center shadow-lg"
                   >
                     {actionLoading ? (
-                      <Loader2 size={18} className="animate-spin text-black" />
+                      <Loader2 size={18} className="animate-spin" />
                     ) : (
                       'Incassa ora'
                     )}

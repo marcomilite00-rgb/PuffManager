@@ -145,7 +145,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 disabled={loading}
                 className="spatial-btn-primary flex-1 h-12 text-sm font-semibold"
               >
-                {loading ? <Loader2 size={18} className="animate-spin text-black" /> : 'Incassa'}
+                {loading ? <Loader2 size={18} className="animate-spin" /> : 'Incassa'}
               </button>
             </div>
           </motion.div>

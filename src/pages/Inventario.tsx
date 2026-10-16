@@ -187,57 +187,57 @@ export const Inventario: React.FC = () => {
       </div>
 
       {/* ── 3 Smart-Home KPI Tiles (Humidity / Wind Speed Style) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3.5">
         {/* Tile 1: Totale */}
-        <div className="spatial-tile">
-          <div className="flex items-center justify-between">
-            <span className="spatial-caption text-white/50">Giacenza Totale</span>
-            <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white">
-              <Package size={17} />
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px]">
+          <div className="flex items-center justify-between gap-1">
+            <span className="spatial-caption text-[9.5px] sm:text-[11px] truncate">Totale</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center shrink-0">
+              <Package size={15} />
             </div>
           </div>
-          <div className="mt-2">
-            <p className="spatial-amount text-3xl sm:text-4xl font-bold text-white tracking-tight">
+          <div className="mt-1 sm:mt-2">
+            <p className="spatial-amount text-lg sm:text-3xl font-bold tracking-tight">
               {stats.total}
             </p>
-            <p className="spatial-footnote text-xs text-white/50 mt-0.5">
+            <p className="spatial-footnote text-[11px] opacity-60 hidden sm:block mt-0.5">
               Pezzi fisici disponibili
             </p>
           </div>
         </div>
 
         {/* Tile 2: Pochi */}
-        <div className="spatial-tile border-[#FF9F0A]/25">
-          <div className="flex items-center justify-between">
-            <span className="spatial-caption text-[#FF9F0A]">In Esaurimento</span>
-            <div className="w-9 h-9 rounded-full bg-[#FF9F0A]/15 border border-[#FF9F0A]/30 flex items-center justify-center text-[#FF9F0A]">
-              <AlertTriangle size={17} />
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px] border-[#FF9F0A]/25">
+          <div className="flex items-center justify-between gap-1">
+            <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF9F0A] truncate">Scorte Basse</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FF9F0A]/15 border border-[#FF9F0A]/30 flex items-center justify-center text-[#FF9F0A] shrink-0">
+              <AlertTriangle size={15} />
             </div>
           </div>
-          <div className="mt-2">
-            <p className="spatial-amount text-3xl sm:text-4xl font-bold text-[#FF9F0A] tracking-tight">
+          <div className="mt-1 sm:mt-2">
+            <p className="spatial-amount text-lg sm:text-3xl font-bold text-[#FF9F0A] tracking-tight">
               {stats.lowStock}
             </p>
-            <p className="spatial-footnote text-xs text-[#FF9F0A]/70 mt-0.5">
-              Scorte critiche (≤ {STOCK_THRESHOLD} pz)
+            <p className="spatial-footnote text-[11px] text-[#FF9F0A]/70 hidden sm:block mt-0.5">
+              ≤ {STOCK_THRESHOLD} pz
             </p>
           </div>
         </div>
 
         {/* Tile 3: Esauriti */}
-        <div className="spatial-tile border-[#FF453A]/25">
-          <div className="flex items-center justify-between">
-            <span className="spatial-caption text-[#FF453A]">Esauriti</span>
-            <div className="w-9 h-9 rounded-full bg-[#FF453A]/15 border border-[#FF453A]/30 flex items-center justify-center text-[#FF453A]">
-              <XCircle size={17} />
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px] border-[#FF453A]/25">
+          <div className="flex items-center justify-between gap-1">
+            <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF453A] truncate">Esauriti</span>
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#FF453A]/15 border border-[#FF453A]/30 flex items-center justify-center text-[#FF453A] shrink-0">
+              <XCircle size={15} />
             </div>
           </div>
-          <div className="mt-2">
-            <p className="spatial-amount text-3xl sm:text-4xl font-bold text-[#FF453A] tracking-tight">
+          <div className="mt-1 sm:mt-2">
+            <p className="spatial-amount text-lg sm:text-3xl font-bold text-[#FF453A] tracking-tight">
               {stats.outOfStock}
             </p>
-            <p className="spatial-footnote text-xs text-[#FF453A]/70 mt-0.5">
-              Varianti a stock zero
+            <p className="spatial-footnote text-[11px] text-[#FF453A]/70 hidden sm:block mt-0.5">
+              Stock zero
             </p>
           </div>
         </div>

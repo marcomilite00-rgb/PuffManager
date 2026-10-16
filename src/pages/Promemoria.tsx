@@ -233,7 +233,7 @@ export const Promemoria: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMenuId(isMenuOpen ? null : reminder.id)}
-                    className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/60 hover:text-white transition-colors shrink-0 ml-1"
+                    className="min-w-[44px] min-h-[44px] rounded-full bg-white/5 hover:bg-white/15 active:scale-95 flex items-center justify-center transition-all shrink-0 ml-1"
                     aria-label="Altre opzioni debito"
                   >
                     <MoreVertical size={18} />
@@ -325,7 +325,7 @@ export const Promemoria: React.FC = () => {
                             finalizePayment(reminder.id, reminder.amount_due);
                             setMenuId(null);
                           }}
-                          className="h-10 rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#30D158]/15 hover:bg-[#30D158]/25 border border-[#30D158]/30 text-[#30D158] transition-colors"
+                          className="min-h-[44px] rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#30D158]/15 hover:bg-[#30D158]/25 border border-[#30D158]/30 text-[#30D158] transition-all active:scale-95"
                         >
                           <Check size={14} /> Saldato
                         </button>
@@ -336,7 +336,7 @@ export const Promemoria: React.FC = () => {
                             setMenuId(null);
                           }}
                           disabled={actionLoading === reminder.id}
-                          className="h-10 rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#FF9F0A]/15 hover:bg-[#FF9F0A]/25 border border-[#FF9F0A]/30 text-[#FF9F0A] transition-colors disabled:opacity-40"
+                          className="min-h-[44px] rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#FF9F0A]/15 hover:bg-[#FF9F0A]/25 border border-[#FF9F0A]/30 text-[#FF9F0A] transition-all active:scale-95 disabled:opacity-40"
                         >
                           <Calendar size={14} /> Riprenota
                         </button>
@@ -346,7 +346,7 @@ export const Promemoria: React.FC = () => {
                             setDeleteConfirmId(reminder.id);
                             setMenuId(null);
                           }}
-                          className="h-10 rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] transition-colors"
+                          className="min-h-[44px] rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] transition-all active:scale-95"
                         >
                           <Trash2 size={14} /> Elimina
                         </button>

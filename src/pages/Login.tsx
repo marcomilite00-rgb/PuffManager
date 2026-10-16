@@ -221,7 +221,7 @@ export const Login: React.FC = () => {
         <button
           type="button"
           onClick={goBack}
-          className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/18 text-white/80 hover:text-white text-sm font-medium mb-6 transition-colors border border-white/15"
+          className="self-start min-h-[44px] flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 hover:bg-white/18 active:scale-95 text-white/80 hover:text-white text-sm font-medium mb-6 transition-all border border-white/15"
         >
           <ChevronLeft size={16} /> Profili
         </button>
@@ -336,7 +336,7 @@ export const Login: React.FC = () => {
           )}
         >
           {loading ? (
-            <Loader2 size={18} className="animate-spin text-black" />
+            <Loader2 size={18} className="animate-spin" />
           ) : (
             'Accedi'
           )}
