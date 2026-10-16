@@ -25,8 +25,10 @@ interface Reminder {
   description: string;
   amount_due: number;
   created_by_staff_id: string;
+  staff?: { name: string } | null;
   order?: {
     gross_total: number;
+    staff?: { name: string } | null;
     items: Array<{
       id: string;
       qty: number;
@@ -35,6 +37,43 @@ interface Reminder {
     }>;
   };
 }
+
+interface ParsedReminderItem {
+  model?: string;
+  flavor: string;
+  qty: number;
+  price: number;
+}
+
+const getReminderItems = (reminder: Reminder): ParsedReminderItem[] => {
+  if (reminder.order?.items && reminder.order.items.length > 0) {
+    return reminder.order.items.map((it) => ({
+      model: it.variant?.model?.name || '',
+      flavor: it.variant?.flavor?.name || 'Gusto non specificato',
+      qty: it.qty,
+      price: safeNumber(it.unit_price_final) * safeNumber(it.qty),
+    }));
+  }
+  if (reminder.description) {
+    const raw = reminder.description.replace(/^Saldo:\s*/i, '').trim();
+    if (raw) {
+      return [
+        {
+          flavor: raw,
+          qty: 1,
+          price: safeNumber(reminder.amount_due),
+        },
+      ];
+    }
+  }
+  return [
+    {
+      flavor: 'Debito registrato',
+      qty: 1,
+      price: safeNumber(reminder.amount_due),
+    },
+  ];
+};
 
 export const Promemoria: React.FC = () => {
   const { user } = useAuth();
@@ -53,7 +92,7 @@ export const Promemoria: React.FC = () => {
       const { data, error } = await supabase
         .from('reminders')
         .select(
-          '*, order:orders(gross_total, items:order_items(*, variant:product_variants(model:product_models(name), flavor:product_flavors(name))))'
+          '*, staff:created_by_staff_id(name), order:orders(gross_total, staff:sold_by_staff_id(name), items:order_items(*, variant:product_variants(model:product_models(name), flavor:product_flavors(name))))'
         )
         .eq('status', 'active')
         .order('created_at', { ascending: false });
@@ -195,100 +234,114 @@ export const Promemoria: React.FC = () => {
             const paid = Math.max(0, gross - due);
             const paidRatio = gross > 0 ? (paid / gross) * 100 : 0;
             const dueRatio = 100 - paidRatio;
+            const items = getReminderItems(reminder);
+            const staffName =
+              reminder.staff?.name || reminder.order?.staff?.name;
 
             return (
               <div
                 key={reminder.id}
                 className="spatial-panel p-5 sm:p-6 border border-white/15 flex flex-col gap-4 relative overflow-hidden"
               >
-                {/* Header Row */}
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#FF453A]/20 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center font-bold text-lg shadow-[0_0_12px_rgba(255,69,58,0.3)] shrink-0">
-                    {(reminder.customer_name || 'C').charAt(0).toUpperCase()}
+                {/* Header Row: Cliente a sinistra, Soldi che mancano in piccolo a destra */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-[#FF453A]/15 border border-[#FF453A]/25 text-[#FF453A] flex items-center justify-center font-bold text-base shrink-0">
+                      {(reminder.customer_name || 'C').charAt(0).toUpperCase()}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="spatial-headline text-[15px] sm:text-[16px] font-semibold text-white truncate">
+                        {reminder.customer_name || 'Cliente'}
+                      </p>
+                      <p className="spatial-caption text-white/40 text-[11px] mt-0.5">
+                        Registrato il{' '}
+                        {new Date(reminder.created_at).toLocaleDateString('it-IT', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                        {staffName ? (
+                          <>
+                            {' '}da{' '}
+                            <span className="text-white/75 font-medium">
+                              {staffName}
+                            </span>
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="spatial-headline text-[16px] sm:text-[17px] font-semibold text-white truncate">
-                      {reminder.customer_name || 'Cliente'}
-                    </p>
-                    <p className="spatial-caption text-white/50 mt-0.5">
-                      Registrato il{' '}
-                      {new Date(reminder.created_at).toLocaleDateString('it-IT', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  </div>
+                  {/* Restante da pagare in piccolo */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-semibold text-white/40 block tracking-wider leading-none mb-1">
+                        Mancano
+                      </span>
+                      <span className="text-sm sm:text-base font-bold text-[#FF453A] leading-none">
+                        €{formatEur(due)}
+                      </span>
+                    </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="spatial-caption text-[#FF453A] block">
-                      Restante da pagare
-                    </span>
-                    <span className="spatial-amount text-2xl font-bold text-[#FF453A] tracking-tight">
-                      €{formatEur(due)}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMenuId(isMenuOpen ? null : reminder.id)}
+                      className="min-w-[36px] min-h-[36px] rounded-full bg-white/5 hover:bg-white/15 active:scale-95 flex items-center justify-center transition-all shrink-0 ml-1 text-white/60 hover:text-white"
+                      aria-label="Altre opzioni debito"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setMenuId(isMenuOpen ? null : reminder.id)}
-                    className="min-w-[44px] min-h-[44px] rounded-full bg-white/5 hover:bg-white/15 active:scale-95 flex items-center justify-center transition-all shrink-0 ml-1"
-                    aria-label="Altre opzioni debito"
-                  >
-                    <MoreVertical size={18} />
-                  </button>
                 </div>
 
-                {/* ── Slider Ambient LED Style: Paid vs Remaining Bar ── */}
-                <div className="spatial-subpanel p-3.5 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="spatial-caption text-white/60">
+                {/* ── IL GUSTO IN GRANDE ── */}
+                <div className="spatial-subpanel p-3.5 sm:p-4 rounded-2xl flex flex-col gap-2.5 border border-white/10 bg-white/[0.04]">
+                  {items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        {item.model && (
+                          <span className="text-[11px] font-semibold text-[#0A84FF] uppercase tracking-wider block mb-0.5">
+                            {item.model}
+                          </span>
+                        )}
+                        <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug break-words">
+                          {item.flavor}
+                        </h3>
+                      </div>
+                      <div className="text-xs text-white/60 shrink-0 font-medium sm:text-right">
+                        {item.qty} pz · €{formatEur(item.price)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Riga dei soldi che mancano (in piccolo) ── */}
+                <div className="space-y-1.5 px-0.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-white/50">
                       Già Corrisposto: €{formatEur(paid)} ({paidRatio.toFixed(0)}%)
                     </span>
-                    <span className="spatial-caption text-[#FF453A] font-semibold">
+                    <span className="text-[#FF453A] font-semibold">
                       Debito: €{formatEur(due)} ({dueRatio.toFixed(0)}%)
                     </span>
                   </div>
 
-                  {/* Ambient LED Double-Track Slider */}
-                  <div className="relative w-full h-3 rounded-full bg-white/10 overflow-hidden flex p-0.5 border border-white/15">
-                    {/* Paid portion: soft blue/green glow */}
+                  {/* Slim Ambient LED Double-Track Line */}
+                  <div className="relative w-full h-1.5 rounded-full bg-white/10 overflow-hidden flex border border-white/10">
                     <div
-                      className="h-full rounded-l-full bg-gradient-to-r from-[#0A84FF] to-[#30D158] transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-[#0A84FF] to-[#30D158] transition-all duration-300"
                       style={{ width: `${paidRatio}%` }}
                     />
-                    {/* Remaining portion: bright LED red glow */}
                     <div
-                      className="h-full rounded-r-full bg-[#FF453A] shadow-[0_0_12px_#FF453A] transition-all duration-300"
+                      className="h-full bg-[#FF453A] shadow-[0_0_8px_#FF453A] transition-all duration-300"
                       style={{ width: `${dueRatio}%` }}
                     />
                   </div>
                 </div>
-
-                {/* Optional Articles Summary */}
-                {reminder.order?.items && reminder.order.items.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <p className="spatial-caption text-white/40">
-                      Articoli legati all'ordine:
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {reminder.order.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="spatial-subpanel px-3 py-1.5 flex items-center justify-between text-xs"
-                        >
-                          <span className="text-white/80 font-medium truncate pr-2">
-                            {item.variant?.model?.name} · {item.variant?.flavor?.name}
-                          </span>
-                          <span className="spatial-amount text-white shrink-0">
-                            {item.qty} pz · €{formatEur(safeNumber(item.unit_price_final) * safeNumber(item.qty))}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* ── Single Primary CTA: "Incassa" ── */}
                 <div className="pt-2">
