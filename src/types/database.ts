@@ -101,11 +101,25 @@ export interface OrderItem {
     qty: number;
     unit_price_final: number;
     unit_price_default?: number | null;
+    unit_cost?: number | null;
+    profit?: number | null;
     variant?: {
         unit_cost?: number | null;
         model?: { name: string } | null;
         flavor?: { name: string } | null;
     } | null;
+}
+
+export interface StaffProfitBreakdown {
+    staff_id: string;
+    staff_name: string;
+    staff_role: StaffRole;
+    total_qty_sold: number;
+    gross_sold: number;
+    total_cogs: number;
+    unit_profit_staff: number;
+    profit_share_percent: number;
+    net_attributed_profit: number;
 }
 
 export interface OrderWithItems extends Order {

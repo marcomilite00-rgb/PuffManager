@@ -79,33 +79,70 @@ export const Cassa: React.FC = () => {
 
   const staffEarningsList = useMemo(() => {
     if (!staff.length) return [];
-    const earnings: { [key: string]: number } = {};
-    staff.forEach((s) => (earnings[s.id] = 0));
+    
+    // Mappa di accumulo per operatore: quantità, lordo venduto, cogs e unit_profit diretto
+    const staffMetricsMap: {
+      [key: string]: {
+        qtySold: number;
+        grossSold: number;
+        cogs: number;
+        unitProfit: number;
+      };
+    } = {};
+
+    staff.forEach((s) => {
+      staffMetricsMap[s.id] = { qtySold: 0, grossSold: 0, cogs: 0, unitProfit: 0 };
+    });
+
     const lastReset = settings?.last_reset_date ? new Date(settings.last_reset_date) : null;
+
     orders.forEach((order) => {
       const staffId = order.sold_by_staff_id;
-      if (!staffId || !(staffId in earnings)) return;
-      const payments = order.payments || [];
-      payments.forEach((p) => {
-        const payDate = p.created_at ? new Date(p.created_at) : null;
-        if (!lastReset || (payDate && payDate >= lastReset)) earnings[staffId] += safeNumber(p.amount);
+      if (!staffId || !(staffId in staffMetricsMap)) return;
+      if (order.created_at) {
+        const orderDate = new Date(order.created_at);
+        if (lastReset && orderDate < lastReset) return;
+      }
+
+      const current = staffMetricsMap[staffId];
+      const items = order.items || [];
+      items.forEach((item) => {
+        const q = safeNumber(item.qty);
+        const price = safeNumber(item.unit_price_final);
+        const cost = safeNumber(item.unit_cost ?? item.variant?.unit_cost ?? 0);
+
+        const itemGross = q * price;
+        const itemCogs = q * cost;
+        const itemProfit = itemGross - itemCogs;
+
+        current.qtySold += q;
+        current.grossSold += itemGross;
+        current.cogs += itemCogs;
+        current.unitProfit += itemProfit;
       });
     });
-    const totalGross = Object.values(earnings).reduce((acc, val) => acc + val, 0);
+
+    const totalUnitProfit = Object.values(staffMetricsMap).reduce(
+      (acc, val) => acc + val.unitProfit,
+      0
+    );
     const totalNet = totals.net;
+
     return staff
       .map((s) => {
-        const gross = earnings[s.id] || 0;
-        const share = totalGross > 0 ? gross / totalGross : 0;
+        const metrics = staffMetricsMap[s.id] || { qtySold: 0, grossSold: 0, cogs: 0, unitProfit: 0 };
+        const share = totalUnitProfit > 0 ? metrics.unitProfit / totalUnitProfit : 0;
         return {
           ...s,
-          gross,
-          netto: totalGross * share,
+          qtySold: metrics.qtySold,
+          gross: metrics.grossSold,
+          cogs: metrics.cogs,
+          unitProfit: metrics.unitProfit,
           utile: totalNet * share,
           percent: share * 100,
         };
       })
-      .sort((a, b) => b.gross - a.gross);
+      .sort((a, b) => b.unitProfit - a.unitProfit);
   }, [orders, staff, settings, totals.net]);
 
   // Gauge calculation: percentage of gross converted to net, or relative to positive target
@@ -254,28 +291,50 @@ export const Cassa: React.FC = () => {
       {/* ── Ripartizione Staff con Barre di Avanzamento ── */}
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-2">
-            <Users size={13} /> RIPARTIZIONE STAFF
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-2">
+              <Users size={13} /> RIPARTIZIONE STAFF
+            </h2>
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#30D158]/15 border border-[#30D158]/30 text-[#30D158]">
+              Modello Unit Profit
+            </span>
+          </div>
           <span className="spatial-caption text-white/40">
             {staffEarningsList.length} Membri attivi
           </span>
         </div>
 
         <div className="spatial-panel p-0 overflow-hidden divide-y divide-white/10">
+          {/* Desktop Column Header Bar */}
+          <div className="hidden md:flex items-center justify-between px-6 py-2.5 text-[11px] font-semibold text-white/40 uppercase tracking-wider bg-white/[0.02] border-b border-white/5">
+            <span className="w-56">Operatore</span>
+            <div className="grid grid-cols-3 gap-6 text-right flex-1 max-w-md mx-4">
+              <span>Venduto (Pz)</span>
+              <span>Costo Merce</span>
+              <span className="text-[#30D158] font-bold">Margine Diretto</span>
+            </div>
+            <span className="text-right w-36">Utile Attribuito</span>
+          </div>
+
           {staffEarningsList.map((s) => (
             <div
               key={s.id}
-              className="spatial-row px-4 sm:px-6 py-3 flex items-center justify-between gap-3 min-h-[58px]"
+              className="spatial-row px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 min-h-[62px]"
             >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+              {/* 1. Operatore: Avatar, Nome, Ruolo, Barra */}
+              <div className="flex items-center gap-3.5 w-auto md:w-56 shrink-0 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white text-sm shrink-0">
                   {s.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="spatial-headline text-[15px] font-semibold text-white truncate">
-                    {s.name}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="spatial-headline text-[15px] font-semibold text-white truncate">
+                      {s.name}
+                    </p>
+                    <span className="spatial-caption text-[10px] text-white/40 uppercase hidden lg:inline">
+                      {s.role}
+                    </span>
+                  </div>
                   {/* Progress Bar under name */}
                   <div className="h-1.5 w-20 sm:w-28 rounded-full bg-white/10 overflow-hidden mt-1.5">
                     <div
@@ -286,12 +345,47 @@ export const Cassa: React.FC = () => {
                 </div>
               </div>
 
-              <div className="text-right shrink-0">
+              {/* 2. Dettagli Contabili Unit Profit (Desktop / Tablet) */}
+              <div className="hidden md:grid grid-cols-3 gap-6 text-right items-center flex-1 max-w-md mx-4">
+                {/* Venduto & Pezzi */}
+                <div>
+                  <span className="spatial-amount text-sm font-semibold text-white block">
+                    €{s.gross.toFixed(2)}
+                  </span>
+                  <span className="text-[11px] text-white/40 block">
+                    {s.qtySold} pz
+                  </span>
+                </div>
+
+                {/* Costo Merce (COGS) */}
+                <div>
+                  <span className="spatial-amount text-sm font-semibold text-[#FF453A]/90 block">
+                    €{s.cogs.toFixed(2)}
+                  </span>
+                  <span className="text-[11px] text-white/40 block">
+                    fornitura
+                  </span>
+                </div>
+
+                {/* Margine Diretto (Unit Profit) */}
+                <div>
+                  <span className="spatial-amount text-sm font-bold text-[#30D158] block">
+                    +€{s.unitProfit.toFixed(2)}
+                  </span>
+                  <span className="text-[11px] text-[#30D158]/70 block font-medium">
+                    unit profit
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Utile Netto Attribuito & Quota */}
+              <div className="text-right shrink-0 md:w-36">
                 <span className="spatial-amount text-[15px] sm:text-lg font-bold text-white block tracking-tight">
                   €{s.utile.toFixed(2)}
                 </span>
                 <p className="spatial-caption text-xs text-white/50 mt-0.5">
-                  {s.percent.toFixed(0)}% · lordo €{s.netto.toFixed(2)}
+                  <span className="font-semibold text-white/80">{s.percent.toFixed(0)}%</span> quota
+                  <span className="md:hidden"> · <span className="text-[#30D158] font-medium">+€{s.unitProfit.toFixed(2)}</span></span>
                 </p>
               </div>
             </div>
