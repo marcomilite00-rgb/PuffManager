@@ -463,7 +463,7 @@ body::after {
   box-shadow: 0 4px 16px rgba(10, 132, 255, 0.4);
 }
 
-/* ── Spatial Dock (Mobile bottom nav) ── */
+/* ── Spatial Dock (Mobile bottom nav ONLY: <1024px) ── */
 .spatial-dock {
   position: fixed;
   bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 8px));
@@ -486,30 +486,44 @@ body::after {
   }
 }
 
-/* ── Spatial Rail (Desktop vertical navigation) ── */
+@media (min-width: 1024px) {
+  .spatial-dock {
+    display: none !important;
+  }
+}
+
+/* ── Spatial Rail (Desktop vertical navigation ONLY: ≥1024px) ── */
 .spatial-rail {
-  position: fixed;
-  top: 16px;
-  bottom: 16px;
-  left: 16px;
-  width: 76px;
-  z-index: 50;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)), rgba(14, 15, 19, 0.65);
-  backdrop-filter: blur(32px) saturate(160%);
-  -webkit-backdrop-filter: blur(32px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 36px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 8px;
-  transform: translateZ(0);
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .spatial-rail {
+    display: flex !important;
+    position: fixed;
+    top: 16px;
+    bottom: 16px;
+    left: 16px;
+    width: 76px;
+    z-index: 50;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)), rgba(14, 15, 19, 0.65);
+    backdrop-filter: blur(32px) saturate(160%);
+    -webkit-backdrop-filter: blur(32px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 36px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 8px;
+    transform: translateZ(0);
+  }
 }
 
 @supports not (backdrop-filter: blur(1px)) {
-  .spatial-rail {
-    background: rgba(24, 26, 32, 0.95);
+  @media (min-width: 1024px) {
+    .spatial-rail {
+      background: rgba(24, 26, 32, 0.95);
+    }
   }
 }
 

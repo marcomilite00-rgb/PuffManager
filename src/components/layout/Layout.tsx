@@ -11,7 +11,6 @@ import {
   History,
   Settings,
   LogOut,
-  Menu,
   X,
   Bell,
   ArrowLeftRight,
@@ -81,9 +80,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-[100dvh] flex flex-col md:flex-row relative">
-      {/* ── Desktop Floating Rail (≥768px / md) ── */}
-      <aside className="hidden md:flex spatial-rail">
+    <div className="min-h-[100dvh] flex flex-col lg:flex-row relative">
+      {/* ── Desktop Floating Rail (≥1024px / lg) ── */}
+      <aside className="hidden lg:flex spatial-rail">
         {/* App Logo Pill */}
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white/20 to-white/5 border border-white/20 flex items-center justify-center font-bold text-lg text-white mb-6 shadow-lg shadow-black/40">
           P
@@ -168,111 +167,116 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </aside>
 
       {/* ── Main Content Area ── */}
-      <div className="flex-1 min-w-0 flex flex-col md:pl-[104px]">
-        {/* Mobile Header in Floating Glass Pill */}
-        <header className="md:hidden sticky top-0 z-40 px-3 pt-[max(10px,calc(env(safe-area-inset-top,0px)+6px))] pb-2 pointer-events-none">
-          <div className="pointer-events-auto flex items-center justify-between px-4 py-2 rounded-full spatial-panel-strong shadow-xl border border-white/20">
-            <div>
-              <h1 className="spatial-headline text-[15px] sm:text-[16px] font-semibold tracking-tight">
-                Puff Manager
-              </h1>
-              <p className="spatial-caption text-[10px] opacity-60 capitalize">
-                {user.role} · {user.name}
-              </p>
+      <div className="flex-1 min-w-0 flex flex-col lg:pl-[104px]">
+        {/* Mobile Header in Floating Glass Pill (<1024px) */}
+        <header className="lg:hidden sticky top-0 z-40 px-3 pt-[max(10px,calc(env(safe-area-inset-top,0px)+6px))] pb-2 pointer-events-none">
+          <div className="pointer-events-auto flex items-center justify-between px-3.5 py-2 rounded-full spatial-panel-strong shadow-xl border border-white/20">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white/25 to-white/10 border border-white/20 flex items-center justify-center font-bold text-xs shadow-sm">
+                P
+              </div>
+              <div>
+                <h1 className="spatial-headline text-[15px] font-semibold tracking-tight leading-tight">
+                  Puff Manager
+                </h1>
+                <p className="spatial-caption text-[10px] opacity-60 capitalize leading-tight">
+                  {user.name} ({user.role})
+                </p>
+              </div>
             </div>
+
+            {/* Operator Account Button */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all shrink-0"
-              aria-label="Apri menu"
+              className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all"
+              aria-label="Profilo operatore e opzioni"
             >
-              <Menu size={18} />
+              <span className="text-xs font-semibold">{user.name}</span>
+              <div className="w-7 h-7 rounded-full bg-[#0A84FF] text-white flex items-center justify-center font-bold text-xs shadow-md">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
             </button>
           </div>
         </header>
 
-        {/* Mobile Drawer */}
+        {/* Mobile Profile & Account Sheet (<1024px) */}
         <AnimatePresence>
           {isMobileMenuOpen && (
-            <React.Fragment key="mobile-drawer">
+            <React.Fragment key="mobile-profile-sheet">
               {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 z-[60] md:hidden bg-black/60 backdrop-blur-sm"
+                className="fixed inset-0 z-[120] lg:hidden bg-black/60 backdrop-blur-sm"
               />
-              {/* Drawer Sheet */}
+              {/* Profile Sheet */}
               <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-                className="fixed top-3 right-3 bottom-[max(16px,calc(env(safe-area-inset-bottom,0px)+80px))] w-72 z-[70] p-4 flex flex-col md:hidden spatial-panel-strong border border-white/25 rounded-3xl shadow-2xl"
+                className="spatial-sheet fixed bottom-0 left-0 right-0 z-[130] p-6 pt-3 pb-[max(24px,calc(env(safe-area-inset-bottom,0px)+24px))] flex flex-col lg:hidden"
               >
-                <div className="flex justify-between items-center mb-4 px-1 pb-3 border-b border-white/10">
-                  <div>
-                    <p className="spatial-headline text-[15px] font-semibold">
-                      {user.name}
-                    </p>
-                    <p className="spatial-caption text-[10px] opacity-60 capitalize">
-                      {user.role}
-                    </p>
+                {/* Grabber */}
+                <div className="spatial-grabber" />
+
+                {/* Operator Identity */}
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-[#0A84FF] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-[#0A84FF]/30">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="spatial-headline text-lg font-semibold">{user.name}</h3>
+                      <span className="spatial-chip spatial-chip-blue text-[11px] py-0.5 mt-0.5">
+                        Ruolo: {user.role}
+                      </span>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all shrink-0"
-                    aria-label="Chiudi menu"
+                    aria-label="Chiudi pannello profilo"
                   >
                     <X size={18} />
                   </button>
                 </div>
 
-                <nav className="flex-1 space-y-1.5 overflow-y-auto pr-1">
-                  {[
-                    ...navItems,
-                    ...(isAdmin
-                      ? [{ to: '/admin', icon: Settings, label: 'Amministrazione' }]
-                      : []),
-                  ].map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
+                {/* Admin Link if admin */}
+                {isAdmin && (
+                  <div className="mb-4">
+                    <Link
+                      to="/admin"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        cn(
-                          'flex items-center gap-3 px-3.5 py-3 min-h-[44px] rounded-2xl text-[14px] transition-all active:scale-98',
-                          isActive
-                            ? 'bg-[#0A84FF] text-white font-semibold shadow-[0_0_16px_rgba(10,132,255,0.4)]'
-                            : 'text-white/70 hover:bg-white/10 hover:text-white'
-                        )
-                      }
+                      className="spatial-btn-blue w-full h-12 text-sm font-semibold flex items-center justify-center gap-2 shadow-xl"
                     >
-                      <item.icon size={18} />
-                      <span className="flex-1">{item.label}</span>
-                      {'alert' in item && item.alert && (
-                        <span className="w-2 h-2 rounded-full bg-[#FF453A] shadow-[0_0_6px_#FF453A]" />
-                      )}
-                    </NavLink>
-                  ))}
-                </nav>
+                      <Settings size={18} />
+                      <span>Pannello Amministrazione</span>
+                    </Link>
+                  </div>
+                )}
 
-                <div className="pt-3 mt-2 flex gap-2 border-t border-white/10">
+                {/* Actions: Switch Profile / Logout */}
+                <div className="flex gap-2.5">
                   <Link
                     to="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors active:scale-95"
+                    className="spatial-btn-ghost flex-1 min-h-[44px] text-xs font-semibold flex items-center justify-center gap-2"
                   >
-                    <ArrowLeftRight size={14} /> Profilo
+                    <ArrowLeftRight size={15} />
+                    <span>Cambia Operatore</span>
                   </Link>
                   <button
                     type="button"
                     onClick={logout}
-                    className="flex-1 min-h-[44px] flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-colors active:scale-95"
+                    className="flex-1 min-h-[44px] rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-all active:scale-95 flex items-center justify-center gap-2"
                   >
-                    <LogOut size={14} /> Esci
+                    <LogOut size={15} />
+                    <span>Disconnetti</span>
                   </button>
                 </div>
               </motion.div>
@@ -281,13 +285,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </AnimatePresence>
 
         {/* Page Content: padding bottom for mobile dock */}
-        <main className="flex-1 min-w-0 px-3 sm:px-6 md:px-8 py-3 pb-[max(110px,calc(env(safe-area-inset-bottom,0px)+104px))] md:pb-8">
+        <main className="flex-1 min-w-0 px-3 sm:px-6 lg:px-8 py-3 pb-[max(110px,calc(env(safe-area-inset-bottom,0px)+104px))] lg:pb-8">
           {children}
         </main>
 
-        {/* Mobile Floating Dock (≤768px) */}
+        {/* Mobile Floating Dock (<1024px) */}
         <nav
-          className="md:hidden spatial-dock flex items-center justify-around"
+          className="lg:hidden spatial-dock flex items-center justify-around"
           aria-label="Dock di navigazione inferiore"
         >
           {navItems.map((item) => (
