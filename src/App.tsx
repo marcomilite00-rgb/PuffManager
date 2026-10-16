@@ -12,10 +12,7 @@ import { Promemoria } from './pages/Promemoria';
 import { Cassa } from './pages/Cassa';
 import { Storico } from './pages/Storico';
 import { Admin } from './pages/Admin';
-import { AnimatePresence, motion } from 'framer-motion';
-import { lazy, Suspense } from 'react';
-
-const ParticleBackground = lazy(() => import('./components/3d/ParticleBackground'));
+import { AnimatePresence, motion } from 'motion/react';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -24,9 +21,9 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] } }}
-        exit={{ opacity: 0, y: -8, transition: { duration: 0.2 } }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1, transition: { duration: 0.2 } }}
+        exit={{ opacity: 0, transition: { duration: 0.15 } }}
       >
         <Routes location={location}>
           <Route path="/login" element={<Login />} />
@@ -58,9 +55,6 @@ function App() {
         <ToastProvider>
           <LayoutProvider>
             <Layout>
-              <Suspense fallback={null}>
-                <ParticleBackground />
-              </Suspense>
               <AnimatedRoutes />
             </Layout>
           </LayoutProvider>

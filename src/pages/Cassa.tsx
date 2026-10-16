@@ -1,36 +1,10 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { safeNumber } from '../lib/money';
 import { useRealtime } from '../hooks/useRealtime';
-import {
-  TrendingUp, AlertCircle, DollarSign, Clock, Scale, Users, UserCircle as UserIcon
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
 import { Badge } from '../components/ui/Badge';
-import { TiltCard } from '../components/ui/TiltCard';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 import type { Settings, Staff, OrderWithItems, ReminderSummary, Order, OrderPayment } from '../types/database';
-
-const CountUp: React.FC<{ value: number; decimals?: number; duration?: number }> = ({ value, decimals = 2, duration = 1.5 }) => {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef<number>(0);
-  const startTime = useRef<number>(0);
-  useEffect(() => {
-    startTime.current = performance.now();
-    const animate = (now: number) => {
-      const elapsed = (now - startTime.current) / 1000;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      ref.current = value * eased;
-      setDisplay(ref.current);
-      if (progress < 1) requestAnimationFrame(animate);
-      else setDisplay(value);
-    };
-    requestAnimationFrame(animate);
-  }, [value, duration]);
-  return <span>€{display.toFixed(decimals)}</span>;
-};
 
 export const Cassa: React.FC = () => {
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
@@ -40,7 +14,6 @@ export const Cassa: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const loadInit = useCallback(async () => {
-    setLoading(true);
     try {
       const [oRes, sRes, setRes, rRes] = await Promise.all([
         supabase.from('orders').select('*, payments(*), items:order_items(*, variant:product_variants(unit_cost))'),
@@ -57,7 +30,6 @@ export const Cassa: React.FC = () => {
 
   useEffect(() => { loadInit(); }, [loadInit]);
 
-  // Aggiorna i totali in tempo reale e periodicamente quando vendite/incassi cambiano
   useRealtime<Order>('orders', () => loadInit());
   useRealtime<OrderPayment>('payments', () => loadInit());
   useRealtime<Settings>('settings', () => loadInit());
@@ -112,189 +84,78 @@ export const Cassa: React.FC = () => {
   }, [orders, staff, settings, totals.net]);
 
   if (loading) return (
-    <PageSkeleton titleClass="w-48 h-10" blocks={[{ count: 3, className: 'h-32' }, { count: 1, className: 'h-48' }, { count: 2, className: 'h-24' }]} />
+    <PageSkeleton titleClass="w-48 h-9" blocks={[{ count: 3, className: 'h-20' }, { count: 2, className: 'h-[64px]' }]} />
   );
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 md:space-y-8 max-w-6xl mx-auto relative z-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
-        <div className="space-y-0.5 md:space-y-2">
-          <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
-            Cassa<span className="text-primary not-italic">Pro</span>
-          </h1>
-          <p className="label-caps text-[9px] md:text-xs text-slate-500 tracking-widest uppercase">Analisi finanziaria sessione</p>
+    <div className="ios-page">
+      <div className="orizon-hero p-6 md:p-8 text-center">
+        <p className="ios-caption" style={{ color: 'rgba(255,248,238,0.7)' }}>
+          Bilancio netto · dal {settings?.last_reset_date ? new Date(settings.last_reset_date).toLocaleDateString('it-IT') : '—'}
+        </p>
+        <p className="ios-title-large ios-amount mt-2" style={{ fontSize: 52, color: '#FFF8EE' }}>
+          €{totals.net.toFixed(2)}
+        </p>
+        <div className="mt-3 flex justify-center">
+          <span className="ios-chip" style={{ background: 'rgba(255,255,255,0.16)', color: '#FFF8EE' }}>
+            {totals.net >= 0 ? 'In positivo' : 'In deficit'}
+          </span>
         </div>
-        {settings?.last_reset_date && (
-          <div className="px-2 py-1 md:px-4 md:py-2 glass rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-white/5 w-fit">
-            <Clock size={10} className="text-primary" />
-            <span className="label-caps text-[7px] md:text-[9px] text-slate-500 font-bold uppercase">
-              Reset: <span className="text-white ml-1">{new Date(settings.last_reset_date).toLocaleDateString()}</span>
-            </span>
-          </div>
-        )}
       </div>
 
-      <TiltCard tiltDegree={5} glare={true}>
-        <div className="relative group">
-          <div className="absolute -inset-0.5 md:-inset-1 bg-gradient-to-r from-primary/40 via-secondary/20 to-success/40 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition duration-1000" />
-          <div className="relative rounded-3xl md:rounded-[3rem] p-4 md:p-10 flex flex-col items-center justify-center text-center border-white/10 shadow-2xl overflow-hidden bg-gradient-to-br from-white/[0.06] to-white/[0.01] backdrop-blur-3xl">
-            <div className="w-8 h-8 md:w-16 md:h-16 bg-primary/10 rounded-xl md:rounded-[2rem] flex items-center justify-center text-primary mb-2 md:mb-4 relative z-10 border border-primary/20">
-              <Scale size={16} className="md:w-8 md:h-8" />
-            </div>
-            <p className="text-[7px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.4em] text-slate-500 mb-1 md:mb-4 leading-none">Bilancio Netto Sessione</p>
-            <motion.h2 key={totals.net}
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className={clsx("text-3xl md:text-7xl font-black tracking-tighter mb-1 md:mb-4 italic leading-none tabular-nums drop-shadow-2xl", totals.net >= 0 ? "text-white" : "text-danger")}>
-              <CountUp value={totals.net} />
-            </motion.h2>
-            <Badge variant={totals.net >= 0 ? 'success' : 'danger'} size="sm" className="px-1.5 py-0 md:px-3 md:py-0.5">
-              {totals.net >= 0 ? 'SESSIONE IN POSITIVO' : 'DEFICIT OPERATIVO'}
-            </Badge>
-          </div>
-        </div>
-      </TiltCard>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
+      <div className="grid grid-cols-3 gap-2.5">
         {[
-          { label: 'Incasso Lordo', val: totals.gross, icon: TrendingUp, color: 'text-success', bg: 'bg-success/10' },
-          { label: 'Spese Carico', val: totals.spent, icon: DollarSign, color: 'text-danger', bg: 'bg-danger/10' },
-          { label: 'Spese Durante Carico', val: totals.currentLoadExpenses, icon: AlertCircle, color: 'text-warning', bg: 'bg-warning/10' }
-        ].map((stat, i) => (
-          <TiltCard key={i} tiltDegree={4} glare={false}>
-            <div className="rounded-xl md:rounded-[2.5rem] p-3 md:p-6 border border-white/5 flex items-center md:flex-col gap-3 md:gap-4 group hover:border-primary/20 transition-all bg-gradient-to-br from-white/[0.04] to-white/[0.01]">
-              <div className={clsx("w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110", stat.bg, stat.color)}>
-                <stat.icon size={14} className="md:w-6 md:h-6" />
-              </div>
-              <div className="flex-1 md:text-center min-w-0">
-                <p className="label-caps text-[8px] md:text-[10px] text-slate-500 mb-0.5 md:mb-2 uppercase tracking-widest">{stat.label}</p>
-                <p className="text-xl md:text-4xl font-black text-white italic tracking-tighter truncate leading-none tabular-nums">€{stat.val.toFixed(2)}</p>
-              </div>
-            </div>
-          </TiltCard>
+          { label: 'Lordo', val: totals.gross },
+          { label: 'Spese', val: totals.spent },
+          { label: 'Extra', val: totals.currentLoadExpenses },
+        ].map((stat) => (
+          <div key={stat.label} className="ios-card p-3.5 text-center">
+            <p className="ios-title-3 ios-amount">€{stat.val.toFixed(2)}</p>
+            <p className="ios-caption mt-0.5">{stat.label}</p>
+          </div>
         ))}
       </div>
 
-      <div className="space-y-4 md:space-y-8">
-        <div className="flex items-center gap-3 px-2">
-          <Users size={20} className="text-primary md:w-6 md:h-6" />
-          <h3 className="text-lg md:text-3xl font-black italic uppercase tracking-tighter">Ripartizione Staff</h3>
-        </div>
-
-        <div className="hidden md:block rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-white/5 border-b border-white/10">
-                <th className="px-8 py-6 label-caps text-[10px] text-slate-500">Membro</th>
-                <th className="px-8 py-6 label-caps text-[10px] text-center text-success">Lordo</th>
-                <th className="px-8 py-6 label-caps text-[10px] text-center text-primary">Netto</th>
-                <th className="px-8 py-6 label-caps text-[10px] text-right text-slate-500">Quota Vendite</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {staffEarningsList.map((s) => (
-                <tr key={s.id} className="hover:bg-white/5 transition-all group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-black text-xl text-primary border border-primary/10">
-                        {s.name[0]}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-lg font-black text-white italic uppercase">{s.name}</span>
-                        <span className="label-caps text-[8px] text-slate-600 uppercase">{s.role}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-center">
-                    <span className="text-xl font-black italic text-success tracking-tighter tabular-nums">€{s.netto.toFixed(2)}</span>
-                  </td>
-                  <td className="px-8 py-6 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <span className={clsx("text-2xl font-black italic tracking-tighter tabular-nums", s.utile >= 0 ? "text-primary" : "text-danger")}>€{s.utile.toFixed(2)}</span>
-                      <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className={clsx("h-full", s.utile >= 0 ? "bg-primary" : "bg-danger")}
-                          style={{ width: `${Math.max(0, Math.min(s.percent, 100))}%` }} />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right font-black text-slate-400 italic text-lg">{s.percent.toFixed(0)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="md:hidden space-y-3">
+      <section>
+        <h2 className="ios-footnote px-1 mb-1.5">RIPARTIZIONE STAFF</h2>
+        <div className="ios-grouped">
           {staffEarningsList.map((s) => (
-            <TiltCard key={s.id} tiltDegree={4} glare={false}>
-              <div className="rounded-2xl p-5 border border-white/5 space-y-4 bg-gradient-to-br from-white/[0.04] to-white/[0.01]">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-black text-primary border border-primary/10 uppercase text-sm">
-                      {s.name[0]}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-base font-black text-white italic tracking-tight">{s.name}</span>
-                      <span className="label-caps text-[7px] text-slate-600 uppercase tracking-widest leading-none">{s.role}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="label-caps text-[7px] text-slate-500 mb-0.5">Quota Vendite</p>
-                    <p className="text-lg font-black text-white italic leading-none tabular-nums">{s.percent.toFixed(0)}%</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
-                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="label-caps text-[7px] text-success mb-1">Lordo</p>
-                    <p className="text-xl font-black text-success italic tracking-tighter leading-none tabular-nums">€{s.netto.toFixed(2)}</p>
-                  </div>
-                  <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                    <p className="label-caps text-[7px] text-primary mb-1">Netto</p>
-                    <p className={clsx("text-xl font-black italic tracking-tighter leading-none tabular-nums", s.utile >= 0 ? "text-primary" : "text-danger")}>€{s.utile.toFixed(2)}</p>
-                  </div>
+            <div key={s.id} className="ios-row" style={{ minHeight: 60 }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0" style={{ background: 'var(--label)', color: 'var(--surface-secondary)' }}>
+                {s.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="ios-headline text-[15px] truncate">{s.name}</p>
+                <div className="h-1 rounded-full mt-1.5" style={{ background: 'var(--surface-tertiary)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(s.percent, 100))}%`, background: 'var(--accent)' }} />
                 </div>
               </div>
-            </TiltCard>
+              <div className="text-right shrink-0">
+                <p className="ios-headline ios-amount text-[15px]">€{s.utile.toFixed(2)}</p>
+                <p className="ios-caption">{s.percent.toFixed(0)}% · lordo €{s.netto.toFixed(2)}</p>
+              </div>
+            </div>
           ))}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 mt-4 flex items-center justify-between shadow-lg">
-            <span className="label-caps text-[10px] text-primary font-black uppercase tracking-tighter">Totale Netto Staff</span>
-            <span className="text-2xl font-black text-white italic tracking-tighter tabular-nums">€{staffEarningsList.reduce((acc, s) => acc + s.utile, 0).toFixed(2)}</span>
-          </motion.div>
+          {staffEarningsList.length === 0 && <p className="ios-footnote p-4 text-center">Nessun dato staff</p>}
         </div>
-      </div>
+      </section>
 
       {reminders.length > 0 && (
-        <div className="space-y-4 md:space-y-8 pt-6">
-          <div className="flex items-center gap-3 md:gap-4 px-2">
-            <AlertCircle size={20} className="text-danger md:w-6 md:h-6" />
-            <h3 className="text-lg md:text-3xl font-black italic uppercase tracking-tighter">Situazione Sospesi</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+        <section>
+          <h2 className="ios-footnote px-1 mb-1.5">SOSPESI · {reminders.length}</h2>
+          <div className="ios-grouped">
             {reminders.map(d => (
-              <TiltCard key={d.id} tiltDegree={4} glare={false}>
-                <div className="rounded-[1.5rem] md:rounded-[2.5rem] p-5 md:p-8 border border-white/10 flex flex-col justify-between hover:border-danger/20 transition-all bg-gradient-to-br from-white/[0.04] to-white/[0.01]">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 md:w-14 md:h-14 bg-danger/10 rounded-xl md:rounded-2xl flex items-center justify-center text-danger">
-                        <UserIcon size={20} />
-                      </div>
-                      <div>
-                        <p className="font-black text-white uppercase italic text-sm md:text-lg leading-none mb-1">{d.customer_name || 'Generic'}</p>
-                        <p className="label-caps text-[8px] text-slate-600">Creato il {new Date(d.created_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <Badge variant="danger" size="sm">DEBITO</Badge>
-                  </div>
-                  <div className="pt-4 md:pt-8 border-t border-white/5 flex items-end justify-between">
-                    <span className="label-caps text-[8px] md:text-[10px] text-slate-500">Saldo Aperto:</span>
-                    <span className="text-2xl md:text-4xl font-black text-danger italic tabular-nums tracking-tighter">€{safeNumber(d.amount_due).toFixed(2)}</span>
-                  </div>
+              <div key={d.id} className="ios-row">
+                <div className="flex-1 min-w-0">
+                  <p className="ios-headline text-[15px] truncate">{d.customer_name || 'Cliente'}</p>
+                  <p className="ios-caption">{new Date(d.created_at).toLocaleDateString('it-IT')}</p>
                 </div>
-              </TiltCard>
+                <Badge variant="danger" size="sm">€{safeNumber(d.amount_due).toFixed(2)}</Badge>
+              </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
-    </motion.div>
+    </div>
   );
 };

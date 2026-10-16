@@ -6,15 +6,15 @@ interface PageSkeletonProps {
 }
 
 export const PageSkeleton: React.FC<PageSkeletonProps> = ({
-  titleClass = 'w-48 h-10',
+  titleClass = 'w-48 h-9',
   blocks = [],
 }) => (
-  <div className="p-6 space-y-8">
-    <div className={`${titleClass} skeleton`} />
+  <div className="ios-page" aria-busy="true" aria-label="Caricamento">
+    <div className={`${titleClass} ios-skeleton`} />
     {blocks.map((block, i) => (
-      <div key={i} className={block.count > 1 ? 'grid grid-cols-2 md:grid-cols-3 gap-4' : undefined}>
+      <div key={i} className={block.count > 1 ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : undefined}>
         {[...Array(block.count)].map((_, j) => (
-          <div key={j} className={`${block.className} skeleton`} />
+          <div key={j} className={`${block.className} ios-skeleton`} />
         ))}
       </div>
     ))}

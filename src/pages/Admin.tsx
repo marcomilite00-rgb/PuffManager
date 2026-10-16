@@ -5,17 +5,17 @@ import { useToast } from '../components/ui/ToastProvider';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { safeNumber } from '../lib/money';
 import type { Staff, ProductVariant, StaffRole, ProductModel, ProductFlavor, Settings, VariantWithMeta } from '../types/database';
-import {
-    Plus, X, Package, Trash2, Check, TrendingUp, DollarSign,
-    Users, Settings as SettingsIcon, LayoutGrid, Key, Shield, ArrowUpRight
-} from 'lucide-react';
-import { clsx } from 'clsx';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Trash2, Shield, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
+
+type TabId = 'settings' | 'staff' | 'inventory_management' | 'products';
 
 export const Admin: React.FC = () => {
     const { user } = useAuth();
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState<'settings' | 'staff' | 'inventory_management' | 'products'>('settings');
+    const [activeTab, setActiveTab] = useState<TabId>('settings');
     const [staff, setStaff] = useState<Staff[]>([]);
     const [variants, setVariants] = useState<VariantWithMeta[]>([]);
     const [models, setModels] = useState<ProductModel[]>([]);
@@ -114,7 +114,7 @@ export const Admin: React.FC = () => {
     const handleAddVariant = async (e: React.FormEvent) => {
         e.preventDefault();
         const { error } = await supabase.rpc('create_product_variant', { p_model_id: newVariant.model_id, p_flavor_id: newVariant.flavor_id, p_default_price: newVariant.default_price, p_initial_qty: newVariant.initial_qty });
-        if (error) showToast(error.message, 'error'); else { setShowAddVariant(false); fetchData(); showToast('Variante creata'); }
+        if (error) showToast(error.message, 'error'); else { setShowAddVariant(false); setNewVariant({ model_id: '', flavor_id: '', default_price: 15, initial_qty: 0 }); fetchData(); showToast('Variante creata'); }
     };
 
     const handleUpdateVariant = async (v: VariantWithMeta) => {
@@ -159,38 +159,32 @@ export const Admin: React.FC = () => {
 
     const handleAddStaff = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newStaff.pin !== newStaff.confirmPin) { setPinError('PIN non corrispondono'); return; }
+        if (newStaff.pin !== newStaff.confirmPin) { setPinError('I PIN non corrispondono'); return; }
         const { error } = await supabase.rpc('create_staff', { p_name: newStaff.name.trim(), p_role: newStaff.role, p_pin: newStaff.pin });
         if (error) showToast(error.message, 'error');
-        else { setShowAddStaff(false); setNewStaff({ name: '', role: 'staff', pin: '', confirmPin: '' }); setPinError(''); fetchData(); showToast('Staff aggiunto'); }
+        else { setShowAddStaff(false); setNewStaff({ name: '', role: 'staff', pin: '', confirmPin: '' }); setPinError(''); fetchData(); showToast('Membro aggiunto'); }
     };
 
     const handleUpdateStaffPin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newPin !== confirmPin) { setPinError('PIN non corrispondono'); return; }
+        if (newPin !== confirmPin) { setPinError('I PIN non corrispondono'); return; }
         if (!editingStaff) return;
         const { error } = await supabase.rpc('update_staff_pin', { p_staff_id: editingStaff.id, p_new_pin: newPin });
         if (error) showToast('Errore PIN: ' + error.message, 'error');
         else { setEditingStaff(null); setNewPin(''); setConfirmPin(''); setPinError(''); showToast('PIN aggiornato'); fetchData(); }
     };
 
-    const handleClosingLoadClick = () => {
-        setClosingSoldiSpesi('');
-        setClosingPezziComprati('');
-        setShowClosingLoad(true);
-    };
-
     const handleConfirmClosingLoad = async () => {
-        if (!closingSoldiSpesi || Number(closingSoldiSpesi) < 0) { showToast('Inserire i soldi spesi per il carico', 'error'); return; }
-        if (!closingPezziComprati || Number(closingPezziComprati) <= 0) { showToast('Inserire i pezzi totali comprati (> 0)', 'error'); return; }
+        if (!closingSoldiSpesi || Number(closingSoldiSpesi) < 0) { showToast('Inserisci i soldi spesi per il carico', 'error'); return; }
+        if (!closingPezziComprati || Number(closingPezziComprati) <= 0) { showToast('Inserisci i pezzi totali (> 0)', 'error'); return; }
         const soldiSpesi = Number(closingSoldiSpesi);
         const pezziComprati = Number(closingPezziComprati);
         await supabase.from('settings').update({ money_spent_total: soldiSpesi }).eq('id', 1);
         const { data, error } = await supabase.rpc('close_current_load', { p_soldi_spesi: soldiSpesi, p_pezzi_comprati: pezziComprati });
         if (error) { showToast(error.message, 'error'); } else {
             const unitCost = safeNumber(data?.unit_cost_calcolato) || (soldiSpesi / pezziComprati);
-            setShowClosingLoad(false); fetchData();
-            showToast(`Carico chiuso ✓ Prezzo unit.: €${unitCost.toFixed(2)}`);
+            setShowClosingLoad(false); setClosingSoldiSpesi(''); setClosingPezziComprati(''); fetchData();
+            showToast(`Carico chiuso · costo unitario €${unitCost.toFixed(2)}`);
         }
     };
 
@@ -214,378 +208,262 @@ export const Admin: React.FC = () => {
         setConfirmDeleteId(null);
     };
 
+    const closeSheet = () => {
+        setShowAddStaff(false); setShowAddVariant(false); setEditingVariant(null);
+        setEditingStaff(null); setEditingStaffRole(null); setShowClosingLoad(false);
+        setPinError('');
+    };
+
+    const sheetOpen = showAddStaff || showAddVariant || !!editingVariant || !!editingStaff || !!editingStaffRole || showClosingLoad;
+
     if (!isAdmin) return (
-        <div className="min-h-screen bg-surface-950 flex items-center justify-center p-6 text-center">
-            <div className="glass p-10 rounded-3xl border-danger/20 space-y-4">
-                <Shield size={40} className="mx-auto text-danger" />
-                <h1 className="text-2xl font-black italic tracking-tighter text-white uppercase">Accesso Vietato</h1>
-            </div>
+        <div className="ios-page items-center justify-center text-center" style={{ minHeight: '60vh' }}>
+            <Shield size={36} className="mx-auto" style={{ color: '#C0392B' }} />
+            <h1 className="ios-title-3 mt-3">Accesso vietato</h1>
+            <p className="ios-footnote mt-1">Solo gli amministratori possono vedere questa pagina</p>
         </div>
     );
 
+    const TABS: { id: TabId; label: string }[] = [
+        { id: 'settings', label: 'Home' },
+        { id: 'staff', label: 'Team' },
+        { id: 'products', label: 'Catalogo' },
+        { id: 'inventory_management', label: 'Stock' },
+    ];
+
     return (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="min-h-0 bg-surface-950 overflow-x-hidden">
-            <header className="px-2 md:px-6 py-2 md:py-4 bg-white/[0.02] border-b border-white/5 sticky top-0 z-40 backdrop-blur-3xl overflow-hidden">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-2 md:gap-6 relative z-10">
-                    <div>
-                        <h1 className="text-lg md:text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
-                            Admin<span className="text-primary not-italic">.</span>
-                        </h1>
-                        <p className="label-caps text-[7px] md:text-[8px] text-slate-600 tracking-widest mt-0.5 uppercase font-bold opacity-70">Infrastructure</p>
-                    </div>
-                    <div className="flex p-0.5 bg-white/5 rounded-xl border border-white/5 gap-0.5 w-full md:w-auto overflow-x-auto">
-                        {[
-                            { id: 'settings' as const, label: 'Home', icon: SettingsIcon },
-                            { id: 'staff' as const, label: 'Team', icon: Users },
-                            { id: 'products' as const, label: 'Catalog', icon: LayoutGrid },
-                            { id: 'inventory_management' as const, label: 'Inventory', icon: Package },
-                        ].map((tab) => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                className={clsx("flex items-center gap-1 px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-black label-caps text-[7px] md:text-[9px] transition-all whitespace-nowrap uppercase tracking-widest shrink-0",
-                                    activeTab === tab.id ? "bg-primary text-surface-950 shadow-lg shadow-primary/20" : "text-slate-500 hover:text-white")}>
-                                <tab.icon size={12} /> {tab.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </header>
-
-            <div className="max-w-7xl mx-auto px-2 md:px-6 py-3 md:py-6">
-                {/* TAB: HOME */}
-                {activeTab === 'settings' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-                        <div className="glass rounded-2xl md:rounded-3xl p-5 md:p-8 border-white/5 bg-surface-900/40 relative overflow-hidden group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-danger/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 rounded-[inherit] pointer-events-none" />
-                            <div className="relative z-10 space-y-4">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-danger/20 rounded-xl flex items-center justify-center text-danger">
-                                    <TrendingUp size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg md:text-3xl font-black italic text-white uppercase">Chiudi Carico</h3>
-                                    <p className="text-slate-500 text-[10px] md:text-sm mt-0.5 md:mt-1 max-w-xs">Sincronizza e archivia la sessione corrente.</p>
-                                </div>
-                                <button onClick={handleClosingLoadClick}
-                                    className="w-full py-3.5 md:py-4 bg-danger text-white font-black text-[9px] md:text-xs rounded-xl md:rounded-2xl uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-danger/20 active:scale-95 transition-transform hover:bg-danger-dark">
-                                    <ArrowUpRight size={14} /> AVVIA CHIUSURA CARICO
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="glass rounded-2xl md:rounded-3xl p-5 md:p-8 border-white/5 space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 md:w-10 md:h-10 bg-success/20 rounded-xl flex items-center justify-center text-success"><DollarSign size={16} /></div>
-                                <h3 className="text-base md:text-2xl font-black italic uppercase">Bilancio</h3>
-                            </div>
-                            <div className="p-4 md:p-5 bg-black/40 border border-success/20 rounded-2xl">
-                                <p className="text-[8px] md:text-[9px] font-black text-success/70 uppercase tracking-widest mb-0.5">Utile Netto (ultimo carico chiuso)</p>
-                                <p className="text-2xl md:text-5xl font-black text-success italic tabular-nums">
-                                    €{(settings?.total_net_earned ?? 0).toLocaleString('it-IT')}
-                                </p>
-                            </div>
-                            <form onSubmit={handleUpdateSettings} className="space-y-2.5">
-                                <div className="space-y-0.5">
-                                    <label className="text-[7px] md:text-[8px] font-black uppercase text-danger/80 ml-1 tracking-widest">Spese Carico</label>
-                                    <input type="number" value={settings?.money_spent_total ?? ''}
-                                        onChange={e => setSettings(prev => prev ? { ...prev, money_spent_total: Number(e.target.value) } : prev)}
-                                        className="w-full bg-black/40 border border-danger/20 rounded-xl py-2.5 md:py-3 px-4 font-black text-xs md:text-sm text-white outline-none focus:border-danger/50 transition-all" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <label className="text-[7px] md:text-[8px] font-black uppercase text-warning/80 ml-1 tracking-widest">Spese Durante Carico</label>
-                                    <input type="number" value={settings?.money_spent_current_load ?? ''}
-                                        onChange={e => setSettings(prev => prev ? { ...prev, money_spent_current_load: Number(e.target.value) } : prev)}
-                                        className="w-full bg-black/40 border border-warning/20 rounded-xl py-2.5 md:py-3 px-4 font-black text-xs md:text-sm text-white outline-none focus:border-warning/50 transition-all" />
-                                </div>
-                                <button type="submit" className="w-full py-2.5 md:py-3 bg-white/5 border border-white/5 rounded-xl text-white font-black text-[8px] md:text-[9px] uppercase tracking-widest hover:bg-white/10 transition-colors">SALVA DATI</button>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* TAB: STAFF */}
-                {activeTab === 'staff' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 md:w-10 md:h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><Users size={16} /></div>
-                                <h3 className="text-base md:text-2xl font-black italic uppercase">Organigramma</h3>
-                            </div>
-                            <button onClick={() => setShowAddStaff(true)}
-                                className="px-4 py-2 md:px-5 md:py-3 bg-primary text-surface-950 font-black rounded-xl text-[8px] md:text-[9px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all hover:shadow-xl">
-                                <Plus size={12} className="inline mr-1" /> AGGIUNGI
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4">
-                            {staff.map((s) => (
-                                <div key={s.id} className="p-4 md:p-5 glass rounded-2xl border-white/5 relative overflow-hidden group bg-surface-900/30">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className={clsx("w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center font-black text-sm md:text-lg border",
-                                            s.role === 'admin' ? 'bg-warning/20 text-warning border-warning/20' :
-                                            s.role === 'staff' ? 'bg-primary/20 text-primary border-primary/20' :
-                                            'bg-white/5 text-slate-500 border-white/5')}>
-                                            {s.name[0]}
-                                        </div>
-                                        <div className="flex gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => setEditingStaffRole({ ...s })} className="p-2 text-slate-500 hover:text-primary bg-white/5 rounded-lg" title="Modifica ruolo"><Shield size={12} /></button>
-                                            <button onClick={() => setEditingStaff(s)} className="p-2 text-slate-500 hover:text-white bg-white/5 rounded-lg" title="Modifica PIN"><Key size={12} /></button>
-                                            <button onClick={() => { setConfirmDeleteId(s.id); setConfirmDeleteType('staff'); setConfirmDeleteLabel(s.name); }} className="p-2 text-danger/60 hover:text-danger bg-white/5 rounded-lg" title="Elimina"><Trash2 size={12} /></button>
-                                        </div>
-                                    </div>
-                                    <p className="font-black text-white text-lg uppercase italic truncate leading-none mb-1">{s.name}</p>
-                                    <span className={clsx("label-caps text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
-                                        s.role === 'admin' ? 'bg-warning/10 text-warning' :
-                                        s.role === 'staff' ? 'bg-primary/10 text-primary' : 'bg-white/5 text-slate-500')}>{s.role}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* TAB: CATALOG */}
-                {activeTab === 'products' && (
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 md:w-10 md:h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary"><LayoutGrid size={16} /></div>
-                            <h3 className="text-base md:text-2xl font-black italic uppercase">Catalogo</h3>
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <p className="label-caps text-[9px] text-primary font-black uppercase flex justify-between items-center group px-1">
-                                    <span>MODELLI HARDWARE</span>
-                                    <span className="opacity-40 italic">{models.filter(m => !m.deleted && m.active !== false).length} ITEMS</span>
-                                </p>
-                                <form onSubmit={handleAddModel} className="flex gap-2">
-                                    <input type="text" value={newModel} onChange={e => setNewModel(e.target.value)} placeholder="Nuovo modello..."
-                                        className="flex-1 bg-surface-900 border border-white/5 rounded-xl px-4 py-2.5 md:px-5 md:py-3 text-white font-bold italic text-[10px] md:text-xs outline-none focus:border-primary/40 transition-all" />
-                                    <button type="submit" className="w-10 h-10 md:w-12 md:h-12 bg-primary text-surface-950 rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all" aria-label="Aggiungi"><Plus size={16} /></button>
-                                </form>
-                                <div className="grid grid-cols-1 gap-1.5">
-                                    {models.filter(m => !m.deleted && m.active !== false).map(m => (
-                                        <div key={m.id} className="p-3.5 bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between group hover:bg-white/5">
-                                            <span className="font-black text-white italic tracking-tight uppercase text-xs">{m.name}</span>
-                                            <button onClick={() => { setConfirmDeleteId(m.id); setConfirmDeleteType('model'); setConfirmDeleteLabel(m.name); }} className="p-1.5 text-danger/50 hover:text-danger transition-all" aria-label="Elimina"><Trash2 size={14} /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <p className="label-caps text-[9px] text-secondary font-black uppercase flex justify-between items-center group px-1">
-                                    <span>LIBRERIA AROMI</span>
-                                    <span className="opacity-40 italic">{flavors.filter(f => !f.deleted && f.active !== false).length} GUSTI</span>
-                                </p>
-                                <form onSubmit={handleAddFlavor} className="flex gap-2">
-                                    <input type="text" value={newFlavor} onChange={e => setNewFlavor(e.target.value)} placeholder="Nuovo gusto..."
-                                        className="flex-1 bg-surface-900 border border-white/5 rounded-xl px-4 py-2.5 md:px-5 md:py-3 text-white font-bold italic text-[10px] md:text-xs outline-none focus:border-secondary/40 transition-all" />
-                                    <button type="submit" className="w-10 h-10 md:w-12 md:h-12 bg-secondary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition-all" aria-label="Aggiungi"><Plus size={16} /></button>
-                                </form>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                    {flavors.filter(f => !f.deleted && f.active !== false).map(f => (
-                                        <div key={f.id} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between group hover:bg-white/5">
-                                            <span className="font-bold text-slate-400 text-[10px] uppercase italic break-words pr-1 leading-tight">{f.name}</span>
-                                            <button onClick={() => { setConfirmDeleteId(f.id); setConfirmDeleteType('flavor'); setConfirmDeleteLabel(f.name); }} className="p-1 text-danger/40 hover:text-danger shrink-0" aria-label="Elimina"><Trash2 size={12} /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* TAB: INVENTORY */}
-                {activeTab === 'inventory_management' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 md:w-10 md:h-10 bg-warning/20 rounded-xl flex items-center justify-center text-warning"><Package size={16} /></div>
-                                <h3 className="text-base md:text-2xl font-black italic uppercase">Assets</h3>
-                            </div>
-                            <button onClick={() => setShowAddVariant(true)}
-                                className="px-4 py-2 md:px-5 md:py-3 bg-warning text-surface-950 font-black rounded-xl text-[8px] md:text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-                                <Plus size={12} className="inline mr-1" /> VARIANTE
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
-                            {variants.length === 0 && (
-                                <div className="col-span-full py-20 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
-                                    Nessuna variante trovata. Creane una con il pulsante VARIANTE.
-                                </div>
-                            )}
-                            {variants.map((v) => (
-                                <div key={v.id} className={`p-4 md:p-5 glass rounded-2xl border-white/5 hover:border-warning/20 transition-all group relative bg-surface-900/30 ${!v.active ? 'opacity-40' : ''}`}>
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="min-w-0 pr-2">
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-black text-white text-sm md:text-base uppercase italic leading-none truncate">{v.model_name}</p>
-                                                {!v.active && <span className="bg-danger/20 text-danger text-[7px] font-black uppercase px-1.5 py-0.5 rounded tracking-widest shrink-0">Inattivo</span>}
-                                            </div>
-                                            <p className="label-caps text-[7px] md:text-[8px] text-warning font-bold tracking-widest mt-1 opacity-80 uppercase italic truncate">{v.flavor_name}</p>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-base md:text-lg font-black text-white italic leading-none tabular-nums">€{v.default_price}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-between bg-black/40 border border-white/5 rounded-xl px-3 py-1.5 md:px-4 md:py-2">
-                                            <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase">Stock</span>
-                                            <div className="flex items-center gap-2 md:gap-3">
-                                                <button onClick={() => handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all text-xs md:text-sm font-black" aria-label="Diminuisci stock">-</button>
-                                                <input type="number" value={v.qty || 0} onChange={(e) => handleUpdateQty(v.id, parseInt(e.target.value) || 0)} className="w-10 md:w-12 bg-transparent text-center font-black text-white outline-none tabular-nums" />
-                                                <button onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white/5 rounded-lg hover:bg-white/10 active:scale-90 transition-all text-xs md:text-sm font-black" aria-label="Aumenta stock">+</button>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                                            <button onClick={() => setEditingVariant({ ...v })} className="px-4 py-1.5 md:px-5 md:py-2 bg-white/5 border border-white/10 rounded-lg text-[8px] md:text-[9px] font-black uppercase text-white hover:bg-white/10 transition-all">MODIFICA</button>
-                                            <button onClick={() => { setConfirmDeleteId(v.id); setConfirmDeleteType('variant'); setConfirmDeleteLabel(`${v.model_name} ${v.flavor_name}`); }} className="p-1.5 md:p-2 text-danger/60 hover:text-danger shrink-0" aria-label="Elimina"><Trash2 size={12} /></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+        <div className="ios-page">
+            <div>
+                <h1 className="ios-title-large">Admin</h1>
+                <p className="ios-footnote mt-0.5">Gestione negozio, team e catalogo</p>
             </div>
 
-            {/* MODALS */}
+            <div className="ios-segmented" role="tablist">
+                {TABS.map(t => (
+                    <button key={t.id} role="tab" aria-selected={activeTab === t.id} onClick={() => setActiveTab(t.id)}>
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {activeTab === 'settings' && (
+                <div className="flex flex-col gap-3">
+                    <div className="ios-card p-5">
+                        <h3 className="ios-title-3">Chiudi carico</h3>
+                        <p className="ios-footnote mt-0.5 mb-4">Archivia la sessione e azzera il magazzino</p>
+                        <button onClick={() => { setClosingSoldiSpesi(''); setClosingPezziComprati(''); setShowClosingLoad(true); }} className="ios-btn w-full" style={{ background: '#C0392B' }}>
+                            Avvia chiusura
+                        </button>
+                    </div>
+                    <div className="ios-card p-5">
+                        <h3 className="ios-title-3">Bilancio</h3>
+                        <p className="ios-footnote mt-0.5">Utile netto ultimo carico</p>
+                        <p className="ios-title-1 ios-amount mt-1" style={{ color: '#248A3D' }}>
+                            €{(settings?.total_net_earned ?? 0).toLocaleString('it-IT')}
+                        </p>
+                        <form onSubmit={handleUpdateSettings} className="grid gap-2.5 mt-4">
+                            <div>
+                                <label className="ios-footnote block mb-1">Spese carico</label>
+                                <input type="number" value={settings?.money_spent_total ?? ''} onChange={e => setSettings(prev => prev ? { ...prev, money_spent_total: Number(e.target.value) } : prev)} className="ios-input ios-amount" />
+                            </div>
+                            <div>
+                                <label className="ios-footnote block mb-1">Spese durante il carico</label>
+                                <input type="number" value={settings?.money_spent_current_load ?? ''} onChange={e => setSettings(prev => prev ? { ...prev, money_spent_current_load: Number(e.target.value) } : prev)} className="ios-input ios-amount" />
+                            </div>
+                            <button type="submit" className="ios-btn w-full" style={{ background: 'var(--surface-tertiary)', color: 'var(--accent)' }}>Salva</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'staff' && (
+                <div className="flex flex-col gap-3">
+                    <button onClick={() => setShowAddStaff(true)} className="ios-btn ios-btn-filled w-full">
+                        <Plus size={17} /> Aggiungi membro
+                    </button>
+                    <div className="ios-grouped">
+                        {staff.map((s) => (
+                            <div key={s.id} className="ios-row" style={{ minHeight: 60 }}>
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0" style={{ background: s.role === 'admin' ? '#C2703D' : 'var(--label)', color: 'var(--surface-secondary)' }}>
+                                    {s.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="ios-headline text-[15px] truncate">{s.name}</p>
+                                    <p className="ios-caption capitalize">{s.role}</p>
+                                </div>
+                                <button onClick={() => setEditingStaffRole({ ...s })} className="ios-press ios-footnote px-2.5 py-1.5 rounded-lg" style={{ background: 'var(--accent-tint)', color: 'var(--accent)' }}>Ruolo</button>
+                                <button onClick={() => { setEditingStaff(s); setNewPin(''); setConfirmPin(''); setPinError(''); }} className="ios-press ios-footnote px-2.5 py-1.5 rounded-lg" style={{ background: 'var(--surface-tertiary)', color: 'var(--label)' }}>PIN</button>
+                                <button onClick={() => { setConfirmDeleteId(s.id); setConfirmDeleteType('staff'); setConfirmDeleteLabel(s.name); }} className="ios-press p-2" style={{ color: '#C0392B' }} aria-label="Elimina membro"><Trash2 size={16} /></button>
+                            </div>
+                        ))}
+                    </div>
+                    {staff.length === 0 && <EmptyState title="Nessun membro" />}
+                </div>
+            )}
+
+            {activeTab === 'products' && (
+                <div className="flex flex-col gap-5">
+                    <section>
+                        <h2 className="ios-footnote px-1 mb-1.5">MODELLI · {models.filter(m => !m.deleted && m.active !== false).length}</h2>
+                        <form onSubmit={handleAddModel} className="flex gap-2 mb-2">
+                            <input type="text" value={newModel} onChange={e => setNewModel(e.target.value)} placeholder="Nuovo modello" className="ios-input flex-1" />
+                            <button type="submit" className="ios-btn ios-btn-filled shrink-0" aria-label="Aggiungi modello"><Plus size={18} /></button>
+                        </form>
+                        <div className="ios-grouped">
+                            {models.filter(m => !m.deleted && m.active !== false).map(m => (
+                                <div key={m.id} className="ios-row">
+                                    <span className="ios-headline text-[15px] flex-1 truncate">{m.name}</span>
+                                    <button onClick={() => { setConfirmDeleteId(m.id); setConfirmDeleteType('model'); setConfirmDeleteLabel(m.name); }} className="ios-press p-2" style={{ color: '#C0392B' }} aria-label="Elimina modello"><Trash2 size={15} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                    <section>
+                        <h2 className="ios-footnote px-1 mb-1.5">GUSTI · {flavors.filter(f => !f.deleted && f.active !== false).length}</h2>
+                        <form onSubmit={handleAddFlavor} className="flex gap-2 mb-2">
+                            <input type="text" value={newFlavor} onChange={e => setNewFlavor(e.target.value)} placeholder="Nuovo gusto" className="ios-input flex-1" />
+                            <button type="submit" className="ios-btn shrink-0" style={{ background: '#C2703D' }} aria-label="Aggiungi gusto"><Plus size={18} /></button>
+                        </form>
+                        <div className="ios-grouped">
+                            {flavors.filter(f => !f.deleted && f.active !== false).map(f => (
+                                <div key={f.id} className="ios-row">
+                                    <span className="ios-subhead flex-1 truncate">{f.name}</span>
+                                    <button onClick={() => { setConfirmDeleteId(f.id); setConfirmDeleteType('flavor'); setConfirmDeleteLabel(f.name); }} className="ios-press p-2" style={{ color: '#C0392B' }} aria-label="Elimina gusto"><Trash2 size={15} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {activeTab === 'inventory_management' && (
+                <div className="flex flex-col gap-3">
+                    <button onClick={() => setShowAddVariant(true)} className="ios-btn ios-btn-filled w-full">
+                        <Plus size={17} /> Nuova variante
+                    </button>
+                    {variants.length === 0 ? (
+                        <EmptyState title="Nessuna variante" subtitle="Creane una con il pulsante sopra" />
+                    ) : (
+                        <div className="ios-grouped">
+                            {variants.map((v) => (
+                                <div key={v.id} className="ios-row" style={{ minHeight: 64, opacity: v.active ? 1 : 0.5 }}>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="ios-headline text-[15px] truncate">{v.model_name} <span className="ios-footnote">· {v.flavor_name}</span></p>
+                                        <p className="ios-caption">€{Number(v.default_price).toFixed(2)}{!v.active ? ' · non attiva' : ''}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 rounded-xl px-1.5 py-1 shrink-0" style={{ background: 'var(--surface-tertiary)' }}>
+                                        <button onClick={() => handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))} className="ios-press w-7 h-7 rounded-lg flex items-center justify-center text-[16px]" style={{ background: 'var(--surface-secondary)' }} aria-label="Meno">−</button>
+                                        <span className="ios-headline ios-amount text-[15px] w-7 text-center">{v.qty || 0}</span>
+                                        <button onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)} className="ios-press w-7 h-7 rounded-lg flex items-center justify-center text-[16px]" style={{ background: 'var(--surface-secondary)' }} aria-label="Più">+</button>
+                                    </div>
+                                    <button onClick={() => setEditingVariant({ ...v })} className="ios-press ios-footnote px-2.5 py-1.5 rounded-lg shrink-0" style={{ background: 'var(--accent-tint)', color: 'var(--accent)' }}>Prezzo</button>
+                                    <button onClick={() => { setConfirmDeleteId(v.id); setConfirmDeleteType('variant'); setConfirmDeleteLabel(`${v.model_name} ${v.flavor_name}`); }} className="ios-press p-1.5 shrink-0" style={{ color: '#C0392B' }} aria-label="Elimina variante"><Trash2 size={15} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Sheet unificato */}
             <AnimatePresence>
-                {(showAddStaff || showAddVariant || editingVariant || editingStaff || editingStaffRole || showClosingLoad) && (
+                {sheetOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-                            className="glass w-full max-w-md rounded-3xl p-8 md:p-12 border-white/10">
+                        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={closeSheet}>
+                        <motion.div
+                            initial={{ y: 48 }} animate={{ y: 0 }} exit={{ y: 48 }}
+                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="ios-sheet w-full sm:max-w-md p-5 pb-8"
+                        >
+                            <div className="ios-grabber" />
+                            <div className="flex items-center justify-between mt-1 mb-4">
+                                <h2 className="ios-title-3">
+                                    {showAddStaff ? 'Nuovo membro' : showAddVariant ? 'Nuova variante' : editingVariant ? 'Modifica variante' : editingStaffRole ? 'Ruolo' : editingStaff ? `PIN · ${editingStaff.name}` : 'Chiudi carico'}
+                                </h2>
+                                <button onClick={closeSheet} className="ios-press p-2 -mr-2" style={{ color: 'var(--label-tertiary)' }} aria-label="Chiudi"><X size={20} /></button>
+                            </div>
 
                             {showAddStaff && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Nuovo Staff</h2><button onClick={() => setShowAddStaff(false)} aria-label="Chiudi"><X size={20} /></button></div>
-                                    <form onSubmit={handleAddStaff} className="space-y-4">
-                                        <input required value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} className="w-full bg-surface-950 border border-white/5 rounded-xl px-5 py-3.5 text-white font-bold italic outline-none" placeholder="Nome..." />
-                                        <select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value as StaffRole })}
-                                            className="w-full bg-surface-950 border border-white/5 rounded-xl px-5 py-3.5 text-white font-bold outline-none">
-                                            <option value="staff">Staff</option><option value="helper">Helper</option><option value="admin">Admin</option>
-                                        </select>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <input type="password" required maxLength={8} value={newStaff.pin} onChange={e => setNewStaff({ ...newStaff, pin: e.target.value })}
-                                                className="bg-surface-950 border border-white/5 rounded-xl py-3 px-2 text-white font-black text-center outline-none" placeholder="PIN" inputMode="numeric" />
-                                            <input type="password" required maxLength={8} value={newStaff.confirmPin} onChange={e => setNewStaff({ ...newStaff, confirmPin: e.target.value })}
-                                                className="bg-surface-950 border border-white/5 rounded-xl py-3 px-2 text-white font-black text-center outline-none" placeholder="RE-PIN" inputMode="numeric" />
-                                        </div>
-                                        {pinError && <p className="text-danger text-[9px] font-black text-center">{pinError}</p>}
-                                        <button type="submit" className="w-full py-4 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">AUTORIZZA STAFF</button>
-                                    </form>
-                                </div>
+                                <form onSubmit={handleAddStaff} className="grid gap-2.5">
+                                    <input required value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} className="ios-input" placeholder="Nome" />
+                                    <select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value as StaffRole })} className="ios-input">
+                                        <option value="staff">Staff</option><option value="helper">Helper</option><option value="admin">Admin</option>
+                                    </select>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <input type="password" required maxLength={8} value={newStaff.pin} onChange={e => setNewStaff({ ...newStaff, pin: e.target.value })} className="ios-input text-center" placeholder="PIN" inputMode="numeric" />
+                                        <input type="password" required maxLength={8} value={newStaff.confirmPin} onChange={e => setNewStaff({ ...newStaff, confirmPin: e.target.value })} className="ios-input text-center" placeholder="Ripeti PIN" inputMode="numeric" />
+                                    </div>
+                                    {pinError && <p className="ios-footnote text-center" style={{ color: '#C0392B' }}>{pinError}</p>}
+                                    <button type="submit" className="ios-btn ios-btn-filled w-full">Aggiungi</button>
+                                </form>
                             )}
 
                             {showAddVariant && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Nuova Variante</h2><button onClick={() => setShowAddVariant(false)} aria-label="Chiudi"><X size={20} /></button></div>
-                                    <form onSubmit={handleAddVariant} className="space-y-4 text-xs">
-                                        <select required value={newVariant.model_id} onChange={e => setNewVariant({ ...newVariant, model_id: e.target.value })}
-                                            className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-bold">
-                                            <option value="">Scegli Modello...</option>{models.filter(m => !m.deleted && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        </select>
-                                        <select required value={newVariant.flavor_id} onChange={e => setNewVariant({ ...newVariant, flavor_id: e.target.value })}
-                                            className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-bold">
-                                            <option value="">Scegli Gusto...</option>{flavors.filter(f => !f.deleted && f.active !== false).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                        </select>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-1">Prezzo Default</label>
-                                                <input type="number" required value={newVariant.default_price} onChange={e => setNewVariant({ ...newVariant, default_price: Number(e.target.value) })}
-                                                    className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-black" /></div>
-                                            <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-1">Initial Qty</label>
-                                                <input type="number" required value={newVariant.initial_qty} onChange={e => setNewVariant({ ...newVariant, initial_qty: Number(e.target.value) })}
-                                                    className="w-full bg-surface-950 border border-white/5 rounded-xl px-4 py-3 text-white font-black" /></div>
-                                        </div>
-                                        <button type="submit" className="w-full py-4 bg-warning text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg">CREA VARIANTE</button>
-                                    </form>
-                                </div>
+                                <form onSubmit={handleAddVariant} className="grid gap-2.5">
+                                    <select required value={newVariant.model_id} onChange={e => setNewVariant({ ...newVariant, model_id: e.target.value })} className="ios-input">
+                                        <option value="">Modello…</option>{models.filter(m => !m.deleted && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    </select>
+                                    <select required value={newVariant.flavor_id} onChange={e => setNewVariant({ ...newVariant, flavor_id: e.target.value })} className="ios-input">
+                                        <option value="">Gusto…</option>{flavors.filter(f => !f.deleted && f.active !== false).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                    </select>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        <div><label className="ios-footnote block mb-1">Prezzo €</label>
+                                            <input type="number" required value={newVariant.default_price} onChange={e => setNewVariant({ ...newVariant, default_price: Number(e.target.value) })} className="ios-input ios-amount text-center" /></div>
+                                        <div><label className="ios-footnote block mb-1">Quantità</label>
+                                            <input type="number" required value={newVariant.initial_qty} onChange={e => setNewVariant({ ...newVariant, initial_qty: Number(e.target.value) })} className="ios-input ios-amount text-center" /></div>
+                                    </div>
+                                    <button type="submit" className="ios-btn ios-btn-filled w-full">Crea</button>
+                                </form>
                             )}
 
                             {editingVariant && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div><h2 className="text-xl font-black italic uppercase leading-tight">{editingVariant.model_name}</h2><p className="text-[9px] text-warning font-bold uppercase italic">{editingVariant.flavor_name}</p></div>
-                                        <button onClick={() => setEditingVariant(null)} aria-label="Chiudi"><X size={20} /></button>
+                                <div className="grid gap-3">
+                                    <div>
+                                        <label className="ios-footnote block mb-1">Prezzo €</label>
+                                        <input type="number" value={editingVariant.default_price} onChange={e => setEditingVariant({ ...editingVariant, default_price: Number(e.target.value) })} className="ios-input ios-amount text-center" style={{ fontSize: 24, fontWeight: 700 }} />
                                     </div>
-                                    <div className="space-y-5">
-                                        <div className="space-y-1.5"><label className="text-[8px] text-slate-500 uppercase ml-1">Cambia Prezzo Default</label>
-                                            <div className="flex items-center gap-3"><input type="number" value={editingVariant.default_price}
-                                                onChange={e => setEditingVariant({ ...editingVariant, default_price: Number(e.target.value) })}
-                                                className="flex-1 bg-surface-950 border border-white/5 rounded-xl px-6 py-4 text-white font-black italic text-2xl outline-none" /><span className="text-2xl font-black text-slate-700 italic">€</span></div></div>
-                                        <div className="flex items-center gap-3 p-3.5 bg-white/5 rounded-xl border border-white/5 cursor-pointer"
-                                            onClick={() => setEditingVariant({ ...editingVariant, active: !editingVariant.active })}>
-                                            <div className={clsx("w-5 h-5 rounded flex items-center justify-center transition-all", editingVariant.active ? "bg-primary" : "bg-white/10")}>
-                                                {editingVariant.active && <Check size={12} className="text-surface-950" />}
-                                            </div>
-                                            <span className="text-[10px] text-white font-bold uppercase tracking-widest">Variante Attiva</span>
-                                        </div>
-                                        <button onClick={() => handleUpdateVariant(editingVariant)} className="w-full py-5 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">SALVA MODIFICHE</button>
-                                    </div>
+                                    <button onClick={() => setEditingVariant({ ...editingVariant, active: !editingVariant.active })} className="ios-press flex items-center justify-between p-3.5 rounded-2xl" style={{ background: 'var(--surface-tertiary)' }}>
+                                        <span className="ios-headline text-[15px]">Variante attiva</span>
+                                        <span className="ios-press inline-flex rounded-full p-0.5" style={{ width: 51, background: editingVariant.active ? '#2F7D4F' : 'var(--surface-tertiary)', border: '1px solid var(--separator)', justifyContent: editingVariant.active ? 'flex-end' : 'flex-start' }}>
+                                            <span className="rounded-full" style={{ width: 27, height: 27, background: '#fff', boxShadow: 'var(--ios-shadow-sm)' }} />
+                                        </span>
+                                    </button>
+                                    <button onClick={() => handleUpdateVariant(editingVariant)} className="ios-btn ios-btn-filled w-full">Salva</button>
                                 </div>
                             )}
 
                             {editingStaffRole && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div><h2 className="text-xl font-black italic uppercase">Modifica Ruolo</h2><p className="text-[9px] text-slate-500 mt-0.5">{editingStaffRole.name}</p></div>
-                                        <button onClick={() => setEditingStaffRole(null)} aria-label="Chiudi"><X size={20} /></button>
-                                    </div>
-                                    <form onSubmit={handleUpdateStaffRole} className="space-y-4">
-                                        {(['admin', 'staff', 'helper'] as StaffRole[]).map(role => (
-                                            <label key={role} onClick={() => setEditingStaffRole({ ...editingStaffRole, role })}
-                                                className={clsx("flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all",
-                                                    editingStaffRole.role === role ? 'border-primary/40 bg-primary/10' : 'border-white/5 bg-white/[0.02] hover:bg-white/5')}>
-                                                <div className={clsx("w-5 h-5 rounded-full flex items-center justify-center transition-all", editingStaffRole.role === role ? "bg-primary" : "bg-white/10")}>
-                                                    {editingStaffRole.role === role && <div className="w-2 h-2 rounded-full bg-surface-950" />}
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-white uppercase text-sm">{role}</p>
-                                                    <p className="text-[9px] text-slate-500">
-                                                        {role === 'admin' ? 'Accesso completo + chiusura carico' :
-                                                            role === 'staff' ? 'Vendite, ordini e inventario' : 'Solo prenotazioni e incassi'}
-                                                    </p>
-                                                </div>
-                                            </label>
-                                        ))}
-                                        <button type="submit" className="w-full py-4 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg mt-2">SALVA RUOLO</button>
-                                    </form>
-                                </div>
+                                <form onSubmit={handleUpdateStaffRole} className="grid gap-2">
+                                    {(['admin', 'staff', 'helper'] as StaffRole[]).map(role => (
+                                        <button type="button" key={role} onClick={() => setEditingStaffRole({ ...editingStaffRole, role })}
+                                            className="ios-press flex items-center gap-3 p-3.5 rounded-2xl text-left"
+                                            style={editingStaffRole.role === role ? { background: 'var(--accent-tint)', border: '1px solid var(--accent)' } : { background: 'var(--surface-tertiary)' }}>
+                                            <span className="ios-headline text-[15px] capitalize flex-1">{role}</span>
+                                            {editingStaffRole.role === role && <Badge variant="primary" size="xs">Attivo</Badge>}
+                                        </button>
+                                    ))}
+                                    <button type="submit" className="ios-btn ios-btn-filled w-full mt-1">Salva ruolo</button>
+                                </form>
                             )}
 
                             {editingStaff && (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black italic uppercase">Modifica PIN: {editingStaff.name}</h2><button onClick={() => setEditingStaff(null)} aria-label="Chiudi"><X size={20} /></button></div>
-                                    <form onSubmit={handleUpdateStaffPin} className="space-y-4">
-                                        <input type="password" required maxLength={8} value={newPin} onChange={e => setNewPin(e.target.value)}
-                                            className="w-full bg-surface-950 border border-white/10 rounded-xl py-4 text-white font-black text-center text-lg outline-none" placeholder="NUOVO PIN" inputMode="numeric" />
-                                        <input type="password" required maxLength={8} value={confirmPin} onChange={e => setConfirmPin(e.target.value)}
-                                            className="w-full bg-surface-950 border border-white/10 rounded-xl py-4 text-white font-black text-center text-lg outline-none" placeholder="RIPETI PIN" inputMode="numeric" />
-                                        {pinError && <p className="text-danger text-[9px] font-black text-center">{pinError}</p>}
-                                        <button type="submit" className="w-full py-4 bg-primary text-surface-950 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg">AGGIORNA PIN</button>
-                                    </form>
-                                </div>
+                                <form onSubmit={handleUpdateStaffPin} className="grid gap-2.5">
+                                    <input type="password" required maxLength={8} value={newPin} onChange={e => setNewPin(e.target.value)} className="ios-input text-center" placeholder="Nuovo PIN" inputMode="numeric" style={{ fontSize: 20 }} />
+                                    <input type="password" required maxLength={8} value={confirmPin} onChange={e => setConfirmPin(e.target.value)} className="ios-input text-center" placeholder="Ripeti PIN" inputMode="numeric" style={{ fontSize: 20 }} />
+                                    {pinError && <p className="ios-footnote text-center" style={{ color: '#C0392B' }}>{pinError}</p>}
+                                    <button type="submit" className="ios-btn ios-btn-filled w-full">Aggiorna PIN</button>
+                                </form>
                             )}
 
                             {showClosingLoad && (
-                                <div className="space-y-5">
-                                    <div className="flex justify-between items-center">
-                                        <h2 className="text-xl font-black italic uppercase">Chiudi Carico</h2>
-                                        <button onClick={() => setShowClosingLoad(false)} aria-label="Chiudi"><X size={20} /></button>
-                                    </div>
-                                    <p className="text-[10px] text-slate-500">Inserisci i dati del carico per sincronizzare e archiviare la sessione.</p>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] text-danger/80 uppercase font-black ml-1 tracking-widest">Soldi Spesi (€)</label>
-                                            <input type="number" step="0.01" value={closingSoldiSpesi} onChange={e => setClosingSoldiSpesi(e.target.value)}
-                                                className="w-full bg-surface-950 border border-danger/20 rounded-xl py-4 px-5 text-white font-black text-lg outline-none focus:border-danger/50 transition-all" placeholder="0.00" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] text-primary/80 uppercase font-black ml-1 tracking-widest">Pezzi Comprati</label>
-                                            <input type="number" value={closingPezziComprati} onChange={e => setClosingPezziComprati(e.target.value)}
-                                                className="w-full bg-surface-950 border border-primary/20 rounded-xl py-4 px-5 text-white font-black text-lg outline-none focus:border-primary/50 transition-all" placeholder="0" />
-                                        </div>
-                                        <div className="flex gap-3 pt-2">
-                                            <button onClick={() => setShowClosingLoad(false)} className="flex-1 py-4 bg-white/5 rounded-xl text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-white transition-colors">Annulla</button>
-                                            <button onClick={handleConfirmClosingLoad} className="flex-1 py-4 bg-gradient-to-r from-primary to-secondary text-white font-black rounded-xl text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">CONFERMA CHIUSURA</button>
-                                        </div>
-                                    </div>
+                                <div className="grid gap-2.5">
+                                    <p className="ios-footnote">Archivia la sessione e azzera il magazzino.</p>
+                                    <div><label className="ios-footnote block mb-1">Soldi spesi (€)</label>
+                                        <input type="number" step="0.01" value={closingSoldiSpesi} onChange={e => setClosingSoldiSpesi(e.target.value)} className="ios-input ios-amount text-center" placeholder="0.00" style={{ fontSize: 22, fontWeight: 700 }} /></div>
+                                    <div><label className="ios-footnote block mb-1">Pezzi comprati</label>
+                                        <input type="number" value={closingPezziComprati} onChange={e => setClosingPezziComprati(e.target.value)} className="ios-input ios-amount text-center" placeholder="0" style={{ fontSize: 22, fontWeight: 700 }} /></div>
+                                    <button onClick={handleConfirmClosingLoad} className="ios-btn w-full text-white mt-1" style={{ background: '#C0392B' }}>Conferma chiusura</button>
                                 </div>
                             )}
                         </motion.div>
@@ -601,9 +479,9 @@ export const Admin: React.FC = () => {
                     else if (confirmDeleteType === 'flavor') handleDeleteFlavor(confirmDeleteId);
                     else if (confirmDeleteType === 'staff') handleDeleteStaff(confirmDeleteId);
                 }}
-                title={`Elimina ${confirmDeleteType}`}
-                message={`Sei sicuro di voler eliminare "${confirmDeleteLabel}"?`}
+                title="Eliminare?"
+                message={`Vuoi eliminare "${confirmDeleteLabel}"?`}
                 variant="danger" confirmLabel="Elimina" />
-        </motion.div>
+        </div>
     );
 };

@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, AlertCircle, X } from 'lucide-react';
-import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'motion/react';
+import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export interface ToastMessage {
   id: string;
@@ -14,9 +13,15 @@ interface ToastContainerProps {
   onRemove: (id: string) => void;
 }
 
+const icons = {
+  success: <CheckCircle2 size={18} style={{ color: '#2F7D4F' }} />,
+  error: <AlertCircle size={18} style={{ color: '#C0392B' }} />,
+  info: <Info size={18} style={{ color: 'var(--accent)' }} />,
+};
+
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed bottom-28 md:bottom-8 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 w-[calc(100%-32px)] max-w-sm pointer-events-none">
       <AnimatePresence>
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onRemove={onRemove} />
@@ -34,20 +39,16 @@ const ToastItem: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.9, transition: { duration: 0.2 } }}
-      className={clsx(
-        'pointer-events-auto flex items-center gap-3 px-5 py-3.5 rounded-2xl font-bold text-xs shadow-2xl border backdrop-blur-xl min-w-[280px] max-w-[400px]',
-        toast.type === 'success' && 'bg-success/10 border-success/20 text-success shadow-success/10',
-        toast.type === 'error' && 'bg-danger/10 border-danger/20 text-danger shadow-danger/10',
-        toast.type === 'info' && 'bg-primary/10 border-primary/20 text-primary shadow-primary/10',
-      )}
+      initial={{ opacity: 0, y: -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12, transition: { duration: 0.18 } }}
+      transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+      className="ios-banner pointer-events-auto flex items-center gap-3 px-4 py-3"
     >
-      {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-      <span className="flex-1 font-black uppercase tracking-wider text-[9px]">{toast.message}</span>
-      <button onClick={() => onRemove(toast.id)} className="opacity-50 hover:opacity-100 transition-opacity" aria-label="Chiudi notifica">
-        <X size={14} />
+      {icons[toast.type]}
+      <span className="flex-1 ios-subhead">{toast.message}</span>
+      <button onClick={() => onRemove(toast.id)} className="ios-press p-1" style={{ color: 'var(--label-tertiary)' }} aria-label="Chiudi notifica">
+        <X size={16} />
       </button>
     </motion.div>
   );
