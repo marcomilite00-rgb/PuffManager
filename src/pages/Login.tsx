@@ -190,7 +190,7 @@ export const Login: React.FC = () => {
                     {staff.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="spatial-headline text-[16px] text-white font-medium truncate">
+                    <p className="spatial-headline text-[16px] text-white font-medium truncate uppercase">
                       {staff.name}
                     </p>
                     <p className="spatial-caption text-[11px] text-white/50 capitalize mt-0.5">
@@ -238,7 +238,7 @@ export const Login: React.FC = () => {
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-white/25 to-white/10 border border-white/30 flex items-center justify-center mb-3 text-white text-3xl font-bold shadow-2xl">
           {selectedStaff.name.charAt(0).toUpperCase()}
         </div>
-        <h2 className="spatial-headline text-xl text-white font-semibold">
+        <h2 className="spatial-headline text-xl text-white font-semibold uppercase">
           {selectedStaff.name}
         </h2>
         <p className="spatial-subhead text-sm text-white/50 capitalize mt-0.5 mb-6">

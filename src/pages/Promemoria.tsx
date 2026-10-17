@@ -24,7 +24,7 @@ interface Reminder {
   customer_name: string;
   description: string;
   amount_due: number;
-  created_by_staff_id: string;
+  created_by_staff_id: string | null;
   staff?: { name: string } | null;
   order?: {
     gross_total: number;
@@ -251,7 +251,7 @@ export const Promemoria: React.FC = () => {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="spatial-headline text-[15px] sm:text-[16px] font-semibold text-white truncate">
+                      <p className="spatial-headline text-[15px] sm:text-[16px] font-semibold text-white truncate uppercase">
                         {reminder.customer_name || 'Cliente'}
                       </p>
                       <p className="spatial-caption text-white/40 text-[11px] mt-0.5">
@@ -264,7 +264,7 @@ export const Promemoria: React.FC = () => {
                         {staffName ? (
                           <>
                             {' '}da{' '}
-                            <span className="text-white/75 font-medium">
+                            <span className="text-white/75 font-medium uppercase">
                               {staffName}
                             </span>
                           </>
@@ -344,17 +344,22 @@ export const Promemoria: React.FC = () => {
                 </div>
 
                 {/* ── Single Primary CTA: "Incassa" ── */}
-                <div className="pt-2">
+                <div className="pt-2.5">
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedReminder(reminder);
                       setShowPaymentModal(true);
                     }}
-                    className="spatial-btn-primary w-full h-12 text-sm font-semibold flex items-center justify-center gap-2 shadow-xl"
+                    className="w-full !h-auto min-h-[56px] sm:min-h-[60px] py-3 px-5 rounded-full bg-white text-neutral-900 shadow-xl hover:bg-neutral-100 active:scale-[0.99] transition-all flex flex-col items-center justify-center !gap-1 border-none cursor-pointer"
                   >
-                    <CreditCard size={18} />
-                    <span>Incassa Somma Dovuta (€{formatEur(due)})</span>
+                    <div className="flex items-center justify-center gap-2 text-[15px] sm:text-[16px] font-bold text-neutral-900 leading-tight">
+                      <CreditCard size={18} className="text-neutral-900 shrink-0" />
+                      <span>Incassa Somma Ricevuta</span>
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-normal text-neutral-500 leading-tight">
+                      (inserisci l'importo pagato dal cliente)
+                    </span>
                   </button>
                 </div>
 
@@ -371,16 +376,21 @@ export const Promemoria: React.FC = () => {
                       <p className="spatial-caption text-white/40 mb-2">
                         Azioni rapide sul debito:
                       </p>
-                      <div className="grid grid-cols-3 gap-2.5">
+                      <div className="grid grid-cols-3 gap-2.5 items-stretch">
                         <button
                           type="button"
                           onClick={() => {
                             finalizePayment(reminder.id, reminder.amount_due);
                             setMenuId(null);
                           }}
-                          className="min-h-[44px] rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#30D158]/15 hover:bg-[#30D158]/25 border border-[#30D158]/30 text-[#30D158] transition-all active:scale-95"
+                          className="min-h-[54px] sm:min-h-[58px] py-2 px-1.5 rounded-2xl flex flex-col items-center justify-center gap-1 bg-[#30D158]/15 hover:bg-[#30D158]/25 border border-[#30D158]/30 text-[#30D158] transition-all active:scale-95 text-center leading-tight"
                         >
-                          <Check size={14} /> Saldato
+                          <span className="flex items-center gap-1 text-[13px] sm:text-sm font-bold">
+                            <Check size={14} /> Saldato
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] font-normal opacity-90 leading-tight">
+                            (incassa tutto il debito)
+                          </span>
                         </button>
                         <button
                           type="button"
@@ -389,9 +399,14 @@ export const Promemoria: React.FC = () => {
                             setMenuId(null);
                           }}
                           disabled={actionLoading === reminder.id}
-                          className="min-h-[44px] rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#FF9F0A]/15 hover:bg-[#FF9F0A]/25 border border-[#FF9F0A]/30 text-[#FF9F0A] transition-all active:scale-95 disabled:opacity-40"
+                          className="min-h-[54px] sm:min-h-[58px] py-2 px-1.5 rounded-2xl flex flex-col items-center justify-center gap-1 bg-[#FF9F0A]/15 hover:bg-[#FF9F0A]/25 border border-[#FF9F0A]/30 text-[#FF9F0A] transition-all active:scale-95 disabled:opacity-40 text-center leading-tight"
                         >
-                          <Calendar size={14} /> Riprenota
+                          <span className="flex items-center gap-1 text-[13px] sm:text-sm font-bold">
+                            <Calendar size={14} /> Riprenota
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] font-normal opacity-90 leading-tight">
+                            (riporta a prenotazione)
+                          </span>
                         </button>
                         <button
                           type="button"
@@ -399,9 +414,14 @@ export const Promemoria: React.FC = () => {
                             setDeleteConfirmId(reminder.id);
                             setMenuId(null);
                           }}
-                          className="min-h-[44px] rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] transition-all active:scale-95"
+                          className="min-h-[54px] sm:min-h-[58px] py-2 px-1.5 rounded-2xl flex flex-col items-center justify-center gap-1 bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] transition-all active:scale-95 text-center leading-tight"
                         >
-                          <Trash2 size={14} /> Elimina
+                          <span className="flex items-center gap-1 text-[13px] sm:text-sm font-bold">
+                            <Trash2 size={14} /> Elimina
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] font-normal opacity-90 leading-tight">
+                            (annulla debito residuo)
+                          </span>
                         </button>
                       </div>
                     </motion.div>
@@ -433,9 +453,9 @@ export const Promemoria: React.FC = () => {
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
         title="Chiudi definitivamente debito"
-        message="Il debito verrà annullato e archiviato senza registrare entrate di cassa. Operazione irreversibile."
+        message="Il debito verrà annullato e archiviato come vendita parziale o scontata, senza registrare ulteriori entrate di cassa. Operazione irreversibile."
         variant="danger"
-        confirmLabel="Elimina Debito"
+        confirmLabel="Elimina (Somma Parziale/Scontata)"
       />
 
       {/* Payment Modal for Collection */}

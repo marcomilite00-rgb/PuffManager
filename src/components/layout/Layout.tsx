@@ -16,6 +16,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { SwitchOperatorModal } from '../auth/SwitchOperatorModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,23 +26,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
   const [hasReminders, setHasReminders] = useState(false);
 
   const checkReminders = useCallback(async () => {
     if (!user) return;
-    let query = supabase
+    const { count } = await supabase
       .from('reminders')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active');
-    if (user.role === 'helper') {
-      const { data: staffId } = await supabase
-        .from('staff_sessions')
-        .select('staff_id')
-        .eq('auth_uid', user.id)
-        .single();
-      if (staffId) query = query.eq('created_by_staff_id', staffId.staff_id);
-    }
-    const { count } = await query;
     setHasReminders(count ? count > 0 : false);
   }, [user]);
 
@@ -151,16 +144,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           {/* Profile Switcher */}
-          <Link
-            to="/login"
+          <button
+            type="button"
+            onClick={() => setIsSwitchModalOpen(true)}
             className="group relative w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-sm text-white hover:bg-white/20 transition-colors"
             aria-label={`Cambia profilo (${user.name})`}
           >
             {user.name[0]?.toUpperCase()}
             <span className="absolute left-[72px] px-3 py-1.5 rounded-xl bg-[#14161C]/95 border border-white/20 text-xs font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 shadow-xl backdrop-blur-md z-50">
-              {user.name} ({user.role})
+              <span className="uppercase">{user.name}</span> ({user.role})
             </span>
-          </Link>
+          </button>
 
           {/* Logout */}
           <button
@@ -196,7 +190,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   Puff Manager
                 </h1>
                 <p className="spatial-caption text-[10px] opacity-60 capitalize leading-tight">
-                  {user.name} ({user.role})
+                  <span className="uppercase">{user.name}</span> ({user.role})
                 </p>
               </div>
             </div>
@@ -208,7 +202,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               className="flex items-center gap-2 pl-3 pr-1 py-1 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/10"
               aria-label="Profilo operatore e opzioni"
             >
-              <span className="text-xs font-semibold">{user.name}</span>
+              <span className="text-xs font-semibold uppercase">{user.name}</span>
               <div className="w-7 h-7 rounded-full bg-[#0A84FF] text-white flex items-center justify-center font-bold text-xs shadow-md">
                 {user.name.charAt(0).toUpperCase()}
               </div>
@@ -246,7 +240,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="spatial-headline text-lg font-semibold">{user.name}</h3>
+                      <h3 className="spatial-headline text-lg font-semibold uppercase">{user.name}</h3>
                       <span className="spatial-chip spatial-chip-blue text-[11px] py-0.5 mt-0.5">
                         Ruolo: {user.role}
                       </span>
@@ -278,14 +272,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                 {/* Actions: Switch Profile / Logout */}
                 <div className="flex gap-2.5">
-                  <Link
-                    to="/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsSwitchModalOpen(true);
+                    }}
                     className="spatial-btn-ghost flex-1 min-h-[44px] text-xs font-semibold flex items-center justify-center gap-2"
                   >
                     <ArrowLeftRight size={15} />
                     <span>Cambia Operatore</span>
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     onClick={logout}
@@ -345,6 +342,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           ))}
         </nav>
       </div>
+
+      {/* Switch Operator Modal */}
+      <SwitchOperatorModal
+        isOpen={isSwitchModalOpen}
+        onClose={() => setIsSwitchModalOpen(false)}
+      />
     </div>
   );
 };

@@ -8,7 +8,8 @@ export interface Staff {
     role: StaffRole;
     has_pin?: boolean;        // Computed: pin_hash IS NOT NULL
     pin_version?: number;     // For session invalidation
-    pin_hash?: string;        // Internal only - never exposed via API
+    pin_hash?: string;        // Internal bcrypt hash
+    pin_length?: number;
     created_at: string;
     updated_at?: string;
 }
@@ -157,6 +158,7 @@ export interface LoadSnapshotItem {
     flavor_name: string;
     qty: number;
     price: number;
+    staff_name?: string | null;
     customer_name?: string | null;
 }
 
@@ -177,5 +179,8 @@ export interface ReminderSummary {
     customer_name: string | null;
     created_at: string;
     amount_due: number;
+    created_by_staff_id?: string | null;
+    order_id?: string | null;
+    staff?: { name: string } | null;
 }
 

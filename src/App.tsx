@@ -32,10 +32,8 @@ function AnimatedRoutes() {
             <Route path="/prenotazioni" element={<Prenotazioni />} />
             <Route path="/inventario" element={<Inventario />} />
             <Route path="/promemoria" element={<Promemoria />} />
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} />}>
-              <Route path="/cassa" element={<Cassa />} />
-              <Route path="/storico" element={<Storico />} />
-            </Route>
+            <Route path="/cassa" element={<Cassa />} />
+            <Route path="/storico" element={<Storico />} />
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
               <Route path="/admin" element={<Admin />} />
             </Route>

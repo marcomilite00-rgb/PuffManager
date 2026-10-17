@@ -28,9 +28,10 @@ import {
   Check,
   AlertOctagon,
   TrendingUp,
+  Edit3,
+  Search,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../lib/cn';
 
@@ -75,6 +76,7 @@ export const Admin: React.FC = () => {
     'variant' | 'model' | 'flavor' | 'staff'
   >('variant');
   const [confirmDeleteLabel, setConfirmDeleteLabel] = useState('');
+  const [variantSearch, setVariantSearch] = useState('');
 
   const isAdmin = user?.role === 'admin';
 
@@ -91,7 +93,14 @@ export const Admin: React.FC = () => {
           supabase.from('settings').select('*').single(),
           supabase.from('inventory').select('*'),
         ]);
-      if (staffRes.data) setStaff(staffRes.data);
+      if (staffRes.data) {
+        setStaff(
+          (staffRes.data as Staff[]).map((s) => ({
+            ...s,
+            has_pin: !!s.pin_hash,
+          }))
+        );
+      }
       if (variantsRes.data) {
         const inventory = inventoryRes.data || [];
         type VariantRow = ProductVariant & {
@@ -286,7 +295,15 @@ export const Admin: React.FC = () => {
     await supabase.from('staff_sessions').delete().eq('staff_id', id);
     const { error } = await supabase.from('staff').delete().eq('id', id);
     if (error) {
-      showToast('Errore eliminazione membro: ' + error.message, 'error');
+      // Fallback: remove blocking reminders if the column cannot be nulled
+      await supabase.from('reminders').delete().eq('created_by_staff_id', id);
+      const { error: retryError } = await supabase.from('staff').delete().eq('id', id);
+      if (retryError) {
+        showToast('Errore eliminazione membro: ' + retryError.message, 'error');
+      } else {
+        fetchData();
+        showToast('Membro rimosso dallo staff', 'success');
+      }
     } else {
       fetchData();
       showToast('Membro rimosso dallo staff', 'success');
@@ -317,7 +334,7 @@ export const Admin: React.FC = () => {
       return;
     }
     const { error } = await supabase.rpc('create_staff', {
-      p_name: newStaff.name.trim(),
+      p_name: newStaff.name.trim().toUpperCase(),
       p_role: newStaff.role,
       p_pin: newStaff.pin,
     });
@@ -351,6 +368,24 @@ export const Admin: React.FC = () => {
       setConfirmPin('');
       setPinError('');
       showToast('PIN aggiornato con successo', 'success');
+      fetchData();
+    }
+  };
+
+  const handleRemoveStaffPin = async () => {
+    if (!editingStaff) return;
+    const { error } = await supabase.rpc('update_staff_pin', {
+      p_staff_id: editingStaff.id,
+      p_new_pin: null,
+    });
+    if (error) {
+      showToast('Errore rimozione PIN: ' + error.message, 'error');
+    } else {
+      setEditingStaff(null);
+      setNewPin('');
+      setConfirmPin('');
+      setPinError('');
+      showToast('PIN rimosso con successo', 'success');
       fetchData();
     }
   };
@@ -465,14 +500,14 @@ export const Admin: React.FC = () => {
   }
 
   const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
-    { id: 'settings', label: 'Home & Bilancio', icon: SettingsIcon },
+    { id: 'settings', label: 'Bilancio', icon: SettingsIcon },
     { id: 'staff', label: 'Team', icon: Users },
     { id: 'products', label: 'Catalogo', icon: Layers },
     { id: 'inventory_management', label: 'Stock', icon: Boxes },
   ];
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-5xl mx-auto space-y-6 overflow-x-hidden">
       {/* ── Top Header ── */}
       <div className="flex items-center justify-between pt-2">
         <div>
@@ -488,24 +523,26 @@ export const Admin: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 4-Tab Segmented Navigation ── */}
-      <div className="spatial-segmented" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={cn(
-              'spatial-segmented-item shrink-0 sm:flex-1 text-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm',
-              activeTab === t.id && 'spatial-segmented-item-active'
-            )}
-          >
-            <t.icon size={15} />
-            <span>{t.label}</span>
-          </button>
-        ))}
+      {/* ── 4-Tab Segmented Navigation Centrata ── */}
+      <div className="flex justify-center w-full">
+        <div className="spatial-segmented max-w-full" role="tablist">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={cn(
+                'spatial-segmented-item shrink-0 sm:flex-1 text-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm',
+                activeTab === t.id && 'spatial-segmented-item-active'
+              )}
+            >
+              <t.icon size={15} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── TAB 1: Home & Bilancio ── */}
@@ -675,76 +712,127 @@ export const Admin: React.FC = () => {
       {/* ── TAB 2: Team ── */}
       {activeTab === 'staff' && (
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setShowAddStaff(true)}
-            className="spatial-btn-primary w-full h-12 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg"
-          >
-            <Plus size={18} /> Aggiungi Nuovo Membro Staff
-          </button>
+          {/* Header Action Bar */}
+          <div className="flex items-center justify-between gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider">
+                Membri dello Staff
+              </h2>
+              <p className="spatial-caption text-xs text-white/50">
+                {staff.length} {staff.length === 1 ? 'operatore registrato' : 'operatori registrati'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddStaff(true)}
+              className="spatial-btn-primary h-9 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-md shrink-0"
+            >
+              <Plus size={15} />
+              <span>Nuovo Membro</span>
+            </button>
+          </div>
 
-          <div className="spatial-panel p-0 overflow-hidden divide-y divide-white/10">
-            {staff.map((s) => (
-              <div
-                key={s.id}
-                className="spatial-row px-4 sm:px-6 py-4 flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  <div
-                    className={cn(
-                      'w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white text-base shrink-0 border',
-                      s.role === 'admin'
-                        ? 'bg-[#FF9F0A]/20 border-[#FF9F0A]/40 text-[#FF9F0A]'
-                        : 'bg-white/10 border-white/20'
-                    )}
-                  >
-                    {s.name.charAt(0).toUpperCase()}
+          {/* Staff Cards List */}
+          <div className="space-y-2.5">
+            {staff.map((s) => {
+              const isStaffAdmin = s.role === 'admin';
+              const isStaffMember = s.role === 'staff';
+              const roleBadgeColor = isStaffAdmin
+                ? 'bg-[#FF9F0A]/15 text-[#FF9F0A] border-[#FF9F0A]/30'
+                : isStaffMember
+                ? 'bg-[#0A84FF]/15 text-[#0A84FF] border-[#0A84FF]/30'
+                : 'bg-[#BF5AF2]/15 text-[#BF5AF2] border-[#BF5AF2]/30';
+
+              return (
+                <div
+                  key={s.id}
+                  className="spatial-panel p-3.5 sm:p-4 border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className={cn(
+                        'w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 border shadow-sm',
+                        isStaffAdmin
+                          ? 'bg-[#FF9F0A]/20 border-[#FF9F0A]/40 text-[#FF9F0A]'
+                          : isStaffMember
+                          ? 'bg-[#0A84FF]/20 border-[#0A84FF]/40 text-[#0A84FF]'
+                          : 'bg-[#BF5AF2]/20 border-[#BF5AF2]/40 text-[#BF5AF2]'
+                      )}
+                    >
+                      {s.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm sm:text-base font-bold text-white uppercase tracking-tight">
+                          {s.name}
+                        </span>
+                        <span
+                          className={cn(
+                            'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border',
+                            roleBadgeColor
+                          )}
+                        >
+                          {s.role}
+                        </span>
+                      </div>
+
+                      {/* Stato PIN Crittografato */}
+                      <div className="mt-1 flex items-center gap-2">
+                        {s.has_pin ? (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#30D158] bg-[#30D158]/10 border border-[#30D158]/25 px-2.5 py-0.5 rounded-full">
+                            <KeyRound size={11} /> PIN attivo (crittografato)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] text-white/40 bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
+                            <KeyRound size={11} /> Senza PIN
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="spatial-headline text-[15px] font-semibold text-white truncate">
-                      {s.name}
-                    </p>
-                    <p className="spatial-caption text-white/50 capitalize mt-0.5">
-                      Ruolo: {s.role}
-                    </p>
+
+                  {/* Actions: Sleek & Compact */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setEditingStaffRole({ ...s })}
+                      className="h-8 w-8 sm:w-auto sm:px-3 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all flex items-center justify-center gap-1.5 border border-white/10"
+                      title={`Modifica ruolo di ${s.name}`}
+                    >
+                      <UserCheck size={14} className="text-[#0A84FF]" />
+                      <span className="hidden sm:inline">Ruolo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingStaff(s);
+                        setNewPin('');
+                        setConfirmPin('');
+                        setPinError('');
+                      }}
+                      className="h-8 w-8 sm:w-auto sm:px-3 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all flex items-center justify-center gap-1.5 border border-white/10"
+                      title={`Imposta o modifica PIN di ${s.name}`}
+                    >
+                      <KeyRound size={14} className="text-[#FF9F0A]" />
+                      <span className="hidden sm:inline">PIN</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmDeleteId(s.id);
+                        setConfirmDeleteType('staff');
+                        setConfirmDeleteLabel(s.name);
+                      }}
+                      className="w-8 h-8 rounded-full bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center transition-all active:scale-95 shrink-0"
+                      title={`Elimina ${s.name}`}
+                      aria-label={`Elimina ${s.name}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setEditingStaffRole({ ...s })}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1"
-                  >
-                    <UserCheck size={13} /> Ruolo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingStaff(s);
-                      setNewPin('');
-                      setConfirmPin('');
-                      setPinError('');
-                    }}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1"
-                  >
-                    <KeyRound size={13} /> PIN
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConfirmDeleteId(s.id);
-                      setConfirmDeleteType('staff');
-                      setConfirmDeleteLabel(s.name);
-                    }}
-                    className="w-8 h-8 rounded-full bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center transition-colors"
-                    aria-label={`Elimina ${s.name}`}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {staff.length === 0 && (
               <EmptyState title="Nessun membro configurato nello staff" />
             )}
@@ -868,13 +956,48 @@ export const Admin: React.FC = () => {
       {/* ── TAB 4: Stock & Varianti ── */}
       {activeTab === 'inventory_management' && (
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setShowAddVariant(true)}
-            className="spatial-btn-primary w-full h-12 text-sm font-semibold flex items-center justify-center gap-2 shadow-lg"
-          >
-            <Plus size={18} /> Crea Nuova Variante Prodotto
-          </button>
+          {/* Header Action Bar */}
+          <div className="flex items-center justify-between gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider">
+                Giacenze & Varianti
+              </h2>
+              <p className="spatial-caption text-xs text-white/50">
+                {variants.length} combinazioni prodotto registrate
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddVariant(true)}
+              className="spatial-btn-primary h-9 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-md shrink-0"
+            >
+              <Plus size={15} />
+              <span>Nuova Variante</span>
+            </button>
+          </div>
+
+          {/* Search Bar for Variants */}
+          {variants.length > 5 && (
+            <div className="spatial-search w-full">
+              <Search size={16} className="text-white/40 shrink-0" />
+              <input
+                type="search"
+                placeholder="Filtra per modello o gusto..."
+                value={variantSearch}
+                onChange={(e) => setVariantSearch(e.target.value)}
+                aria-label="Filtra varianti"
+              />
+              {variantSearch && (
+                <button
+                  type="button"
+                  onClick={() => setVariantSearch('')}
+                  className="text-white/40 hover:text-white"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          )}
 
           {variants.length === 0 ? (
             <EmptyState
@@ -882,81 +1005,122 @@ export const Admin: React.FC = () => {
               subtitle="Crea la prima combinazione modello-gusto con il tasto sopra"
             />
           ) : (
-            <div className="spatial-panel p-0 overflow-hidden divide-y divide-white/10">
-              {variants.map((v) => (
-                <div
-                  key={v.id}
-                  className={cn(
-                    'spatial-row px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-opacity',
-                    !v.active && 'opacity-40'
-                  )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="spatial-headline text-[15px] font-semibold text-white truncate">
-                      {v.model_name}{' '}
-                      <span className="spatial-subhead text-white/60">· {v.flavor_name}</span>
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="spatial-amount text-xs text-white/70">
-                        €{Number(v.default_price).toFixed(2)}
-                      </span>
-                      {!v.active && (
-                        <Badge variant="ghost" size="xs">
-                          Non attiva
-                        </Badge>
+            <div className="space-y-2.5">
+              {variants
+                .filter((v) => {
+                  if (!variantSearch) return true;
+                  const s = variantSearch.toLowerCase();
+                  return (
+                    v.model_name.toLowerCase().includes(s) ||
+                    v.flavor_name.toLowerCase().includes(s)
+                  );
+                })
+                .map((v) => {
+                  const isOutOfStock = (v.qty || 0) <= 0;
+                  const isLowStock = (v.qty || 0) > 0 && (v.qty || 0) <= 3;
+
+                  return (
+                    <div
+                      key={v.id}
+                      className={cn(
+                        'spatial-panel p-3.5 sm:p-4 border border-white/10 hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5',
+                        !v.active && 'opacity-50'
                       )}
-                    </div>
-                  </div>
-
-                  {/* Stock Stepper */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                    <div className="flex items-center gap-1.5 bg-white/10 rounded-full p-1 border border-white/15">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))
-                        }
-                        className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white text-sm"
-                        aria-label="Diminuisci stock"
-                      >
-                        −
-                      </button>
-                      <span className="spatial-amount text-sm font-bold w-8 text-center text-white">
-                        {v.qty || 0}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)}
-                        className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white text-sm"
-                        aria-label="Aumenta stock"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setEditingVariant({ ...v })}
-                      className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
                     >
-                      Prezzo
-                    </button>
+                      {/* Left: Product Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 max-w-full">
+                            {v.model_name}
+                          </span>
+                          {isOutOfStock ? (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FF453A]/15 text-[#FF453A] border border-[#FF453A]/30">
+                              Esaurito (0 pz)
+                            </span>
+                          ) : isLowStock ? (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FF9F0A]/15 text-[#FF9F0A] border border-[#FF9F0A]/30">
+                              {v.qty} pz rimasti
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30">
+                              {v.qty} pz disponibili
+                            </span>
+                          )}
+                          {!v.active && (
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/10 text-white/40 border border-white/10">
+                              Disattivata
+                            </span>
+                          )}
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfirmDeleteId(v.id);
-                        setConfirmDeleteType('variant');
-                        setConfirmDeleteLabel(`${v.model_name} ${v.flavor_name}`);
-                      }}
-                      className="w-8 h-8 rounded-full bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center transition-colors"
-                      aria-label="Elimina variante"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight break-words">
+                          {v.flavor_name}
+                        </h3>
+
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-semibold text-[#0A84FF]">
+                            €{Number(v.default_price).toFixed(2)}
+                          </span>
+                          <span className="text-[11px] text-white/40">prezzo listino</span>
+                        </div>
+                      </div>
+
+                      {/* Right: Controls & Stepper */}
+                      <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10 shrink-0">
+                        {/* Stepper */}
+                        <div className="flex items-center gap-1.5 bg-white/10 rounded-full p-1 border border-white/15">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleUpdateQty(v.id, Math.max(0, (v.qty || 0) - 1))
+                            }
+                            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-white text-base font-bold transition-all"
+                            aria-label="Diminuisci stock"
+                          >
+                            −
+                          </button>
+                          <span className="spatial-amount text-sm font-extrabold w-8 text-center text-white">
+                            {v.qty || 0}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQty(v.id, (v.qty || 0) + 1)}
+                            className="w-7 h-7 rounded-full bg-[#0A84FF] hover:bg-[#0070E0] active:scale-90 flex items-center justify-center text-white text-base font-bold transition-all shadow-[0_0_8px_rgba(10,132,255,0.4)]"
+                            aria-label="Aumenta stock"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {/* Modifica Prezzo */}
+                        <button
+                          type="button"
+                          onClick={() => setEditingVariant({ ...v })}
+                          className="h-8 px-3 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all flex items-center gap-1.5 border border-white/10"
+                          title="Modifica prezzo di vendita"
+                        >
+                          <Edit3 size={13} className="text-[#0A84FF]" />
+                          <span>Prezzo</span>
+                        </button>
+
+                        {/* Elimina */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmDeleteId(v.id);
+                            setConfirmDeleteType('variant');
+                            setConfirmDeleteLabel(`${v.model_name} ${v.flavor_name}`);
+                          }}
+                          className="w-8 h-8 rounded-full bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center transition-all active:scale-95 shrink-0"
+                          title="Elimina variante"
+                          aria-label="Elimina variante"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
@@ -1024,7 +1188,7 @@ export const Admin: React.FC = () => {
                       onChange={(e) =>
                         setNewStaff({ ...newStaff, name: e.target.value })
                       }
-                      className="w-full px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-white text-sm focus:outline-none focus:border-[#0A84FF]"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-white uppercase placeholder:normal-case text-sm focus:outline-none focus:border-[#0A84FF]"
                       placeholder="Nome operatore"
                     />
                   </div>
@@ -1282,10 +1446,15 @@ export const Admin: React.FC = () => {
               {/* Form 5: Edit Staff PIN */}
               {editingStaff && (
                 <form onSubmit={handleUpdateStaffPin} className="space-y-4">
+                  <div className="pb-1 text-center">
+                    <span className="text-xs text-white/60">
+                      Modifica PIN per <strong className="text-white uppercase">{editingStaff.name}</strong>
+                    </span>
+                  </div>
                   <div className="space-y-3">
                     <div>
                       <label className="spatial-caption block text-center mb-1 text-white/60">
-                        Nuovo Codice PIN
+                        Nuovo Codice PIN (4-8 cifre)
                       </label>
                       <input
                         type="password"
@@ -1323,8 +1492,17 @@ export const Admin: React.FC = () => {
                     type="submit"
                     className="spatial-btn-primary w-full h-12 text-sm font-semibold shadow-lg"
                   >
-                    Salva Nuovo PIN
+                    Salva Nuovo PIN (Crittografato)
                   </button>
+                  {editingStaff.has_pin && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveStaffPin}
+                      className="w-full h-10 text-xs font-semibold text-[#FF453A] hover:bg-[#FF453A]/10 rounded-xl transition-all border border-[#FF453A]/20 cursor-pointer"
+                    >
+                      Rimuovi PIN (Accesso senza PIN)
+                    </button>
+                  )}
                 </form>
               )}
 

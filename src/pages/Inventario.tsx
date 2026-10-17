@@ -178,15 +178,57 @@ export const Inventario: React.FC = () => {
         <button
           type="button"
           onClick={copyForWhatsApp}
-          className="spatial-btn-ghost h-11 px-4 text-xs font-semibold flex items-center gap-2 self-start sm:self-auto shrink-0"
+          className="spatial-btn-ghost h-9 px-3.5 text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0"
           aria-label="Copia testo inventario per WhatsApp"
         >
-          <Copy size={15} />
+          <Copy size={14} />
           <span>Copia per WhatsApp</span>
         </button>
       </div>
 
-      {/* ── 3 Smart-Home KPI Tiles (Humidity / Wind Speed Style) ── */}
+      {/* ── Search Bar & Filter Pills Centrati e Compatti ── */}
+      <div className="flex flex-col items-center justify-center gap-3 w-full">
+        {/* Filters Segmented Centrato e Compatto */}
+        <div className="spatial-segmented max-w-full">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilterStatus(f.id)}
+              className={cn(
+                'spatial-segmented-item text-xs',
+                filterStatus === f.id && 'spatial-segmented-item-active'
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Centrato */}
+        <div className="spatial-search w-full max-w-md">
+          <Search size={16} className="text-white/40 shrink-0" />
+          <input
+            type="search"
+            placeholder="Cerca modello o gusto nel magazzino..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Cerca nel magazzino"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="text-white/40 hover:text-white"
+              aria-label="Pulisci ricerca"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── 3 Smart-Home KPI Tiles (Sotto la ricerca) ── */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3.5">
         {/* Tile 1: Totale */}
         <div className="spatial-tile p-2.5 sm:p-4 min-h-[84px] sm:min-h-[96px]">
@@ -240,48 +282,6 @@ export const Inventario: React.FC = () => {
               Stock zero
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* ── Search Bar & Filter Pills ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        {/* Search */}
-        <div className="spatial-search flex-1">
-          <Search size={18} className="text-white/40 shrink-0" />
-          <input
-            type="search"
-            placeholder="Cerca modello o gusto nel magazzino..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Cerca nel magazzino"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="text-white/40 hover:text-white"
-              aria-label="Pulisci ricerca"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div className="spatial-segmented shrink-0">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilterStatus(f.id)}
-              className={cn(
-                'spatial-segmented-item text-xs',
-                filterStatus === f.id && 'spatial-segmented-item-active'
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
         </div>
       </div>
 

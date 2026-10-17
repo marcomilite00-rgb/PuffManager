@@ -8,6 +8,7 @@ interface AuthContextType {
     login: (staffName: string, pin?: string) => Promise<void>;
     logout: () => Promise<void>;
     switchProfile: (staffName: string, pin?: string) => Promise<void>;
+    switchAsAdmin: (staffName: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -181,15 +182,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(finalStaff);
     };
 
+    const switchAsAdmin = async (staffName: string) => {
+        setLoading(true);
+        try {
+            const { data: targetStaff, error: staffError } = await supabase
+                .from('staff')
+                .select('*')
+                .eq('name', staffName)
+                .single();
+
+            if (staffError || !targetStaff) {
+                throw staffError || new Error('Staff non trovato');
+            }
+
+            let { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                if (authError || !authData?.session) throw authError || new Error('Auth fallita');
+                session = authData.session;
+            }
+
+            const { error: sessionError } = await supabase
+                .from('staff_sessions')
+                .upsert({
+                    auth_uid: session.user.id,
+                    staff_id: targetStaff.id,
+                    pin_version: targetStaff.pin_version ?? null,
+                    revoked_at: null
+                }, { onConflict: 'auth_uid' });
+
+            if (sessionError) throw sessionError;
+
+            setUser({
+                id: targetStaff.id,
+                name: targetStaff.name,
+                role: targetStaff.role,
+                pin_version: targetStaff.pin_version,
+                created_at: ''
+            });
+        } catch (error) {
+            console.error('switchAsAdmin error:', error);
+            throw error;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const switchProfile = async (staffName: string, pin?: string) => {
-        // First logout current session
+        if (user?.role === 'admin' && !pin) {
+            await switchAsAdmin(staffName);
+            return;
+        }
         await logout();
-        // Then login with new profile
         await login(staffName, pin);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, switchProfile }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, switchProfile, switchAsAdmin }}>
             {children}
         </AuthContext.Provider>
     );

@@ -243,66 +243,67 @@ export const Prenotazioni: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setDateSort((d) => (d === 'desc' ? 'asc' : 'desc'))}
-            className="spatial-btn-ghost h-11 px-4 text-xs font-semibold flex items-center gap-2 shrink-0"
-            aria-label="Inverti ordinamento data"
-          >
-            <ArrowUpDown size={14} />
-            <span>{dateSort === 'desc' ? 'Più recenti' : 'Meno recenti'}</span>
-          </button>
-
-          {/* Search Pill */}
-          <div className="spatial-search flex-1 sm:w-64">
-            <Search size={16} className="text-white/40 shrink-0" />
-            <input
-              type="search"
-              placeholder="Cerca cliente o staff..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Cerca prenotazione"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="text-white/40 hover:text-white"
-                aria-label="Pulisci ricerca"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Staff Segmented Filter ── */}
-      <div className="spatial-segmented">
         <button
           type="button"
-          onClick={() => setStaffFilter('all')}
-          className={cn(
-            'spatial-segmented-item',
-            staffFilter === 'all' && 'spatial-segmented-item-active'
-          )}
+          onClick={() => setDateSort((d) => (d === 'desc' ? 'asc' : 'desc'))}
+          className="spatial-btn-ghost h-9 px-3.5 text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+          aria-label="Inverti ordinamento data"
         >
-          Tutti gli operatori
+          <ArrowUpDown size={14} />
+          <span>{dateSort === 'desc' ? 'Più recenti' : 'Meno recenti'}</span>
         </button>
-        {staffList.map((s) => (
+      </div>
+
+      {/* ── Staff Segmented Filter & Search Centrati e Compatti ── */}
+      <div className="flex flex-col items-center justify-center gap-3 w-full">
+        {/* Selettore Operatori Centrato e Compatto */}
+        <div className="spatial-segmented max-w-full">
           <button
-            key={s.id}
             type="button"
-            onClick={() => setStaffFilter(s.id)}
+            onClick={() => setStaffFilter('all')}
             className={cn(
               'spatial-segmented-item',
-              staffFilter === s.id && 'spatial-segmented-item-active'
+              staffFilter === 'all' && 'spatial-segmented-item-active'
             )}
           >
-            {s.name}
+            Tutti gli operatori
           </button>
-        ))}
+          {staffList.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setStaffFilter(s.id)}
+              className={cn(
+                'spatial-segmented-item uppercase',
+                staffFilter === s.id && 'spatial-segmented-item-active'
+              )}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Pill Centrato */}
+        <div className="spatial-search w-full max-w-md">
+          <Search size={16} className="text-white/40 shrink-0" />
+          <input
+            type="search"
+            placeholder="Cerca cliente o staff..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Cerca prenotazione"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="text-white/40 hover:text-white"
+              aria-label="Pulisci ricerca"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Reservations List ── */}
@@ -342,14 +343,14 @@ export const Prenotazioni: React.FC = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="spatial-headline text-[16px] text-white font-semibold truncate">
+                      <p className="spatial-headline text-[16px] text-white font-semibold truncate uppercase">
                         {res.customer_name || 'Generico'}
                       </p>
                       <span className="w-2 h-2 rounded-full bg-[#FF9F0A] shadow-[0_0_6px_#FF9F0A] shrink-0" />
                     </div>
                     <p className="spatial-caption text-white/50 truncate">
                       {items.length} {items.length === 1 ? 'articolo' : 'articoli'} · Inserito da{' '}
-                      {res.staff?.name || 'Sistema'} ·{' '}
+                      <span className="uppercase">{res.staff?.name || 'Sistema'}</span> ·{' '}
                       {new Date(res.created_at).toLocaleDateString('it-IT', {
                         day: '2-digit',
                         month: 'short',

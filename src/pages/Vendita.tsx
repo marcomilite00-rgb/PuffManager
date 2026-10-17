@@ -159,7 +159,7 @@ export const Vendita: React.FC = () => {
     try {
       const { error } = await supabase.rpc('direct_sale', {
         p_staff_id: user?.id,
-        p_customer_name: customerName,
+        p_customer_name: customerName.trim().toUpperCase(),
         p_payment_amount: amount,
         p_items: cart.map((c) => ({
           variant_id: c.id,
@@ -186,7 +186,7 @@ export const Vendita: React.FC = () => {
     try {
       const { error } = await supabase.rpc('create_reservation', {
         p_staff_id: user?.id,
-        p_customer_name: customerName,
+        p_customer_name: customerName.trim().toUpperCase(),
         p_items: cart.map((c) => ({
           variant_id: c.id,
           qty: c.qty,
@@ -237,8 +237,8 @@ export const Vendita: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="spatial-search w-full sm:w-80">
-          <Search size={18} className="text-white/40 shrink-0" />
+        <div className="spatial-search w-full max-w-md mx-auto sm:mx-0 sm:w-80">
+          <Search size={16} className="text-white/40 shrink-0" />
           <input
             type="search"
             placeholder="Cerca modello o gusto..."
@@ -253,30 +253,32 @@ export const Vendita: React.FC = () => {
               className="text-white/40 hover:text-white"
               aria-label="Pulisci ricerca"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Segmented Navigation (Style Stanze/Categories) ── */}
-      <div className="spatial-segmented">
-        {modelList.map((model) => {
-          const isActive = selectedModel === model;
-          return (
-            <button
-              key={model}
-              type="button"
-              onClick={() => setSelectedModel(model)}
-              className={cn(
-                'spatial-segmented-item',
-                isActive && 'spatial-segmented-item-active'
-              )}
-            >
-              {model}
-            </button>
-          );
-        })}
+      {/* ── Segmented Navigation (Centrata e compatta) ── */}
+      <div className="flex justify-center w-full">
+        <div className="spatial-segmented max-w-full">
+          {modelList.map((model) => {
+            const isActive = selectedModel === model;
+            return (
+              <button
+                key={model}
+                type="button"
+                onClick={() => setSelectedModel(model)}
+                className={cn(
+                  'spatial-segmented-item',
+                  isActive && 'spatial-segmented-item-active'
+                )}
+              >
+                {model}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Product Catalog (2-Column Grid on Mobile, 3-4 on Tablet/Desktop) ── */}
@@ -441,7 +443,7 @@ export const Vendita: React.FC = () => {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className={cn(
-                    'w-full px-4 py-3 rounded-2xl bg-white/10 border text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#0A84FF]/40 text-base transition-all',
+                    'w-full px-4 py-3 rounded-2xl bg-white/10 border text-white uppercase placeholder:normal-case placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#0A84FF]/40 text-base transition-all',
                     !customerName.trim() && cart.length > 0
                       ? 'border-[#FF9F0A]/50'
                       : 'border-white/15 focus:border-[#0A84FF]'

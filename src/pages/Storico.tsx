@@ -21,8 +21,11 @@ import { Badge } from '../components/ui/Badge';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 import type { OrderWithItems, StaffMinimal, ArchivedLoad } from '../types/database';
 import { cn } from '../lib/cn';
+import { useAuth } from '../context/AuthContext';
 
 export const Storico: React.FC = () => {
+  const { user } = useAuth();
+  const isHelper = user?.role === 'helper';
   const { showToast } = useToast();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,10 +143,11 @@ export const Storico: React.FC = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
+      if (isHelper && order.sold_by_staff_id !== user?.id) return false;
       const matchesSearch =
         (order.customer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (order.staff?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-      const matchesStaff = filterStaff === 'all' || order.sold_by_staff_id === filterStaff;
+      const matchesStaff = isHelper ? true : (filterStaff === 'all' || order.sold_by_staff_id === filterStaff);
       const orderDate = new Date(order.created_at).toLocaleDateString('en-CA');
       const matchesDateStart = !filterDateStart || orderDate >= filterDateStart;
       const matchesDateEnd = !filterDateEnd || orderDate <= filterDateEnd;
@@ -161,6 +165,8 @@ export const Storico: React.FC = () => {
     });
   }, [
     orders,
+    isHelper,
+    user?.id,
     searchTerm,
     filterStaff,
     filterDateStart,
@@ -171,25 +177,91 @@ export const Storico: React.FC = () => {
 
   const exportToCSV = () => {
     const esc = (v: unknown) => {
-      const s = String(v ?? '');
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      const s = String(v ?? '').replace(/"/g, '""');
+      return `"${s}"`;
     };
-    const headers = ['Data', 'Cliente', 'Staff', 'Lordo (€)', 'Articoli'];
-    const rows = filteredOrders.map((o) => [
-      new Date(o.created_at).toLocaleString('it-IT'),
-      o.customer_name || 'Generico',
-      o.staff?.name || 'Sconosciuto',
-      safeNumber(o.gross_total).toFixed(2),
-      (o.items || []).length,
-    ]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      headers.join(',') +
-      '\n' +
-      rows.map((r) => r.map(esc).join(',')).join('\n');
-    const encodedUri = encodeURI(csvContent);
+
+    const headers = [
+      'Data',
+      'Orario',
+      'Cliente',
+      'Operatore',
+      'Totale Lordo (€)',
+      'Pezzi Totali',
+      'Codice Prodotto (ID)',
+      'Dettaglio Prodotti',
+      'Stato Ordine',
+      'ID Transazione',
+    ];
+
+    const rows = filteredOrders.map((o) => {
+      let dateFormatted = 'N/D';
+      let timeFormatted = 'N/D';
+
+      if (o.created_at) {
+        const d = new Date(o.created_at);
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const day = pad(d.getDate());
+          const month = pad(d.getMonth() + 1);
+          const year = d.getFullYear();
+          const hours = pad(d.getHours());
+          const minutes = pad(d.getMinutes());
+          const seconds = pad(d.getSeconds());
+
+          dateFormatted = `${day}/${month}/${year}`;
+          timeFormatted = `${hours}:${minutes}:${seconds}`;
+        }
+      }
+
+      const items = (o.items as any[]) || [];
+      const totalPieces = items.reduce((acc, it) => acc + (Number(it.qty) || 0), 0) || items.length;
+
+      // Codici univoci dei prodotti / varianti (deduplicati)
+      const uniqueProductIds = Array.from(
+        new Set(
+          items
+            .map((it) => it.variant_id || it.variant?.id)
+            .filter(Boolean)
+        )
+      );
+      const productCodes = uniqueProductIds.length > 0 ? uniqueProductIds.join(' | ') : 'N/D';
+
+      // Dettaglio pulito senza ripetere il codice ID già presente nella colonna apposita
+      const itemsDetail = items.map((it) => {
+        const model = it.variant?.model?.name || '';
+        const flavor = it.variant?.flavor?.name || '';
+        const name = [model, flavor].filter(Boolean).join(' - ') || 'Prodotto';
+        const price = Number(it.unit_price_final || 0).toFixed(2).replace('.', ',');
+        return `${it.qty || 1}x ${name} (€${price})`;
+      }).join(' | ') || 'Nessun dettaglio';
+
+      const isArchived = o.is_archived || (lastResetDate && new Date(o.created_at) < new Date(lastResetDate));
+
+      return [
+        dateFormatted,
+        timeFormatted,
+        (o.customer_name || 'Generico').toUpperCase(),
+        (o.staff?.name || 'Sconosciuto').toUpperCase(),
+        safeNumber(o.gross_total).toFixed(2).replace('.', ','),
+        totalPieces,
+        productCodes,
+        itemsDetail,
+        isArchived ? 'Archiviato' : 'Sessione Attiva',
+        o.id,
+      ];
+    });
+
+    // UTF-8 BOM (\uFEFF) + delimitatore punto e virgola ';' per apertura nativa in colonne su Excel
+    const csvContent = '\uFEFF' + [
+      headers.map(esc).join(';'),
+      ...rows.map((r) => r.map(esc).join(';')),
+    ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.href = url;
     link.setAttribute(
       'download',
       `storico_ordini_${new Date().toISOString().split('T')[0]}.csv`
@@ -197,7 +269,8 @@ export const Storico: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('File CSV esportato', 'success');
+    URL.revokeObjectURL(url);
+    showToast('File CSV pronto per Excel', 'success');
   };
 
   const resetFilters = () => {
@@ -260,7 +333,9 @@ export const Storico: React.FC = () => {
             </span>
             <span className="spatial-caption text-white/50">
               {viewMode === 'orders'
-                ? `${activeOrders.length} ordini in sessione`
+                ? isHelper
+                  ? `${activeOrders.length} tuoi ordini in sessione`
+                  : `${activeOrders.length} ordini in sessione`
                 : `${filteredLoads.length} chiusure`}
             </span>
           </div>
@@ -269,21 +344,23 @@ export const Storico: React.FC = () => {
           </h1>
         </div>
 
-        {/* Export Button Circular/Pill */}
-        <button
-          type="button"
-          onClick={exportToCSV}
-          className="spatial-btn-ghost h-11 px-4 text-xs font-semibold flex items-center gap-2 self-start sm:self-auto shrink-0"
-          aria-label="Esporta dati in CSV"
-        >
-          <Download size={15} />
-          <span>Esporta CSV</span>
-        </button>
+        {/* Export Button Circular/Pill (Nascosto su Mobile) */}
+        <div className="hidden sm:block shrink-0">
+          <button
+            type="button"
+            onClick={exportToCSV}
+            className="spatial-btn-ghost h-9 px-3.5 text-xs font-semibold flex items-center gap-1.5"
+            aria-label="Esporta dati in CSV"
+          >
+            <Download size={14} />
+            <span>Esporta CSV</span>
+          </button>
+        </div>
       </div>
 
-      {/* ── Segmented Navigation (Ordini vs Sessioni) ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="spatial-segmented" role="tablist">
+      {/* ── Segmented Navigation Centrata (Ordini Sessione vs Sessioni Archiviate) ── */}
+      <div className="flex flex-col items-center justify-center gap-3 w-full">
+        <div className="spatial-segmented max-w-full" role="tablist">
           <button
             type="button"
             role="tab"
@@ -311,7 +388,7 @@ export const Storico: React.FC = () => {
         </div>
 
         {/* Search Pill */}
-        <div className="spatial-search flex-1 sm:max-w-xs">
+        <div className="spatial-search w-full max-w-md">
           <Search size={16} className="text-white/40 shrink-0" />
           <input
             type="search"
@@ -339,26 +416,26 @@ export const Storico: React.FC = () => {
 
       {/* ── Collapsible Filters Panel (Orders View) ── */}
       {viewMode === 'orders' && (
-        <div className="spatial-panel p-0 overflow-hidden border border-white/15">
+        <div className="spatial-panel p-0 overflow-hidden border border-white/15 rounded-2xl">
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="w-full flex items-center justify-between p-4 text-left transition-colors hover:bg-white/5 focus-visible:outline-none"
+            className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-white/5 focus-visible:outline-none min-h-[40px]"
             aria-expanded={showFilters}
           >
             <div className="flex items-center gap-2">
-              <Filter size={16} className="text-[#0A84FF]" />
-              <span className="spatial-headline text-sm font-semibold text-white">
+              <Filter size={14} className="text-[#0A84FF]" />
+              <span className="text-xs sm:text-sm font-semibold text-white">
                 Filtri Avanzati
               </span>
               {hasActiveFilters && (
-                <span className="spatial-chip spatial-chip-blue text-[10px] py-0 px-2 h-5">
+                <span className="spatial-chip spatial-chip-blue text-[10px] py-0 px-2 h-4.5">
                   Attivi ({filteredOrders.length} risultati)
                 </span>
               )}
             </div>
             <ChevronDown
-              size={18}
+              size={16}
               className={cn(
                 'text-white/40 transition-transform duration-200',
                 showFilters && 'rotate-180 text-white'
@@ -377,29 +454,31 @@ export const Storico: React.FC = () => {
               >
                 <div className="p-4 sm:p-5 bg-black/20 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   {/* Staff select */}
-                  <div>
-                    <label className="spatial-caption block mb-1 text-white/60">
-                      Operatore Staff
-                    </label>
-                    <select
-                      value={filterStaff}
-                      onChange={(e) => setFilterStaff(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-sm focus:outline-none focus:border-[#0A84FF]"
-                    >
-                      <option value="all" className="bg-[#14161C] text-white">
-                        Tutti i membri
-                      </option>
-                      {staffList.map((s) => (
-                        <option
-                          key={s.id}
-                          value={s.id}
-                          className="bg-[#14161C] text-white"
-                        >
-                          {s.name}
+                  {!isHelper && (
+                    <div>
+                      <label className="spatial-caption block mb-1 text-white/60">
+                        Operatore Staff
+                      </label>
+                      <select
+                        value={filterStaff}
+                        onChange={(e) => setFilterStaff(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-sm focus:outline-none focus:border-[#0A84FF]"
+                      >
+                        <option value="all" className="bg-[#14161C] text-white">
+                          Tutti i membri
                         </option>
-                      ))}
-                    </select>
-                  </div>
+                        {staffList.map((s) => (
+                          <option
+                            key={s.id}
+                            value={s.id}
+                            className="bg-[#14161C] text-white uppercase"
+                          >
+                            {s.name.toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Dates */}
                   <div>
@@ -497,8 +576,8 @@ export const Storico: React.FC = () => {
                         )}
                       </div>
                       <p className="spatial-caption text-white/50 truncate">
-                        {order.customer_name || 'Generico'} · Operatore:{' '}
-                        {order.staff?.name || 'Sistema'} ·{' '}
+                        <span className="uppercase font-medium text-white/70">{order.customer_name || 'Generico'}</span> · Operatore:{' '}
+                        <span className="uppercase">{order.staff?.name || 'Sistema'}</span> ·{' '}
                         {date.toLocaleDateString('it-IT', {
                           day: '2-digit',
                           month: 'short',
@@ -577,7 +656,9 @@ export const Storico: React.FC = () => {
             <section className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h2 className="spatial-caption text-white/60 font-semibold tracking-wider">
-                  ORDINI ARCHIVIATI DI SESSIONI PRECEDENTI
+                  {isHelper
+                    ? 'I TUOI ORDINI ARCHIVIATI DI SESSIONI PRECEDENTI'
+                    : 'ORDINI ARCHIVIATI DI SESSIONI PRECEDENTI'}
                 </h2>
                 <span className="spatial-caption text-white/40">
                   {archivedOrders.length} ordini
@@ -597,7 +678,7 @@ export const Storico: React.FC = () => {
                           €{Number(order.gross_total).toFixed(2)}
                         </p>
                         <p className="spatial-caption text-white/40 truncate">
-                          {order.customer_name || 'Generico'} ·{' '}
+                          <span className="uppercase">{order.customer_name || 'Generico'}</span> ·{' '}
                           {new Date(order.created_at).toLocaleDateString('it-IT')}
                         </p>
                       </div>
@@ -639,6 +720,16 @@ export const Storico: React.FC = () => {
                 {filteredLoads.map((load) => {
                   const isOpen = selectedLoad?.id === load.id;
 
+                  // Per l'helper: calcoliamo i pezzi e l'importo venduti SOLO da lui in questo snapshot di carico
+                  const helperSnapshotItems = (load.items_sold_snapshot || []).filter(
+                    (it) => it.staff_name && user?.name && it.staff_name.toLowerCase().trim() === user.name.toLowerCase().trim()
+                  );
+                  const helperPiecesSold = helperSnapshotItems.reduce((acc, it) => acc + safeNumber(it.qty), 0);
+                  const helperGross = helperSnapshotItems.reduce(
+                    (acc, it) => acc + safeNumber(it.qty) * safeNumber(it.price),
+                    0
+                  );
+
                   return (
                     <div
                       key={load.id}
@@ -648,11 +739,17 @@ export const Storico: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2.5 mb-1">
                             <span className="spatial-amount text-xl font-bold text-white">
-                              €{Number(load.gross_total).toFixed(2)}
+                              €{isHelper ? helperGross.toFixed(2) : Number(load.gross_total).toFixed(2)}
                             </span>
-                            <span className="spatial-chip spatial-chip-orange text-xs py-0.5 px-2.5">
-                              Spesa €{Number(load.soldi_spesi_carico || 0).toFixed(0)}
-                            </span>
+                            {isHelper ? (
+                              <span className="spatial-chip spatial-chip-blue text-xs py-0.5 px-2.5">
+                                {helperPiecesSold} pz venduti da te
+                              </span>
+                            ) : (
+                              <span className="spatial-chip spatial-chip-orange text-xs py-0.5 px-2.5">
+                                Spesa €{Number(load.soldi_spesi_carico || 0).toFixed(0)}
+                              </span>
+                            )}
                             {load.is_legacy && (
                               <Badge variant="ghost" size="xs">
                                 Legacy
@@ -679,15 +776,17 @@ export const Storico: React.FC = () => {
                           >
                             {isOpen ? 'Chiudi' : 'Dettagli Snapshot'}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => !load.is_legacy && setDeleteConfirmLoad(load)}
-                            disabled={load.is_legacy}
-                            className="w-9 h-9 rounded-full bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            aria-label="Elimina sessione archiviata"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {!isHelper && (
+                            <button
+                              type="button"
+                              onClick={() => !load.is_legacy && setDeleteConfirmLoad(load)}
+                              disabled={load.is_legacy}
+                              className="w-9 h-9 rounded-full bg-[#FF453A]/15 hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-[#FF453A] flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              aria-label="Elimina sessione archiviata"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -703,15 +802,23 @@ export const Storico: React.FC = () => {
                           >
                             <div className="p-4 sm:p-5">
                               <p className="spatial-caption text-white/40 font-semibold mb-3">
-                                Snapshot articoli venduti nel carico
+                                {isHelper
+                                  ? `I tuoi articoli venduti nel carico (${helperPiecesSold} pz)`
+                                  : 'Snapshot articoli venduti nel carico'}
                               </p>
                               {load.is_legacy ? (
                                 <p className="spatial-footnote text-white/40 text-xs">
                                   Dettaglio analitico articoli non disponibile per sessioni legacy.
                                 </p>
+                              ) : (isHelper ? helperSnapshotItems : (load.items_sold_snapshot || [])).length === 0 ? (
+                                <p className="spatial-footnote text-white/40 text-xs">
+                                  {isHelper
+                                    ? 'Nessun articolo venduto da te in questa sessione.'
+                                    : 'Nessun articolo registrato.'}
+                                </p>
                               ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {load.items_sold_snapshot?.map((item, idx) => (
+                                  {(isHelper ? helperSnapshotItems : (load.items_sold_snapshot || [])).map((item, idx) => (
                                     <div
                                       key={idx}
                                       className="spatial-subpanel px-3 py-2 flex items-center justify-between text-xs"
@@ -720,7 +827,7 @@ export const Storico: React.FC = () => {
                                         {item.model_name} · {item.flavor_name}
                                       </span>
                                       <span className="spatial-amount text-white/80 shrink-0 font-bold">
-                                        {item.qty} pz · €{item.price}
+                                        {item.qty} pz · €{Number(item.price).toFixed(2)}
                                       </span>
                                     </div>
                                   ))}
