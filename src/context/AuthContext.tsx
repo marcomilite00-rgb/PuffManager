@@ -83,56 +83,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (staffName: string, pin?: string) => {
         setLoading(true);
         try {
-            // 1. Verify PIN using secure RPC function
-            const { data: verifyResult, error: verifyError } = await supabase
-                .rpc('verify_staff_pin', {
+            // 1. Ensure anonymous session exists first
+            let { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                if (authError || !authData?.session) throw authError || new Error('Autenticazione iniziale non riuscita');
+                session = authData.session;
+            }
+
+            // 2. Authenticate staff and securely mint session via RPC
+            const { data: authResult, error: authRpcError } = await supabase
+                .rpc('authenticate_staff', {
                     p_staff_name: staffName,
                     p_pin: pin || null
                 });
 
-            if (verifyError) {
-                console.error('PIN verification error:', verifyError);
-                // Fallback to direct check for development/demo
-                await loginFallback(staffName, pin);
+            if (!authRpcError && authResult && authResult.length > 0) {
+                const result = authResult[0];
+                setUser({
+                    id: result.staff_id,
+                    name: result.staff_name,
+                    role: result.staff_role,
+                    pin_version: result.staff_pin_version,
+                    created_at: ''
+                });
                 return;
             }
 
-            if (!verifyResult || verifyResult.length === 0) {
-                throw new Error('Staff non trovato');
-            }
+            // Backward compatibility fallback if authenticate_staff RPC is not yet created
+            if (authRpcError && (authRpcError.message.includes('authenticate_staff') || authRpcError.code === 'PGRST202')) {
+                const { data: verifyResult, error: verifyError } = await supabase
+                    .rpc('verify_staff_pin', {
+                        p_staff_name: staffName,
+                        p_pin: pin || null
+                    });
 
-            const result = verifyResult[0];
-
-            if (!result.valid) {
-                if (result.requires_pin && !pin) {
-                    throw new Error('PIN richiesto');
+                if (verifyError) throw verifyError;
+                if (!verifyResult || verifyResult.length === 0) throw new Error('Operatore non trovato');
+                const v = verifyResult[0];
+                if (!v.valid) {
+                    if (v.requires_pin && !pin) throw new Error('PIN richiesto');
+                    throw new Error('PIN errato');
                 }
-                throw new Error('PIN errato');
+
+                await supabase
+                    .from('staff_sessions')
+                    .upsert({
+                        auth_uid: session.user.id,
+                        staff_id: v.staff_id,
+                        pin_version: v.staff_pin_version,
+                        revoked_at: null
+                    }, { onConflict: 'auth_uid' });
+
+                setUser({
+                    id: v.staff_id,
+                    name: v.staff_name,
+                    role: v.staff_role,
+                    pin_version: v.staff_pin_version,
+                    created_at: ''
+                });
+                return;
             }
 
-            // 2. Auth Anonymously
-            const { data: { session }, error: authError } = await supabase.auth.signInAnonymously();
-            if (authError || !session) throw authError || new Error('Auth failed');
-
-            // 3. Upsert staff session with pin_version
-            const { error: sessionError } = await supabase
-                .from('staff_sessions')
-                .upsert({
-                    auth_uid: session.user.id,
-                    staff_id: result.staff_id,
-                    pin_version: result.staff_pin_version,
-                    revoked_at: null
-                }, { onConflict: 'auth_uid' });
-
-            if (sessionError) throw sessionError;
-
-            setUser({
-                id: result.staff_id,
-                name: result.staff_name,
-                role: result.staff_role,
-                pin_version: result.staff_pin_version,
-                created_at: ''
-            });
+            if (authRpcError) {
+                throw new Error(authRpcError.message || 'Errore durante il login');
+            }
         } catch (error: unknown) {
             console.error('Login error:', error);
             throw error;
@@ -141,50 +156,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    // Fallback for development/demo when RPC not available
-    const loginFallback = async (staffName: string, pin?: string) => {
-        const fallbackStaff: Staff[] = [
-            { id: '1', name: 'Marco', role: 'admin', has_pin: true, created_at: '' },
-            { id: '2', name: 'Andrea', role: 'staff', has_pin: true, created_at: '' },
-            { id: '3', name: 'Jacopo', role: 'helper', has_pin: false, created_at: '' }
-        ];
-
-        const staff = fallbackStaff.find(s => s.name === staffName);
-        if (!staff) throw new Error('Staff non trovato');
-
-        // Check PIN for fallback (hardcoded for demo)
-        if (staff.has_pin) {
-            const expectedPin = staff.name === 'Marco' ? '050905' : '201220';
-            if (!pin) throw new Error('PIN richiesto');
-            if (pin !== expectedPin) throw new Error('PIN errato');
-        }
-
-        const { data: { session }, error: authError } = await supabase.auth.signInAnonymously();
-        if (authError || !session) throw authError || new Error('Auth failed');
-
-        // Try to get real staff from DB
-        const { data: dbStaff } = await supabase
-            .from('staff')
-            .select('*')
-            .eq('name', staffName)
-            .single();
-
-        const finalStaff = dbStaff || staff;
-
-        await supabase
-            .from('staff_sessions')
-            .upsert({
-                auth_uid: session.user.id,
-                staff_id: finalStaff.id,
-                revoked_at: null
-            }, { onConflict: 'auth_uid' });
-
-        setUser(finalStaff);
-    };
-
     const switchAsAdmin = async (staffName: string) => {
         setLoading(true);
         try {
+            const { data: switchResult, error: switchError } = await supabase
+                .rpc('switch_operator_as_admin', {
+                    p_target_staff_name: staffName
+                });
+
+            if (!switchError && switchResult && switchResult.length > 0) {
+                const result = switchResult[0];
+                setUser({
+                    id: result.staff_id,
+                    name: result.staff_name,
+                    role: result.staff_role,
+                    pin_version: result.staff_pin_version,
+                    created_at: ''
+                });
+                return;
+            }
+
             const { data: targetStaff, error: staffError } = await supabase
                 .from('staff')
                 .select('*')

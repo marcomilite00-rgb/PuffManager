@@ -97,7 +97,7 @@ export const Admin: React.FC = () => {
         setStaff(
           (staffRes.data as Staff[]).map((s) => ({
             ...s,
-            has_pin: !!s.pin_hash,
+            has_pin: Boolean(s.has_pin ?? s.pin_hash),
           }))
         );
       }
