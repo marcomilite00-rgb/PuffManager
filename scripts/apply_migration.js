@@ -8,11 +8,11 @@ import path from 'path';
 const envPath = path.resolve(process.cwd(), '.env');
 dotenv.config({ path: envPath });
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing VITE_SUPABASE_URL or SERVICE_ROLE_KEY in .env');
+    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
     process.exit(1);
 }
 
