@@ -16,6 +16,7 @@
 -- 1. FIX A1: Privilege Escalation on staff_sessions
 -- ------------------------------------------------------------------------------
 DROP POLICY IF EXISTS staff_sessions_update_own ON public.staff_sessions;
+DROP POLICY IF EXISTS staff_sessions_update_logout_only ON public.staff_sessions;
 
 -- Allow updating only revoked_at (for logout), but NEVER staff_id or auth_uid
 CREATE POLICY staff_sessions_update_logout_only ON public.staff_sessions
