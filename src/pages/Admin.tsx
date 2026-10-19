@@ -30,10 +30,12 @@ import {
   TrendingUp,
   Edit3,
   Search,
+  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../lib/cn';
+import { useSiteGate } from '../components/auth/SiteGatekeeper';
 
 type TabId = 'settings' | 'staff' | 'inventory_management' | 'products';
 
@@ -77,6 +79,10 @@ export const Admin: React.FC = () => {
   >('variant');
   const [confirmDeleteLabel, setConfirmDeleteLabel] = useState('');
   const [variantSearch, setVariantSearch] = useState('');
+  const { lockTerminal } = useSiteGate();
+  const [newSitePass, setNewSitePass] = useState('');
+  const [confirmSitePass, setConfirmSitePass] = useState('');
+  const [updatingSitePass, setUpdatingSitePass] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
@@ -154,6 +160,36 @@ export const Admin: React.FC = () => {
     } else {
       showToast('Impostazioni bilancio salvate', 'success');
       fetchData();
+    }
+  };
+
+  const handleUpdateSitePass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newSitePass.length < 6) {
+      showToast('La nuova password del sito deve contenere almeno 6 caratteri', 'error');
+      return;
+    }
+    if (newSitePass !== confirmSitePass) {
+      showToast('Le password del sito non coincidono', 'error');
+      return;
+    }
+    setUpdatingSitePass(true);
+    try {
+      const { error } = await supabase.rpc('update_site_access_key', {
+        p_new_key: newSitePass,
+      });
+      if (error) {
+        showToast(error.message, 'error');
+      } else {
+        showToast('Password Master del sito aggiornata con successo', 'success');
+        setNewSitePass('');
+        setConfirmSitePass('');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Errore aggiornamento chiave';
+      showToast(msg, 'error');
+    } finally {
+      setUpdatingSitePass(false);
     }
   };
 
@@ -704,6 +740,85 @@ export const Admin: React.FC = () => {
                   </button>
                 </form>
               </div>
+            </div>
+          </div>
+
+          {/* Card: Protezione Stealth & Passphrase Master */}
+          <div className="spatial-panel-strong p-6 border-[#0A84FF]/30 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF]">
+                    <Shield size={16} />
+                  </div>
+                  <div>
+                    <h3 className="spatial-headline text-lg font-semibold text-white">
+                      Protezione Stealth & Passphrase Master
+                    </h3>
+                    <span className="spatial-caption text-xs text-white/50">
+                      Cancello di accesso globale al terminale (Site Gatekeeper)
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#30D158]/10 border border-[#30D158]/20 text-[#30D158] text-[10px] font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
+                  GATE ATTIVO
+                </div>
+              </div>
+
+              <p className="spatial-subhead text-xs text-white/60 mb-5">
+                La passphrase master nasconde completamente il sito, il catalogo e l&apos;elenco operatori agli estranei.
+                Nessuna informazione o schermata gestionale viene mostrata fino all&apos;inserimento della chiave corretta.
+              </p>
+
+              <form onSubmit={handleUpdateSitePass} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="spatial-caption block mb-1 text-white/70 font-medium">
+                      Nuova Passphrase Master
+                    </label>
+                    <input
+                      type="password"
+                      value={newSitePass}
+                      onChange={(e) => setNewSitePass(e.target.value)}
+                      placeholder="Minimo 6 caratteri..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-[#0A84FF]"
+                    />
+                  </div>
+                  <div>
+                    <label className="spatial-caption block mb-1 text-white/70 font-medium">
+                      Conferma Passphrase
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmSitePass}
+                      onChange={(e) => setConfirmSitePass(e.target.value)}
+                      placeholder="Ripeti la passphrase..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white font-mono text-sm focus:outline-none focus:border-[#0A84FF]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                  <button
+                    type="submit"
+                    disabled={updatingSitePass || !newSitePass || !confirmSitePass}
+                    className="spatial-btn-primary flex-1 h-11 text-xs font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-40"
+                  >
+                    <KeyRound size={14} />
+                    <span>{updatingSitePass ? 'Aggiornamento...' : 'Aggiorna Passphrase Master'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={lockTerminal}
+                    className="spatial-btn-ghost h-11 px-4 text-xs font-semibold flex items-center justify-center gap-2 text-white/70 hover:text-white border border-white/10"
+                    title="Blocca subito il terminale per testare la schermata stealth"
+                  >
+                    <Lock size={14} />
+                    <span>Testa Blocco Stealth</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

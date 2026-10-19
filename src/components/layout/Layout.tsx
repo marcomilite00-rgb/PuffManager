@@ -14,9 +14,11 @@ import {
   X,
   Bell,
   ArrowLeftRight,
+  Lock,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { SwitchOperatorModal } from '../auth/SwitchOperatorModal';
+import { useSiteGate } from '../auth/SiteGatekeeper';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,6 +26,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { lockTerminal } = useSiteGate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
@@ -156,12 +159,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </span>
           </button>
 
+          {/* Lockdown / Stealth Gate */}
+          <button
+            type="button"
+            onClick={lockTerminal}
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white/40 hover:text-[#0A84FF] hover:bg-[#0A84FF]/10 transition-colors"
+            aria-label="Blocca Terminale (Stealth Mode)"
+            title="Blocca Terminale (Stealth Mode)"
+          >
+            <Lock size={18} />
+          </button>
+
           {/* Logout */}
           <button
             type="button"
             onClick={logout}
             className="w-11 h-11 rounded-full flex items-center justify-center text-white/40 hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors"
             aria-label="Disconnetti"
+            title="Disconnetti Operatore"
           >
             <LogOut size={18} />
           </button>
@@ -270,26 +285,37 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </div>
                 )}
 
-                {/* Actions: Switch Profile / Logout */}
-                <div className="flex gap-2.5">
+                {/* Actions: Switch Profile / Lock / Logout */}
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       setIsSwitchModalOpen(true);
                     }}
-                    className="spatial-btn-ghost flex-1 min-h-[44px] text-xs font-semibold flex items-center justify-center gap-2"
+                    className="spatial-btn-ghost min-h-[44px] text-xs font-semibold flex items-center justify-center gap-1.5 px-2"
                   >
-                    <ArrowLeftRight size={15} />
-                    <span>Cambia Operatore</span>
+                    <ArrowLeftRight size={14} />
+                    <span>Cambia</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      lockTerminal();
+                    }}
+                    className="min-h-[44px] rounded-full text-xs font-semibold bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-[#0A84FF] hover:bg-[#0A84FF]/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 px-2"
+                  >
+                    <Lock size={14} />
+                    <span>Blocca</span>
                   </button>
                   <button
                     type="button"
                     onClick={logout}
-                    className="flex-1 min-h-[44px] rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    className="min-h-[44px] rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 px-2"
                   >
-                    <LogOut size={15} />
-                    <span>Disconnetti</span>
+                    <LogOut size={14} />
+                    <span>Esci</span>
                   </button>
                 </div>
               </motion.div>

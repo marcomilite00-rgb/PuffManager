@@ -8,11 +8,9 @@ import path from 'path';
 const envPath = path.resolve(process.cwd(), '.env');
 dotenv.config({ path: envPath });
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
+if (!supabaseUrl) {
+    console.error('Missing VITE_SUPABASE_URL in .env');
+    console.info('To run migrations safely, use Supabase CLI, Supabase Dashboard SQL Editor, or the Supabase MCP.');
     process.exit(1);
 }
 

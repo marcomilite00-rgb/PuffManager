@@ -12,6 +12,7 @@ import { Promemoria } from './pages/Promemoria';
 import { Cassa } from './pages/Cassa';
 import { Storico } from './pages/Storico';
 import { Admin } from './pages/Admin';
+import { SiteGatekeeper } from './components/auth/SiteGatekeeper';
 import { AnimatePresence, motion } from 'motion/react';
 
 function AnimatedRoutes() {
@@ -49,15 +50,17 @@ function AnimatedRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <LayoutProvider>
-            <Layout>
-              <AnimatedRoutes />
-            </Layout>
-          </LayoutProvider>
-        </ToastProvider>
-      </AuthProvider>
+      <SiteGatekeeper>
+        <AuthProvider>
+          <ToastProvider>
+            <LayoutProvider>
+              <Layout>
+                <AnimatedRoutes />
+              </Layout>
+            </LayoutProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </SiteGatekeeper>
     </BrowserRouter>
   );
 }

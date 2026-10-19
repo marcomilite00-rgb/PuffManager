@@ -76,15 +76,19 @@ export const Login: React.FC = () => {
     setPin((prev) => prev.slice(0, -1));
   }, []);
 
-  const canSubmit = !!selectedStaff && (!selectedStaff.has_pin || pin.length === requiredPinLen);
+  const canSubmit = !!selectedStaff && selectedStaff.has_pin && pin.length === requiredPinLen;
 
   const handleLogin = useCallback(async () => {
     if (!selectedStaff) return;
-    if (selectedStaff.has_pin && pin.length !== requiredPinLen) return;
+    if (!selectedStaff.has_pin) {
+      setError('Nessun PIN configurato per questo profilo. Contatta un amministratore.');
+      return;
+    }
+    if (pin.length !== requiredPinLen) return;
     setLoading(true);
     setError('');
     try {
-      await login(selectedStaff.name, selectedStaff.has_pin ? pin : undefined);
+      await login(selectedStaff.name, pin);
       navigate('/inventario');
     } catch (err) {
       setError(getErrorMessage(err, 'PIN errato, riprova'));
@@ -110,8 +114,10 @@ export const Login: React.FC = () => {
   );
 
   useEffect(() => {
-    if (selectedStaff && !selectedStaff.has_pin) handleLogin();
-  }, [selectedStaff, handleLogin]);
+    if (selectedStaff && !selectedStaff.has_pin) {
+      setError('Nessun PIN configurato per questo profilo. Contatta un amministratore.');
+    }
+  }, [selectedStaff]);
 
   useEffect(() => {
     if (selectedStaff?.has_pin) inputRef.current?.focus();

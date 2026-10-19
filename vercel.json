@@ -26,6 +26,10 @@
           "value": "camera=(), microphone=(), geolocation=()"
         },
         {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive, nosnippet"
+        },
+        {
           "key": "Content-Security-Policy",
           "value": "default-src 'self'; connect-src 'self' https://msmkwyoojgdbwwxnvcbf.supabase.co wss://msmkwyoojgdbwwxnvcbf.supabase.co; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self' 'unsafe-inline';"
         }

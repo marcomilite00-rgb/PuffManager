@@ -122,18 +122,9 @@ export const SwitchOperatorModal: React.FC<SwitchOperatorModalProps> = ({
       return;
     }
 
-    // 3. Target staff doesn't have a PIN -> direct login
+    // 3. Target staff doesn't have a PIN -> block non-admin switch
     if (!staff.has_pin) {
-      setLoading(true);
-      try {
-        await switchProfile(staff.name);
-        showToast(`Passato al profilo di ${staff.name.toUpperCase()}`, 'success');
-        onClose();
-      } catch (err) {
-        showToast(getErrorMessage(err, 'Errore nel cambio profilo'), 'error');
-      } finally {
-        setLoading(false);
-      }
+      showToast(`Il profilo ${staff.name.toUpperCase()} non ha un PIN configurato. Configuralo prima dall'area Admin.`, 'error');
       return;
     }
 
