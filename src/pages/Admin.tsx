@@ -35,7 +35,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { EmptyState } from '../components/ui/EmptyState';
 import { cn } from '../lib/cn';
-import { useSiteGate } from '../components/auth/SiteGatekeeper';
+import { useSiteGate } from '../context/SiteGateContext';
 
 type TabId = 'settings' | 'staff' | 'inventory_management' | 'products';
 

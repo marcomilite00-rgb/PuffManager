@@ -6,7 +6,7 @@ interface AuthContextType {
     user: Staff | null;
     loading: boolean;
     login: (staffName: string, pin?: string) => Promise<void>;
-    logout: () => Promise<void>;
+    logout: (options?: { lockGate?: boolean }) => Promise<void>;
     switchProfile: (staffName: string, pin?: string) => Promise<void>;
     switchAsAdmin: (staffName: string) => Promise<void>;
 }
@@ -17,7 +17,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<Staff | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const logout = useCallback(async () => {
+    const logout = useCallback(async (options?: { lockGate?: boolean }) => {
+        const shouldLockGate = options?.lockGate ?? true;
         setLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -29,6 +30,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             await supabase.auth.signOut();
             setUser(null);
+
+            if (shouldLockGate) {
+                try {
+                    localStorage.removeItem('puff_terminal_device_token');
+                    sessionStorage.removeItem('puff_terminal_device_token');
+                    window.dispatchEvent(new CustomEvent('puff:lock-terminal'));
+                } catch {
+                    // Ignore storage errors
+                }
+            }
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
@@ -172,7 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await switchAsAdmin(staffName);
             return;
         }
-        await logout();
+        await logout({ lockGate: false });
         await login(staffName, pin);
     };
 

@@ -214,7 +214,17 @@ export const Storico: React.FC = () => {
         }
       }
 
-      const items = (o.items as any[]) || [];
+      interface OrderItemShape {
+        qty?: number;
+        variant_id?: string;
+        unit_price_final?: number | string;
+        variant?: {
+          id?: string;
+          model?: { name?: string };
+          flavor?: { name?: string };
+        };
+      }
+      const items = (o.items as OrderItemShape[]) || [];
       const totalPieces = items.reduce((acc, it) => acc + (Number(it.qty) || 0), 0) || items.length;
 
       // Codici univoci dei prodotti / varianti (deduplicati)

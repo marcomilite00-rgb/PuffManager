@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { SwitchOperatorModal } from '../auth/SwitchOperatorModal';
-import { useSiteGate } from '../auth/SiteGatekeeper';
+import { useSiteGate } from '../../context/SiteGateContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -173,7 +173,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Logout */}
           <button
             type="button"
-            onClick={logout}
+            onClick={() => void logout()}
             className="w-11 h-11 rounded-full flex items-center justify-center text-white/40 hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors"
             aria-label="Disconnetti"
             title="Disconnetti Operatore"
@@ -311,7 +311,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </button>
                   <button
                     type="button"
-                    onClick={logout}
+                    onClick={() => void logout()}
                     className="min-h-[44px] rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 px-2"
                   >
                     <LogOut size={14} />
