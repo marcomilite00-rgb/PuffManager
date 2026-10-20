@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { safeNumber, formatEur } from '../lib/money';
@@ -16,6 +16,9 @@ import {
   Filter,
   Receipt,
   RotateCcw,
+  DollarSign,
+  TrendingUp,
+  Layers,
 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
@@ -25,7 +28,9 @@ import { useAuth } from '../context/AuthContext';
 
 export const Storico: React.FC = () => {
   const { user } = useAuth();
-  const isHelper = user?.role === 'helper';
+  const role = (user?.role || '').toLowerCase();
+  const isHelper = role === 'helper';
+  const isAdmin = role === 'admin';
   const { showToast } = useToast();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,23 +50,35 @@ export const Storico: React.FC = () => {
   const [lastResetDate, setLastResetDate] = useState<string | null>(null);
   const [deleteConfirmLoad, setDeleteConfirmLoad] = useState<ArchivedLoad | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
+      setLoading(true);
+      let ordersQuery = supabase
+        .from('orders')
+        .select(
+          '*, items:order_items(*, variant:product_variants(model:product_models(name), flavor:product_flavors(name), unit_cost)), staff:staff(name)'
+        )
+        .order('created_at', { ascending: false });
+
+      // Per helper: mostrare SOLO ed esclusivamente gli ordini completati / terminati da loro
+      if (isHelper && user?.id) {
+        ordersQuery = ordersQuery
+          .eq('sold_by_staff_id', user.id)
+          .eq('status', 'COMPLETED');
+      }
+
       const [ordersRes, staffRes, loadsRes, legacyLoadsRes, settingsRes] = await Promise.all([
-        supabase
-          .from('orders')
-          .select(
-            '*, items:order_items(*, variant:product_variants(model:product_models(name), flavor:product_flavors(name), unit_cost)), staff:staff(name)'
-          )
-          .order('created_at', { ascending: false }),
+        ordersQuery,
         supabase.from('staff').select('id, name').order('name'),
         supabase.from('archived_loads').select('*').order('closed_at', { ascending: false }),
         supabase.from('load_history').select('*').order('created_at', { ascending: false }),
-        supabase.from('settings').select('last_reset_date').limit(1).single(),
+        supabase.from('settings').select('last_reset_date').limit(1).maybeSingle(),
       ]);
+
       if (ordersRes.data) setOrders(ordersRes.data);
       if (staffRes.data) setStaffList(staffRes.data);
       if (settingsRes.data) setLastResetDate(settingsRes.data.last_reset_date);
+
       const combinedLoads: ArchivedLoad[] = [];
       if (loadsRes.data) combinedLoads.push(...loadsRes.data);
       if (legacyLoadsRes.data) {
@@ -97,11 +114,11 @@ export const Storico: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isHelper, user?.id]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleDeleteSession = async () => {
     if (!deleteConfirmLoad) return;
@@ -143,12 +160,15 @@ export const Storico: React.FC = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      if (isHelper && order.sold_by_staff_id !== user?.id) return false;
+      if (isHelper) {
+        if (order.sold_by_staff_id !== user?.id) return false;
+        if (order.status !== 'COMPLETED') return false;
+      }
       const matchesSearch =
         (order.customer_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (order.staff?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       const matchesStaff = isHelper ? true : (filterStaff === 'all' || order.sold_by_staff_id === filterStaff);
-      const orderDate = new Date(order.created_at).toLocaleDateString('en-CA');
+      const orderDate = order.created_at ? new Date(order.created_at).toLocaleDateString('en-CA') : '';
       const matchesDateStart = !filterDateStart || orderDate >= filterDateStart;
       const matchesDateEnd = !filterDateEnd || orderDate <= filterDateEnd;
       const amount = safeNumber(order.gross_total);
@@ -174,6 +194,63 @@ export const Storico: React.FC = () => {
     filterMinAmount,
     filterMaxAmount,
   ]);
+
+  const activeOrders = useMemo(() => {
+    return filteredOrders.filter((o) => {
+      if (o.is_archived) return false;
+      if (lastResetDate && new Date(o.created_at) < new Date(lastResetDate)) return false;
+      return true;
+    });
+  }, [filteredOrders, lastResetDate]);
+
+  const archivedOrders = useMemo(() => {
+    return filteredOrders.filter((o) => {
+      if (o.is_archived) return true;
+      if (lastResetDate && new Date(o.created_at) < new Date(lastResetDate)) return true;
+      return false;
+    });
+  }, [filteredOrders, lastResetDate]);
+
+  const filteredLoads = useMemo(() => {
+    return archivedLoads.filter((l) => {
+      if (isHelper) {
+        const helperItems = (l.items_sold_snapshot || []).filter(
+          (it) => it.staff_name && user?.name && it.staff_name.toLowerCase().trim() === user.name.toLowerCase().trim()
+        );
+        const helperPieces = helperItems.reduce((acc, it) => acc + safeNumber(it.qty), 0);
+        if (helperPieces === 0) return false;
+      }
+      if (!searchTerm) return true;
+      const s = searchTerm.toLowerCase();
+      return (
+        l.gross_total?.toString().includes(s) ||
+        (l.closed_at ? new Date(l.closed_at).toLocaleDateString().includes(s) : false)
+      );
+    });
+  }, [archivedLoads, isHelper, user?.name, searchTerm]);
+
+  // Calcolo KPI Finanziari della sessione attiva (visibile a Admin/Staff con tutti i soldi, Helper con i propri)
+  const activeFinancials = useMemo(() => {
+    let gross = 0;
+    let cost = 0;
+    let pieces = 0;
+
+    for (const order of activeOrders) {
+      gross += safeNumber(order.gross_total);
+      for (const item of order.items || []) {
+        const qty = safeNumber(item.qty || 1);
+        pieces += qty;
+        const itemUnitCost =
+          safeNumber(item.variant?.unit_cost) ||
+          safeNumber((item as { unit_cost_at_sale?: number }).unit_cost_at_sale) ||
+          0;
+        cost += qty * itemUnitCost;
+      }
+    }
+
+    const net = gross - cost;
+    return { gross, cost, net, pieces };
+  }, [activeOrders]);
 
   const exportToCSV = () => {
     const esc = (v: unknown) => {
@@ -292,6 +369,13 @@ export const Storico: React.FC = () => {
     setSearchTerm('');
   };
 
+  const hasActiveFilters =
+    filterStaff !== 'all' ||
+    filterDateStart !== '' ||
+    filterDateEnd !== '' ||
+    filterMinAmount !== '' ||
+    filterMaxAmount !== '';
+
   if (loading) {
     return (
       <PageSkeleton
@@ -303,34 +387,6 @@ export const Storico: React.FC = () => {
       />
     );
   }
-
-  const activeOrders = filteredOrders.filter((o) => {
-    if (o.is_archived) return false;
-    if (lastResetDate && new Date(o.created_at) < new Date(lastResetDate)) return false;
-    return true;
-  });
-
-  const archivedOrders = filteredOrders.filter((o) => {
-    if (o.is_archived) return true;
-    if (lastResetDate && new Date(o.created_at) < new Date(lastResetDate)) return true;
-    return false;
-  });
-
-  const filteredLoads = archivedLoads.filter((l) => {
-    if (!searchTerm) return true;
-    const s = searchTerm.toLowerCase();
-    return (
-      l.gross_total?.toString().includes(s) ||
-      new Date(l.closed_at).toLocaleDateString().includes(s)
-    );
-  });
-
-  const hasActiveFilters =
-    filterStaff !== 'all' ||
-    filterDateStart !== '' ||
-    filterDateEnd !== '' ||
-    filterMinAmount !== '' ||
-    filterMaxAmount !== '';
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6">
@@ -423,6 +479,51 @@ export const Storico: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* ── KPI Summary Banner (Sessione Attiva) ── */}
+      {viewMode === 'orders' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="spatial-panel p-3.5 sm:p-4 border border-white/10 rounded-2xl flex flex-col justify-between">
+            <span className="spatial-caption text-white/50 text-[11px] font-medium flex items-center gap-1.5">
+              <DollarSign size={13} className="text-[#0A84FF]" />
+              {isHelper ? 'Tuo Incasso Lordo' : 'Incasso Lordo Sessione'}
+            </span>
+            <span className="spatial-amount text-lg sm:text-xl font-bold text-white mt-1">
+              €{formatEur(activeFinancials.gross)}
+            </span>
+          </div>
+
+          <div className="spatial-panel p-3.5 sm:p-4 border border-white/10 rounded-2xl flex flex-col justify-between">
+            <span className="spatial-caption text-white/50 text-[11px] font-medium flex items-center gap-1.5">
+              <TrendingUp size={13} className="text-[#30D158]" />
+              {isHelper ? 'Tuo Profitto Netto' : 'Guadagno Netto Stimato'}
+            </span>
+            <span className="spatial-amount text-lg sm:text-xl font-bold text-[#30D158] mt-1">
+              +{formatEur(activeFinancials.net)}
+            </span>
+          </div>
+
+          <div className="spatial-panel p-3.5 sm:p-4 border border-white/10 rounded-2xl flex flex-col justify-between">
+            <span className="spatial-caption text-white/50 text-[11px] font-medium flex items-center gap-1.5">
+              <Layers size={13} className="text-[#FF9F0A]" />
+              {isHelper ? 'Tuo Costo Merce' : 'Costo Merce Venduta'}
+            </span>
+            <span className="spatial-amount text-lg sm:text-xl font-bold text-[#FF9F0A] mt-1">
+              €{formatEur(activeFinancials.cost)}
+            </span>
+          </div>
+
+          <div className="spatial-panel p-3.5 sm:p-4 border border-white/10 rounded-2xl flex flex-col justify-between">
+            <span className="spatial-caption text-white/50 text-[11px] font-medium flex items-center gap-1.5">
+              <Package size={13} className="text-white/60" />
+              {isHelper ? 'Pezzi Venduti da Te' : 'Pezzi Totali Venduti'}
+            </span>
+            <span className="spatial-amount text-lg sm:text-xl font-bold text-white mt-1">
+              {activeFinancials.pieces} pz
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Collapsible Filters Panel (Orders View) ── */}
       {viewMode === 'orders' && (
@@ -730,7 +831,7 @@ export const Storico: React.FC = () => {
                 {filteredLoads.map((load) => {
                   const isOpen = selectedLoad?.id === load.id;
 
-                  // Per l'helper: calcoliamo i pezzi e l'importo venduti SOLO da lui in questo snapshot di carico
+                  // Per l'helper: calcoliamo pezzi, venduto lordo e profitti SOLO da lui in questo snapshot di carico
                   const helperSnapshotItems = (load.items_sold_snapshot || []).filter(
                     (it) => it.staff_name && user?.name && it.staff_name.toLowerCase().trim() === user.name.toLowerCase().trim()
                   );
@@ -739,6 +840,12 @@ export const Storico: React.FC = () => {
                     (acc, it) => acc + safeNumber(it.qty) * safeNumber(it.price),
                     0
                   );
+                  const unitCost = safeNumber(load.unit_cost_calcolato) || (load.pezzi_comprati ? safeNumber(load.soldi_spesi_carico) / load.pezzi_comprati : 0);
+                  const helperCogs = helperSnapshotItems.reduce(
+                    (acc, it) => acc + safeNumber(it.qty) * unitCost,
+                    0
+                  );
+                  const helperProfit = helperGross - helperCogs;
 
                   return (
                     <div
@@ -748,13 +855,18 @@ export const Storico: React.FC = () => {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2.5 mb-1">
-                            <span className="spatial-amount text-xl font-bold text-white">
-                              €{isHelper ? helperGross.toFixed(2) : Number(load.gross_total).toFixed(2)}
+                            <span className={cn('spatial-amount text-xl font-bold', isHelper ? 'text-[#30D158]' : 'text-white')}>
+                              {isHelper ? `${helperProfit >= 0 ? '+' : ''}€${helperProfit.toFixed(2)}` : `€${Number(load.gross_total).toFixed(2)}`}
                             </span>
                             {isHelper ? (
-                              <span className="spatial-chip spatial-chip-blue text-xs py-0.5 px-2.5">
-                                {helperPiecesSold} pz venduti da te
-                              </span>
+                              <>
+                                <span className="spatial-chip spatial-chip-blue text-xs py-0.5 px-2.5">
+                                  {helperPiecesSold} pz venduti da te
+                                </span>
+                                <span className="spatial-chip spatial-chip-ghost text-xs py-0.5 px-2.5 text-white/70">
+                                  €{helperGross.toFixed(2)} lordo
+                                </span>
+                              </>
                             ) : (
                               <span className="spatial-chip spatial-chip-orange text-xs py-0.5 px-2.5">
                                 Spesa €{Number(load.soldi_spesi_carico || 0).toFixed(0)}
@@ -767,7 +879,7 @@ export const Storico: React.FC = () => {
                             )}
                           </div>
                           <p className="spatial-caption text-white/50">
-                            Chiuso il{' '}
+                            {isHelper ? 'Tuo profitto netto · ' : ''}Chiuso il{' '}
                             {new Date(load.closed_at).toLocaleDateString('it-IT', {
                               day: '2-digit',
                               month: 'long',
@@ -786,7 +898,7 @@ export const Storico: React.FC = () => {
                           >
                             {isOpen ? 'Chiudi' : 'Dettagli Snapshot'}
                           </button>
-                          {!isHelper && (
+                          {isAdmin && (
                             <button
                               type="button"
                               onClick={() => !load.is_legacy && setDeleteConfirmLoad(load)}
@@ -828,19 +940,39 @@ export const Storico: React.FC = () => {
                                 </p>
                               ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {(isHelper ? helperSnapshotItems : (load.items_sold_snapshot || [])).map((item, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="spatial-subpanel px-3 py-2 flex items-center justify-between text-xs"
-                                    >
-                                      <span className="text-white font-medium truncate pr-2">
-                                        {item.model_name} · {item.flavor_name}
-                                      </span>
-                                      <span className="spatial-amount text-white/80 shrink-0 font-bold">
-                                        {item.qty} pz · €{Number(item.price).toFixed(2)}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {(isHelper ? helperSnapshotItems : (load.items_sold_snapshot || [])).map((item, idx) => {
+                                    const itemGross = safeNumber(item.qty) * safeNumber(item.price);
+                                    const itemProfit = safeNumber(item.qty) * (safeNumber(item.price) - unitCost);
+
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="spatial-subpanel px-3.5 py-2.5 flex items-center justify-between text-xs gap-2"
+                                      >
+                                        <div className="min-w-0 pr-2">
+                                          <p className="text-white font-medium truncate">
+                                            {item.model_name} · {item.flavor_name}
+                                          </p>
+                                          <p className="text-[11px] text-white/40">
+                                            {item.qty} pz × €{Number(item.price).toFixed(2)}
+                                            {isHelper && ` (Lordo: €${itemGross.toFixed(2)})`}
+                                          </p>
+                                        </div>
+                                        {isHelper ? (
+                                          <div className="text-right shrink-0">
+                                            <span className="spatial-amount text-[#30D158] font-bold block text-sm">
+                                              +{formatEur(itemProfit)}
+                                            </span>
+                                            <span className="text-[10px] text-white/40">tuo profitto</span>
+                                          </div>
+                                        ) : (
+                                          <span className="spatial-amount text-white/80 shrink-0 font-bold">
+                                            {item.qty} pz · €{Number(item.price).toFixed(2)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>

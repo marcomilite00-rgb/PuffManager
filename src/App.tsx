@@ -14,7 +14,6 @@ import { Storico } from './pages/Storico';
 import { Admin } from './pages/Admin';
 import { SiteGatekeeper } from './components/auth/SiteGatekeeper';
 import { AnimatePresence, motion } from 'motion/react';
-import { Analytics } from '@vercel/analytics/react';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -62,7 +61,6 @@ function App() {
           </ToastProvider>
         </AuthProvider>
       </SiteGatekeeper>
-      <Analytics />
     </BrowserRouter>
   );
 }

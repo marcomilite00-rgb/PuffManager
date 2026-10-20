@@ -88,6 +88,56 @@ export const SiteGatekeeper: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, []);
 
+  // Verify passmaster key version across devices
+  useEffect(() => {
+    let isCancelled = false;
+
+    const verifyKeyVersionWithServer = async () => {
+      try {
+        const stored = localStorage.getItem(DEVICE_GATE_TOKEN_KEY);
+        if (!stored) return;
+        const parsed = JSON.parse(stored);
+        if (!parsed.deviceVerified) return;
+
+        const { data: serverVersion, error } = await supabase.rpc('get_site_key_version');
+        if (error || isCancelled) return;
+
+        if (
+          typeof serverVersion === 'number' &&
+          parsed.keyVersion !== undefined &&
+          parsed.keyVersion !== serverVersion
+        ) {
+          try {
+            localStorage.removeItem(DEVICE_GATE_TOKEN_KEY);
+            sessionStorage.removeItem(DEVICE_GATE_TOKEN_KEY);
+          } catch {
+            // Ignore
+          }
+          setIsUnlocked(false);
+          setErrorMessage('Il PIN passmaster è stato modificato dall\'amministratore. Reinserisci la nuova passphrase.');
+          window.dispatchEvent(new CustomEvent('puff:lock-terminal'));
+        }
+      } catch (err) {
+        console.error('Error verifying master key version:', err);
+      }
+    };
+
+    if (isUnlocked) {
+      verifyKeyVersionWithServer();
+      const interval = setInterval(verifyKeyVersionWithServer, 10000);
+      const onFocus = () => void verifyKeyVersionWithServer();
+      window.addEventListener('focus', onFocus);
+      document.addEventListener('visibilitychange', onFocus);
+
+      return () => {
+        isCancelled = true;
+        clearInterval(interval);
+        window.removeEventListener('focus', onFocus);
+        document.removeEventListener('visibilitychange', onFocus);
+      };
+    }
+  }, [isUnlocked]);
+
   // Check brute force cooldown
   const checkBruteForceStatus = useCallback((): number => {
     try {
@@ -179,8 +229,16 @@ export const SiteGatekeeper: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (data === true) {
         clearFailedAttempts();
+        let keyVersion = 1;
+        try {
+          const { data: ver } = await supabase.rpc('get_site_key_version');
+          if (typeof ver === 'number') keyVersion = ver;
+        } catch {
+          // Fallback to default
+        }
         const payload = {
           deviceVerified: true,
+          keyVersion,
           timestamp: Date.now(),
           boundHost: window.location.hostname,
         };

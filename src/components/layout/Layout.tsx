@@ -14,7 +14,6 @@ import {
   X,
   Bell,
   ArrowLeftRight,
-  Lock,
 } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { SwitchOperatorModal } from '../auth/SwitchOperatorModal';
@@ -159,26 +158,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </span>
           </button>
 
-          {/* Lockdown / Stealth Gate */}
+          {/* Esci dal profilo e Blocca Terminale (Singolo tasto unificato) */}
           <button
             type="button"
-            onClick={lockTerminal}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-white/40 hover:text-[#0A84FF] hover:bg-[#0A84FF]/10 transition-colors"
-            aria-label="Blocca Terminale (Stealth Mode)"
-            title="Blocca Terminale (Stealth Mode)"
-          >
-            <Lock size={18} />
-          </button>
-
-          {/* Logout */}
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-white/40 hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors"
-            aria-label="Disconnetti"
-            title="Disconnetti Operatore"
+            onClick={async () => {
+              await logout({ lockGate: true });
+              lockTerminal();
+            }}
+            className="group relative w-11 h-11 rounded-full flex items-center justify-center text-white/40 hover:text-[#FF453A] hover:bg-[#FF453A]/15 border border-transparent hover:border-[#FF453A]/30 transition-all"
+            aria-label="Esci dal profilo e blocca"
+            title="Esci dal profilo e blocca terminale"
           >
             <LogOut size={18} />
+            <span className="absolute left-[72px] px-3 py-1.5 rounded-xl bg-[#14161C]/95 border border-white/20 text-xs font-medium text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 shadow-xl backdrop-blur-md z-50">
+              Esci e blocca
+            </span>
           </button>
         </div>
       </aside>
@@ -285,8 +279,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </div>
                 )}
 
-                {/* Actions: Switch Profile / Lock / Logout */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* Actions: Switch Profile & Esci e blocca (Singolo tasto unificato) */}
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -300,22 +294,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setIsMobileMenuOpen(false);
+                      await logout({ lockGate: true });
                       lockTerminal();
                     }}
-                    className="min-h-[44px] rounded-full text-xs font-semibold bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-[#0A84FF] hover:bg-[#0A84FF]/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 px-2"
-                  >
-                    <Lock size={14} />
-                    <span>Blocca</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void logout()}
                     className="min-h-[44px] rounded-full text-xs font-semibold bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] hover:bg-[#FF453A]/25 transition-all active:scale-95 flex items-center justify-center gap-1.5 px-2"
                   >
                     <LogOut size={14} />
-                    <span>Esci</span>
+                    <span>Esci e blocca</span>
                   </button>
                 </div>
               </motion.div>

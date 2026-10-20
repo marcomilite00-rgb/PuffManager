@@ -15,7 +15,7 @@ import type {
   Order,
   OrderPayment,
 } from '../types/database';
-import { CreditCard, TrendingUp, TrendingDown, Receipt, Users, AlertCircle, X, Info } from 'lucide-react';
+import { CreditCard, TrendingUp, TrendingDown, Receipt, Users, AlertCircle, X, Info, Percent } from 'lucide-react';
 
 interface StaffProfitItem extends Staff {
   qtySold: number;
@@ -33,6 +33,7 @@ export const Cassa: React.FC = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [reminders, setReminders] = useState<ReminderSummary[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [staffShares, setStaffShares] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [selectedStaff, setSelectedStaff] = useState<StaffProfitItem | null>(null);
   const [isMobile, setIsMobile] = useState(() =>
@@ -59,18 +60,26 @@ export const Cassa: React.FC = () => {
 
   const loadInit = useCallback(async () => {
     try {
-      const [oRes, sRes, setRes, rRes] = await Promise.all([
+      const [oRes, sRes, setRes, rRes, sharesRes] = await Promise.all([
         supabase
           .from('orders')
           .select('*, payments(*), items:order_items(*, variant:product_variants(unit_cost))'),
         supabase.from('staff').select('*'),
         supabase.from('settings').select('*').limit(1),
         supabase.from('reminders').select('*, staff:created_by_staff_id(name)').gt('amount_due', 0),
+        supabase.rpc('get_staff_sales_shares'),
       ]);
       if (oRes.data) setOrders(oRes.data);
       if (sRes.data) setStaff(sRes.data);
       if (setRes.data?.[0]) setSettings(setRes.data[0]);
       if (rRes.data) setReminders(rRes.data);
+      if (sharesRes.data && Array.isArray(sharesRes.data)) {
+        const sharesMap: Record<string, number> = {};
+        sharesRes.data.forEach((item: { staff_id: string; percent: number }) => {
+          sharesMap[item.staff_id] = safeNumber(item.percent);
+        });
+        setStaffShares(sharesMap);
+      }
     } catch (e) {
       console.error('Cassa load error', e);
     } finally {
@@ -191,7 +200,7 @@ export const Cassa: React.FC = () => {
     return staff
       .map((s) => {
         const metrics = staffMetricsMap[s.id] || { qtySold: 0, grossSold: 0, cogs: 0, pendingDebt: 0 };
-        const percent = totalQtySold > 0 ? (metrics.qtySold / totalQtySold) * 100 : 0;
+        const percent = staffShares[s.id] ?? (totalQtySold > 0 ? (metrics.qtySold / totalQtySold) * 100 : 0);
         // Margine netto reale: Incasso effettivo venduto - Costo fornitura sostenuto
         const unitProfit = metrics.grossSold - metrics.cogs;
 
@@ -205,21 +214,109 @@ export const Cassa: React.FC = () => {
           pendingDebt: metrics.pendingDebt,
         };
       })
-      .sort((a, b) => b.qtySold - a.qtySold || b.gross - a.gross);
-  }, [orders, staff, settings, reminders]);
+      .sort((a, b) => b.percent - a.percent || b.qtySold - a.qtySold);
+  }, [orders, staff, settings, reminders, staffShares]);
 
   const helperStats = useMemo(() => {
-    return (
-      staffEarningsList.find((s) => s.id === user?.id) || {
+    if (!user?.id) {
+      return {
         qtySold: 0,
         gross: 0,
         cogs: 0,
         unitProfit: 0,
         percent: 0,
         pendingDebt: 0,
+        marginPercent: 0,
+        marginPerUnit: 0,
+      };
+    }
+
+    const lastReset = settings?.last_reset_date ? new Date(settings.last_reset_date) : null;
+    let qtySold = 0;
+    let gross = 0;
+    let cogs = 0;
+    let pendingDebt = 0;
+
+    reminders.forEach((r) => {
+      if (r.created_by_staff_id === user.id) {
+        pendingDebt += safeNumber(r.amount_due);
       }
-    );
-  }, [staffEarningsList, user?.id]);
+    });
+
+    orders.forEach((order) => {
+      if (order.sold_by_staff_id !== user.id) return;
+
+      if (order.created_at) {
+        const orderDate = new Date(order.created_at);
+        if (lastReset && orderDate < lastReset) return;
+      }
+
+      const items = order.items || [];
+      items.forEach((item) => {
+        const q = safeNumber(item.qty);
+        const sellPrice = safeNumber(item.unit_price_final);
+        const buyPrice = safeNumber(item.unit_cost ?? item.variant?.unit_cost ?? 0);
+
+        qtySold += q;
+        gross += q * sellPrice; // prezzo singolo di vendita * pezzi venduti (lordo)
+        cogs += q * buyPrice;   // prezzo singolo di acquisto * pezzi venduti (costo merce)
+      });
+    });
+
+    const unitProfit = gross - cogs; // (prezzo singolo di vendita - prezzo singolo di acquisto) * pezzi venduti (netto)
+    const marginPercent = gross > 0 ? (unitProfit / gross) * 100 : 0;
+    const marginPerUnit = qtySold > 0 ? unitProfit / qtySold : 0;
+    const myShare = staffShares[user.id] ?? 0;
+
+    return {
+      qtySold,
+      gross,
+      cogs,
+      unitProfit,
+      percent: myShare,
+      pendingDebt,
+      marginPercent,
+      marginPerUnit,
+    };
+  }, [orders, settings, reminders, user?.id, staffShares]);
+
+  // Per helper: mostrare tutti i dipendenti nello spartimento guadagni.
+  // Di loro vedono tutto, degli altri vedono solo la percentuale di vendita (il resto è censurato)
+  const displayedStaffList = useMemo(() => {
+    if (isHelper) {
+      return staffEarningsList.map((s) => {
+        const isMe = s.id === user?.id;
+        const sharePercent = staffShares[s.id] ?? s.percent;
+
+        if (isMe) {
+          return {
+            ...s,
+            qtySold: helperStats.qtySold,
+            gross: helperStats.gross,
+            cogs: helperStats.cogs,
+            unitProfit: helperStats.unitProfit,
+            percent: sharePercent,
+            pendingDebt: helperStats.pendingDebt,
+          };
+        }
+
+        // Per gli altri dipendenti: vedono SOLO la percentuale di vendita, il resto è censurato
+        return {
+          ...s,
+          qtySold: 0,
+          gross: 0,
+          cogs: 0,
+          unitProfit: 0,
+          percent: sharePercent,
+          pendingDebt: 0,
+        };
+      });
+    }
+    return staffEarningsList;
+  }, [isHelper, staffEarningsList, user?.id, helperStats, staffShares]);
+
+  // Gli helper possono vedere TUTTI i promemoria di tutti i dipendenti
+  const visibleReminders = reminders;
 
   // Gauge calculation: percentage of gross converted to net, or relative to positive target
   const gaugePercent = useMemo(() => {
@@ -306,11 +403,7 @@ export const Cassa: React.FC = () => {
           {isHelper ? (
             helperStats.unitProfit >= 0 ? (
               <span className="spatial-chip spatial-chip-green text-[11px] sm:text-xs font-semibold py-0.5 sm:py-1 px-2.5 sm:px-3">
-                <TrendingUp size={12} /> Tuo Margine in Attivo (
-                {helperStats.gross > 0
-                  ? ((helperStats.unitProfit / helperStats.gross) * 100).toFixed(0)
-                  : 0}
-                % del venduto)
+                <TrendingUp size={12} /> Margine Medio Attivo: {helperStats.marginPercent.toFixed(1)}% (+€{helperStats.marginPerUnit.toFixed(2)}/pz)
               </span>
             ) : (
               <span className="spatial-chip spatial-chip-red text-[11px] sm:text-xs font-semibold py-0.5 sm:py-1 px-2.5 sm:px-3">
@@ -329,30 +422,30 @@ export const Cassa: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Smart-Home KPI Tiles: Lordo, Spese, (Extra solo per staff/admin) ── */}
-      <div className={cn('grid gap-2 sm:gap-3.5', isHelper ? 'grid-cols-2' : 'grid-cols-3')}>
+      {/* ── Smart-Home KPI Tiles: Lordo, Costo Merce, Netto (o Spese/Extra per admin) ── */}
+      <div className={cn('grid gap-2 sm:gap-3.5', isHelper ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3')}>
         {/* Lordo / Tuo Venduto */}
-        <div className="spatial-tile p-2 sm:p-4 min-h-[72px] sm:min-h-[96px]">
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px]">
           <div className="flex items-center justify-between gap-1">
             <span className="spatial-caption text-[9.5px] sm:text-[11px] truncate">
-              {isHelper ? 'Tuo Venduto' : 'Lordo'}
+              {isHelper ? 'Tuo Venduto (Lordo)' : 'Lordo'}
             </span>
             <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
               <TrendingUp size={13} className="sm:w-[15px] sm:h-[15px]" />
             </div>
           </div>
           <div className="mt-1 sm:mt-2">
-            <p className="spatial-amount text-[15px] sm:text-2xl font-bold tracking-tight">
+            <p className="spatial-amount text-[16px] sm:text-2xl font-bold tracking-tight">
               €{(isHelper ? helperStats.gross : totals.gross).toFixed(2)}
             </p>
             <p className="spatial-footnote text-[11px] opacity-60 hidden sm:block mt-0.5">
-              {isHelper ? 'Lordo incassato' : 'Pagamenti totali'}
+              {isHelper ? `${helperStats.qtySold} pezzi venduti` : 'Pagamenti totali'}
             </p>
           </div>
         </div>
 
-        {/* Spese Carico / Fornitura */}
-        <div className="spatial-tile p-2 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF453A]/20">
+        {/* Costo Merce / Spese */}
+        <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF453A]/20">
           <div className="flex items-center justify-between gap-1">
             <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#FF453A] truncate">
               {isHelper ? 'Costo Merce' : 'Spese'}
@@ -362,18 +455,59 @@ export const Cassa: React.FC = () => {
             </div>
           </div>
           <div className="mt-1 sm:mt-2">
-            <p className="spatial-amount text-[15px] sm:text-2xl font-bold text-[#FF453A] tracking-tight">
+            <p className="spatial-amount text-[16px] sm:text-2xl font-bold text-[#FF453A] tracking-tight">
               €{(isHelper ? helperStats.cogs : totals.spent).toFixed(2)}
             </p>
             <p className="spatial-footnote text-[11px] text-[#FF453A]/70 hidden sm:block mt-0.5">
-              {isHelper ? 'Fornitura tuoi pezzi' : 'Fisse e fornitura'}
+              {isHelper ? 'Prezzo acquisto × pezzi' : 'Fisse e fornitura'}
             </p>
           </div>
         </div>
 
-        {/* Extra Correnti (solo per admin/staff: il netto dell'helper è già nel quadrante centrale) */}
-        {!isHelper && (
-          <div className="spatial-tile p-2 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF9F0A]/20">
+        {/* Netto Helper o Extra Correnti Admin */}
+        {isHelper ? (
+          <>
+            <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#30D158]/20">
+              <div className="flex items-center justify-between gap-1">
+                <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#30D158] truncate">
+                  Tuo Guadagno (Netto)
+                </span>
+                <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#30D158]/15 border border-[#30D158]/30 flex items-center justify-center text-[#30D158] shrink-0">
+                  <TrendingUp size={13} className="sm:w-[15px] sm:h-[15px]" />
+                </div>
+              </div>
+              <div className="mt-1 sm:mt-2">
+                <p className="spatial-amount text-[16px] sm:text-2xl font-bold text-[#30D158] tracking-tight">
+                  {helperStats.unitProfit >= 0 ? '+' : ''}€{helperStats.unitProfit.toFixed(2)}
+                </p>
+                <p className="spatial-footnote text-[11px] text-[#30D158]/70 hidden sm:block mt-0.5">
+                  Lordo - Costo merce
+                </p>
+              </div>
+            </div>
+
+            {/* Tile 4 per Helper: Margine Medio Attivo */}
+            <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#0A84FF]/25 bg-gradient-to-br from-[#0A84FF]/10 to-transparent">
+              <div className="flex items-center justify-between gap-1">
+                <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#0A84FF] font-semibold truncate">
+                  Margine Medio Attivo
+                </span>
+                <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/20 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
+                  <Percent size={13} className="sm:w-[15px] sm:h-[15px]" />
+                </div>
+              </div>
+              <div className="mt-1 sm:mt-2">
+                <p className="spatial-amount text-[16px] sm:text-2xl font-bold text-white tracking-tight">
+                  {helperStats.marginPercent.toFixed(1)}%
+                </p>
+                <p className="spatial-footnote text-[11px] text-[#0A84FF]/90 font-medium hidden sm:block mt-0.5">
+                  +{helperStats.marginPerUnit.toFixed(2)} €/pz medio
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF9F0A]/20">
             <div className="flex items-center justify-between gap-1">
               <span className="spatial-caption text-[9.5px] sm:text-[11px] truncate text-[#FF9F0A]">
                 Extra
@@ -383,7 +517,7 @@ export const Cassa: React.FC = () => {
               </div>
             </div>
             <div className="mt-1 sm:mt-2">
-              <p className="spatial-amount text-[15px] sm:text-2xl font-bold tracking-tight text-[#FF9F0A]">
+              <p className="spatial-amount text-[16px] sm:text-2xl font-bold tracking-tight text-[#FF9F0A]">
                 €{totals.currentLoadExpenses.toFixed(2)}
               </p>
               <p className="spatial-footnote text-[11px] hidden sm:block mt-0.5 text-[#FF9F0A]/70">
@@ -399,14 +533,14 @@ export const Cassa: React.FC = () => {
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-1.5">
-              <Users size={13} /> RIPARTIZIONE STAFF
+              <Users size={13} /> {isHelper ? 'SPARTIMENTO GUADAGNI & QUOTE VENDITA' : 'RIPARTIZIONE STAFF'}
             </h2>
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#30D158]/15 border border-[#30D158]/30 text-[#30D158]">
               Modello Unit Profit
             </span>
           </div>
           <span className="spatial-caption text-white/40">
-            {staffEarningsList.length} Membri attivi
+            {isHelper ? `${displayedStaffList.length} Membri (i tuoi dati in chiaro, altri censurati)` : `${staffEarningsList.length} Membri attivi`}
           </span>
         </div>
 
@@ -414,13 +548,13 @@ export const Cassa: React.FC = () => {
           {/* Desktop Column Header Bar: 12-Column Unified Grid */}
           <div className="hidden md:grid grid-cols-12 items-center px-6 py-2.5 text-[11px] font-semibold text-white/40 uppercase tracking-wider bg-white/[0.02] border-b border-white/5 gap-3">
             <span className="col-span-4">Operatore</span>
-            <span className="col-span-2 text-right">Pezzi (Quota)</span>
-            <span className="col-span-2 text-right">Venduto</span>
+            <span className="col-span-2 text-right">Pezzi</span>
+            <span className="col-span-2 text-right">Venduto (Lordo)</span>
             <span className="col-span-2 text-right">Costo Merce</span>
             <span className="col-span-2 text-right text-[#30D158] font-bold">Margine Netto</span>
           </div>
 
-          {staffEarningsList.map((s) => {
+          {displayedStaffList.map((s) => {
             const isMe = s.id === user?.id;
             const canViewDetails = !isHelper || isMe;
 
@@ -434,7 +568,7 @@ export const Cassa: React.FC = () => {
                   'spatial-row px-3.5 sm:px-6 py-2.5 sm:py-3.5 transition-all group',
                   canViewDetails
                     ? 'cursor-pointer hover:bg-white/[0.04] active:scale-[0.99]'
-                    : 'cursor-default'
+                    : 'cursor-default opacity-80'
                 )}
                 title={canViewDetails ? `Clicca per vedere i dettagli contabili di ${s.name}` : undefined}
               >
@@ -468,14 +602,25 @@ export const Cassa: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 2. Pezzi & Quota (visibili a tutti, inclusi gli helper) */}
+                  {/* 2. Pezzi & Quota (per altri: solo percentuale, pezzi censurati) */}
                   <div className="col-span-2 text-right">
-                    <span className="spatial-amount text-sm font-semibold text-white block">
-                      {s.qtySold} pz
-                    </span>
-                    <span className="text-[11px] text-white/40 block">
-                      {s.percent.toFixed(0)}% quota
-                    </span>
+                    {canViewDetails ? (
+                      <>
+                        <span className="spatial-amount text-sm font-semibold text-white block">
+                          {s.qtySold} pz
+                        </span>
+                        <span className="text-[11px] text-white/40 block">
+                          {s.percent.toFixed(1)}% quota
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-white/20 font-mono block">••••</span>
+                        <span className="text-[11px] text-[#0A84FF] font-semibold block">
+                          {s.percent.toFixed(1)}% quota
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   {/* 3. Venduto Lordo */}
@@ -520,14 +665,14 @@ export const Cassa: React.FC = () => {
                           {s.unitProfit >= 0 ? '+' : ''}€{s.unitProfit.toFixed(2)}
                         </span>
                         <p className="text-[11px] text-white/50 mt-0.5 tracking-normal font-medium">
-                          {s.percent.toFixed(0)}%
+                          {s.percent.toFixed(1)}%
                         </p>
                       </>
                     ) : (
                       <>
                         <span className="text-sm text-white/20 font-mono block">••••</span>
-                        <p className="text-[11px] text-[#30D158] mt-0.5 tracking-normal font-semibold">
-                          {s.percent.toFixed(0)}% quota
+                        <p className="text-[11px] text-[#0A84FF] mt-0.5 tracking-normal font-semibold">
+                          {s.percent.toFixed(1)}% quota
                         </p>
                       </>
                     )}
@@ -567,14 +712,14 @@ export const Cassa: React.FC = () => {
                           {s.unitProfit >= 0 ? '+' : ''}€{s.unitProfit.toFixed(2)}
                         </span>
                         <p className="text-[10px] text-white/50 mt-0.5">
-                          {s.qtySold} pz · {s.percent.toFixed(0)}%
+                          {s.qtySold} pz · {s.percent.toFixed(1)}%
                         </p>
                       </>
                     ) : (
                       <>
                         <span className="text-sm text-white/20 font-mono block">••••</span>
-                        <p className="text-[10px] text-[#30D158] font-semibold mt-0.5">
-                          {s.qtySold} pz · {s.percent.toFixed(0)}%
+                        <p className="text-[11px] text-[#0A84FF] font-semibold mt-0.5">
+                          {s.percent.toFixed(1)}% quota
                         </p>
                       </>
                     )}
@@ -583,7 +728,7 @@ export const Cassa: React.FC = () => {
               </div>
             );
           })}
-          {staffEarningsList.length === 0 && (
+          {displayedStaffList.length === 0 && (
             <p className="spatial-footnote p-6 text-center text-white/40">
               Nessun dato registrato per lo staff nella sessione corrente
             </p>
@@ -592,11 +737,11 @@ export const Cassa: React.FC = () => {
       </section>
 
       {/* ── Sospesi / Debiti da Incassare ── */}
-      {reminders.length > 0 && (
+      {visibleReminders.length > 0 && (
         <section className="space-y-1.5 sm:space-y-2">
           <div className="flex items-center justify-between px-1">
             <h2 className="spatial-caption text-white/60 tracking-wider font-semibold flex items-center gap-1.5">
-              <AlertCircle size={13} className="text-[#FF453A]" /> SOSPESI · {reminders.length}
+              <AlertCircle size={13} className="text-[#FF453A]" /> SOSPESI · {visibleReminders.length}
             </h2>
             <span className="spatial-caption text-white/40">
               In attesa di saldo
@@ -604,7 +749,7 @@ export const Cassa: React.FC = () => {
           </div>
 
           <div className="spatial-panel p-0 overflow-hidden divide-y divide-white/10">
-            {reminders.map((d) => (
+            {visibleReminders.map((d) => (
               <div
                 key={d.id}
                 className="spatial-row px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3 min-h-[48px] sm:min-h-[54px]"

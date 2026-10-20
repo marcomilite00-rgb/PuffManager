@@ -181,9 +181,19 @@ export const Admin: React.FC = () => {
       if (error) {
         showToast(error.message, 'error');
       } else {
-        showToast('Password Master del sito aggiornata con successo', 'success');
+        showToast('PIN Passmaster aggiornato. Disconnessione di tutti i dispositivi in corso...', 'success');
         setNewSitePass('');
         setConfirmSitePass('');
+        setTimeout(() => {
+          try {
+            localStorage.removeItem('puff_terminal_device_token');
+            sessionStorage.removeItem('puff_terminal_device_token');
+          } catch {
+            // Ignore
+          }
+          window.dispatchEvent(new CustomEvent('puff:lock-terminal'));
+          lockTerminal();
+        }, 1200);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Errore aggiornamento chiave';
