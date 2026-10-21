@@ -34,6 +34,7 @@ export const Cassa: React.FC = () => {
   const [reminders, setReminders] = useState<ReminderSummary[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [staffShares, setStaffShares] = useState<Record<string, number>>({});
+  const [staffSummaries, setStaffSummaries] = useState<Record<string, { qtySold: number; percent: number }>>({});
   const [loading, setLoading] = useState(true);
   const [selectedStaff, setSelectedStaff] = useState<StaffProfitItem | null>(null);
   const [isMobile, setIsMobile] = useState(() =>
@@ -60,24 +61,29 @@ export const Cassa: React.FC = () => {
 
   const loadInit = useCallback(async () => {
     try {
-      const [oRes, sRes, setRes, rRes, sharesRes] = await Promise.all([
+      const [oRes, sRes, setRes, rRes, summaryRes] = await Promise.all([
         supabase
           .from('orders')
           .select('*, payments(*), items:order_items(*, variant:product_variants(unit_cost))'),
         supabase.from('staff').select('*'),
         supabase.from('settings').select('*').limit(1),
         supabase.from('reminders').select('*, staff:created_by_staff_id(name)').gt('amount_due', 0),
-        supabase.rpc('get_staff_sales_shares'),
+        supabase.rpc('get_staff_sales_summary'),
       ]);
       if (oRes.data) setOrders(oRes.data);
       if (sRes.data) setStaff(sRes.data);
       if (setRes.data?.[0]) setSettings(setRes.data[0]);
       if (rRes.data) setReminders(rRes.data);
-      if (sharesRes.data && Array.isArray(sharesRes.data)) {
+      if (summaryRes.data && Array.isArray(summaryRes.data)) {
+        const summariesMap: Record<string, { qtySold: number; percent: number }> = {};
         const sharesMap: Record<string, number> = {};
-        sharesRes.data.forEach((item: { staff_id: string; percent: number }) => {
-          sharesMap[item.staff_id] = safeNumber(item.percent);
+        summaryRes.data.forEach((item: { staff_id: string; qty_sold?: number; percent: number }) => {
+          const qty = safeNumber(item.qty_sold);
+          const pct = safeNumber(item.percent);
+          summariesMap[item.staff_id] = { qtySold: qty, percent: pct };
+          sharesMap[item.staff_id] = pct;
         });
+        setStaffSummaries(summariesMap);
         setStaffShares(sharesMap);
       }
     } catch (e) {
@@ -128,7 +134,7 @@ export const Cassa: React.FC = () => {
 
   const staffEarningsList = useMemo(() => {
     if (!staff.length) return [];
-    
+
     // Mappa di accumulo per operatore: quantità, lordo venduto effettivo, cogs e crediti sospesi
     const staffMetricsMap: {
       [key: string]: {
@@ -281,12 +287,14 @@ export const Cassa: React.FC = () => {
   }, [orders, settings, reminders, user?.id, staffShares]);
 
   // Per helper: mostrare tutti i dipendenti nello spartimento guadagni.
-  // Di loro vedono tutto, degli altri vedono solo la percentuale di vendita (il resto è censurato)
+  // Di loro vedono tutto, degli altri vedono i PEZZI VENDUTI e la percentuale di vendita (il resto è censurato)
   const displayedStaffList = useMemo(() => {
     if (isHelper) {
       return staffEarningsList.map((s) => {
         const isMe = s.id === user?.id;
-        const sharePercent = staffShares[s.id] ?? s.percent;
+        const summary = staffSummaries[s.id];
+        const sharePercent = summary?.percent ?? staffShares[s.id] ?? s.percent;
+        const piecesSold = isMe ? helperStats.qtySold : (summary?.qtySold ?? s.qtySold);
 
         if (isMe) {
           return {
@@ -300,10 +308,10 @@ export const Cassa: React.FC = () => {
           };
         }
 
-        // Per gli altri dipendenti: vedono SOLO la percentuale di vendita, il resto è censurato
+        // Per gli altri dipendenti: vedono i PEZZI VENDUTI e la percentuale di vendita, il resto è censurato
         return {
           ...s,
-          qtySold: 0,
+          qtySold: piecesSold,
           gross: 0,
           cogs: 0,
           unitProfit: 0,
@@ -313,7 +321,7 @@ export const Cassa: React.FC = () => {
       });
     }
     return staffEarningsList;
-  }, [isHelper, staffEarningsList, user?.id, helperStats, staffShares]);
+  }, [isHelper, staffEarningsList, user?.id, helperStats, staffShares, staffSummaries]);
 
   // Gli helper possono vedere TUTTI i promemoria di tutti i dipendenti
   const visibleReminders = reminders;
@@ -422,8 +430,8 @@ export const Cassa: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Smart-Home KPI Tiles: Lordo, Costo Merce, Netto (o Spese/Extra per admin) ── */}
-      <div className={cn('grid gap-2 sm:gap-3.5', isHelper ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3')}>
+      {/* ── Smart-Home KPI Tiles: Lordo, Costo Merce, Margine Medio (o Spese/Extra per admin) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3.5">
         {/* Lordo / Tuo Venduto */}
         <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px]">
           <div className="flex items-center justify-between gap-1">
@@ -464,48 +472,26 @@ export const Cassa: React.FC = () => {
           </div>
         </div>
 
-        {/* Netto Helper o Extra Correnti Admin */}
+        {/* 3° Tile: Margine Medio Attivo (Helper) o Extra Correnti (Admin) */}
         {isHelper ? (
-          <>
-            <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#30D158]/20">
-              <div className="flex items-center justify-between gap-1">
-                <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#30D158] truncate">
-                  Tuo Guadagno (Netto)
-                </span>
-                <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#30D158]/15 border border-[#30D158]/30 flex items-center justify-center text-[#30D158] shrink-0">
-                  <TrendingUp size={13} className="sm:w-[15px] sm:h-[15px]" />
-                </div>
-              </div>
-              <div className="mt-1 sm:mt-2">
-                <p className="spatial-amount text-[16px] sm:text-2xl font-bold text-[#30D158] tracking-tight">
-                  {helperStats.unitProfit >= 0 ? '+' : ''}€{helperStats.unitProfit.toFixed(2)}
-                </p>
-                <p className="spatial-footnote text-[11px] text-[#30D158]/70 hidden sm:block mt-0.5">
-                  Lordo - Costo merce
-                </p>
+          <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#0A84FF]/25 bg-gradient-to-br from-[#0A84FF]/10 to-transparent">
+            <div className="flex items-center justify-between gap-1">
+              <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#0A84FF] font-semibold truncate">
+                Margine Medio Attivo
+              </span>
+              <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/20 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
+                <Percent size={13} className="sm:w-[15px] sm:h-[15px]" />
               </div>
             </div>
-
-            {/* Tile 4 per Helper: Margine Medio Attivo */}
-            <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#0A84FF]/25 bg-gradient-to-br from-[#0A84FF]/10 to-transparent">
-              <div className="flex items-center justify-between gap-1">
-                <span className="spatial-caption text-[9.5px] sm:text-[11px] text-[#0A84FF] font-semibold truncate">
-                  Margine Medio Attivo
-                </span>
-                <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full bg-[#0A84FF]/20 border border-[#0A84FF]/30 flex items-center justify-center text-[#0A84FF] shrink-0">
-                  <Percent size={13} className="sm:w-[15px] sm:h-[15px]" />
-                </div>
-              </div>
-              <div className="mt-1 sm:mt-2">
-                <p className="spatial-amount text-[16px] sm:text-2xl font-bold text-white tracking-tight">
-                  {helperStats.marginPercent.toFixed(1)}%
-                </p>
-                <p className="spatial-footnote text-[11px] text-[#0A84FF]/90 font-medium hidden sm:block mt-0.5">
-                  +{helperStats.marginPerUnit.toFixed(2)} €/pz medio
-                </p>
-              </div>
+            <div className="mt-1 sm:mt-2">
+              <p className="spatial-amount text-[16px] sm:text-2xl font-bold text-white tracking-tight">
+                {helperStats.marginPercent.toFixed(1)}%
+              </p>
+              <p className="spatial-footnote text-[11px] text-[#0A84FF]/90 font-medium hidden sm:block mt-0.5">
+                +{helperStats.marginPerUnit.toFixed(2)} €/pz medio
+              </p>
             </div>
-          </>
+          </div>
         ) : (
           <div className="spatial-tile p-2.5 sm:p-4 min-h-[72px] sm:min-h-[96px] border-[#FF9F0A]/20">
             <div className="flex items-center justify-between gap-1">
@@ -602,25 +588,14 @@ export const Cassa: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 2. Pezzi & Quota (per altri: solo percentuale, pezzi censurati) */}
+                  {/* 2. Pezzi & Quota (visibile a tutti i membri, staff, helper e admin) */}
                   <div className="col-span-2 text-right">
-                    {canViewDetails ? (
-                      <>
-                        <span className="spatial-amount text-sm font-semibold text-white block">
-                          {s.qtySold} pz
-                        </span>
-                        <span className="text-[11px] text-white/40 block">
-                          {s.percent.toFixed(1)}% quota
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-sm text-white/20 font-mono block">••••</span>
-                        <span className="text-[11px] text-[#0A84FF] font-semibold block">
-                          {s.percent.toFixed(1)}% quota
-                        </span>
-                      </>
-                    )}
+                    <span className="spatial-amount text-sm font-semibold text-white block">
+                      {s.qtySold} pz
+                    </span>
+                    <span className={cn('text-[11px] block', canViewDetails ? 'text-white/40' : 'text-[#0A84FF] font-semibold')}>
+                      {s.percent.toFixed(1)}% quota
+                    </span>
                   </div>
 
                   {/* 3. Venduto Lordo */}
@@ -719,7 +694,7 @@ export const Cassa: React.FC = () => {
                       <>
                         <span className="text-sm text-white/20 font-mono block">••••</span>
                         <p className="text-[11px] text-[#0A84FF] font-semibold mt-0.5">
-                          {s.percent.toFixed(1)}% quota
+                          {s.qtySold} pz · {s.percent.toFixed(1)}%
                         </p>
                       </>
                     )}
