@@ -56,13 +56,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (session) {
                     const { data: staffSession, error } = await supabase
                         .from('staff_sessions')
-                        .select('staff_id, pin_version, staff:staff(id, name, role, pin_version)')
+                        .select('staff_id, pin_version, expires_at, staff:staff(id, name, role, pin_version)')
                         .eq('auth_uid', session.user.id)
                         .is('revoked_at', null)
                         .single();
 
                     if (error || !staffSession?.staff) {
-                        if (active) await logout();
+                        if (active) await logout({ lockGate: false });
+                        return;
+                    }
+
+                    // Check expiration in DB
+                    if (staffSession.expires_at && new Date(staffSession.expires_at).getTime() < Date.now()) {
+                        if (active) await logout({ lockGate: false });
                         return;
                     }
 
@@ -70,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                     if (staffSession.pin_version !== null &&
                         staffSession.pin_version !== staff.pin_version) {
-                        if (active) await logout();
+                        if (active) await logout({ lockGate: false });
                         return;
                     }
 

@@ -115,7 +115,14 @@ export const SwitchOperatorModal: React.FC<SwitchOperatorModalProps> = ({
         showToast(`Passato al profilo di ${staff.name.toUpperCase()} (Admin)`, 'success');
         onClose();
       } catch (err) {
-        showToast(getErrorMessage(err, 'Errore nel cambio profilo'), 'error');
+        const errorMsg = getErrorMessage(err, 'Errore nel cambio profilo');
+        showToast(errorMsg, 'error');
+        // If server rejected admin switch (e.g. session expired or desynchronized), fallback to PIN entry
+        if (errorMsg.includes('Access Denied') || errorMsg.includes('amministratori')) {
+          setSelectedStaff(staff);
+          setPin('');
+          setError('Sessione operatore scaduta o non sincronizzata. Inserisci il PIN per accedere.');
+        }
       } finally {
         setLoading(false);
       }
